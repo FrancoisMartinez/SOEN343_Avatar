@@ -4,7 +4,6 @@ hide circle
 skinparam nodesep 75
 skinparam ranksep 50
 
-' --- USER ROLES ---
 class User {
     +fullName
     +email
@@ -23,11 +22,11 @@ class Instructor {
     +yearsLicensed
     +travelRadius
     +rating
-    +rate
+    +hourlyRate
 }
 
 class CarProvider {
-    +rate
+    +contactInfo
 }
 
 User <|-- Learner
@@ -40,6 +39,7 @@ class Car {
     +location
     +isAvailable
     +accessibilityFeatures
+    +hourlyRate
 }
 
 class Booking {
