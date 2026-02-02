@@ -1,0 +1,58 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide circle
+skinparam linetype ortho
+
+class User {
+    +fullName: String
+    +email: String
+    +licenseNumber: String
+    +licenseIssueDate: Date
+    +licenseRegion: String
+}
+
+class Learner {
+    +experienceLevel: String
+    +preferences: String
+}
+
+class Instructor {
+    +yearsLicensed: int
+    +travelRadius: float
+    +rating: float
+}
+
+class CarProvider {
+    +reliabilityScore: float
+}
+
+class Car {
+    +makeModel: String
+    +transmissionType: String
+    +location: String
+    +isAvailable: boolean
+}
+
+class Booking {
+    +startTime: DateTime
+    +endTime: DateTime
+    +status: String
+    +pickupLocation: String
+}
+
+class Route {
+    +pathData: String
+    +estimatedTime: int
+}
+
+User <|-- Learner
+User <|-- Instructor
+User <|-- CarProvider
+
+CarProvider "1" -- "0..*" Car : owns/lists >
+Learner "1" -- "0..*" Booking : schedules >
+Instructor "1" -- "0..*" Booking : supervises >
+Car "1" -- "0..*" Booking : used_in >
+Booking "1" -- "1" Route : follows >
+
+@enduml
