@@ -1,58 +1,75 @@
 @startuml
 skinparam classAttributeIconSize 0
 hide circle
-skinparam linetype ortho
+skinparam nodesep 75
+skinparam ranksep 50
 
+' --- USER ROLES ---
 class User {
-    +fullName: String
-    +email: String
-    +licenseNumber: String
-    +licenseIssueDate: Date
-    +licenseRegion: String
+    +fullName
+    +email
+    +licenseNumber
+    +licenseIssueDate
+    +licenseRegion
 }
 
 class Learner {
-    +experienceLevel: String
-    +preferences: String
+    +experienceLevel
+    +preferences
+    +age
 }
 
 class Instructor {
-    +yearsLicensed: int
-    +travelRadius: float
-    +rating: float
+    +yearsLicensed
+    +travelRadius
+    +rating
+    +rate
 }
 
 class CarProvider {
-    +reliabilityScore: float
-}
-
-class Car {
-    +makeModel: String
-    +transmissionType: String
-    +location: String
-    +isAvailable: boolean
-}
-
-class Booking {
-    +startTime: DateTime
-    +endTime: DateTime
-    +status: String
-    +pickupLocation: String
-}
-
-class Route {
-    +pathData: String
-    +estimatedTime: int
+    +rate
 }
 
 User <|-- Learner
 User <|-- Instructor
 User <|-- CarProvider
 
-CarProvider "1" -- "0..*" Car : owns/lists >
-Learner "1" -- "0..*" Booking : schedules >
-Instructor "1" -- "0..*" Booking : supervises >
-Car "1" -- "0..*" Booking : used_in >
-Booking "1" -- "1" Route : follows >
+class Car {
+    +makeModel
+    +transmissionType
+    +location
+    +isAvailable
+    +accessibilityFeatures
+}
+
+class Booking {
+    +startTime
+    +endTime
+    +status
+    +pickupLocation
+}
+
+class DrivingRoute {
+    +pathData
+    +estimatedTime
+}
+
+class TransitRoute {
+    +transitMode
+    +departureTime
+    +arrivalLocation
+    +walkingDistance
+}
+
+
+Learner "1" -down-> "0..*" Booking : schedules
+Instructor "1" -down-> "0..*" Booking : supervises
+Car "1" -right-> "0..*" Booking : utilizes
+
+CarProvider "1" -down-> "0..*" Car : provides
+
+Booking "1" -down-> "1" DrivingRoute : follows
+Learner "1" -left-> "0..1" TransitRoute : reaches car via
+Instructor "1" -right-> "0..1" TransitRoute : reaches car via
 
 @enduml
