@@ -9,4 +9,20 @@ public class CarProvider extends User {
 
     @OneToMany(mappedBy = "provider")
     private List<Car> cars;
+
+    public String getContactInfo() {
+        return contactInfo;
+    }
+
+    public void setContactInfo(String contactInfo) {
+        this.contactInfo = contactInfo;
+    }
+
+    public List<Car> getCars() {
+        return cars;
+    }
+
+    public void setCars(List<Car> cars) {
+        this.cars = cars;
+    }
 }
