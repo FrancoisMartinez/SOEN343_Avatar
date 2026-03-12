@@ -1,6 +1,12 @@
 import { useState } from 'react';
 
-type Role = 'LEARNER' | 'INSTRUCTOR';
+type Role = 'LEARNER' | 'INSTRUCTOR' | 'CAR_RENTER';
+
+const ROLES: { value: Role; label: string; description: string }[] = [
+  { value: 'LEARNER',    label: 'Learner',     description: 'I want to book rides or driving lessons' },
+  { value: 'INSTRUCTOR', label: 'Instructor',   description: 'I teach driving lessons' },
+  { value: 'CAR_RENTER', label: 'Car Renter',   description: 'I rent out my car to others' },
+];
 
 interface RegisterFormProps {
   onError: (msg: string) => void;
@@ -13,7 +19,28 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<Role>('LEARNER');
+  const [roles, setRoles] = useState<Set<Role>>(new Set(['LEARNER']));
+
+  const toggleRole = (role: Role) => {
+    setRoles((prev) => {
+      const updated = new Set(prev);
+
+      if (updated.has(role)) {
+        updated.delete(role);
+      } else {
+        // Learner is exclusive — cannot be combined with other roles
+        if (role === 'LEARNER') {
+          updated.clear();
+        } else {
+          // If adding Instructor or Car Renter, remove Learner
+          updated.delete('LEARNER');
+        }
+        updated.add(role);
+      }
+
+      return updated;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +62,13 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
       return;
     }
 
+    if (roles.size === 0) {
+      onError('Please select at least one role.');
+      return;
+    }
+
     // TODO: connect to backend
-    onSuccess(`Account created for ${email} as ${role}`);
+    onSuccess(`Account created for ${email} as ${[...roles].join(', ')}`);
   };
 
   return (
@@ -91,22 +123,25 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
         className="auth-input"
       />
 
-      <label className="auth-label">I am a...</label>
-      <div className="auth-role-row">
-        <button
-          type="button"
-          onClick={() => setRole('LEARNER')}
-          className={`auth-role-btn ${role === 'LEARNER' ? 'auth-role-btn--active' : ''}`}
-        >
-          Learner
-        </button>
-        <button
-          type="button"
-          onClick={() => setRole('INSTRUCTOR')}
-          className={`auth-role-btn ${role === 'INSTRUCTOR' ? 'auth-role-btn--active' : ''}`}
-        >
-          Instructor
-        </button>
+      <label className="auth-label">I am a... (select all that apply)</label>
+      <div className="auth-role-list">
+        {ROLES.map(({ value, label, description }) => (
+          <label
+            key={value}
+            className={`auth-role-option ${roles.has(value) ? 'auth-role-option--active' : ''}`}
+          >
+            <input
+              type="checkbox"
+              checked={roles.has(value)}
+              onChange={() => toggleRole(value)}
+              className="auth-role-checkbox"
+            />
+            <div>
+              <span className="auth-role-option-title">{label}</span>
+              <span className="auth-role-option-desc">{description}</span>
+            </div>
+          </label>
+        ))}
       </div>
 
       <button type="submit" className="auth-submit-btn">
