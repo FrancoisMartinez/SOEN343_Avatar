@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
-type Role = 'LEARNER' | 'INSTRUCTOR' | 'CAR_RENTER';
+type Role = 'LEARNER' | 'INSTRUCTOR' | 'CAR_PROVIDER';
 
 const ROLES: { value: Role; label: string; description: string }[] = [
   { value: 'LEARNER',    label: 'Learner',     description: 'I want to book rides or driving lessons' },
   { value: 'INSTRUCTOR', label: 'Instructor',   description: 'I teach driving lessons' },
-  { value: 'CAR_RENTER', label: 'Car Renter',   description: 'I rent out my car to others' },
+  { value: 'CAR_PROVIDER', label: 'Car Provider', description: 'I provide my car to others' },
 ];
 
 interface RegisterFormProps {
@@ -32,7 +32,7 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
         if (role === 'LEARNER') {
           updated.clear();
         } else {
-          // If adding Instructor or Car Renter, remove Learner
+          // If adding Instructor or Car Provider, remove Learner
           updated.delete('LEARNER');
         }
         updated.add(role);
