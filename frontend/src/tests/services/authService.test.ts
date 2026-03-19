@@ -2,8 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loginUser, registerUser } from '../../services/authService';
 
 describe('authService', () => {
+  const originalFetch = globalThis.fetch;
+
   afterEach(() => {
     vi.restoreAllMocks();
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: originalFetch,
+    });
   });
 
   it('loginUser returns data on successful response', async () => {
@@ -15,7 +22,11 @@ describe('authService', () => {
       json: vi.fn().mockResolvedValue(responseData),
     });
 
-    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
 
     await expect(loginUser(payload)).resolves.toEqual(responseData);
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', {
@@ -36,10 +47,14 @@ describe('authService', () => {
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'Email already registered' }),
+      text: vi.fn().mockResolvedValue('{"error":"Email already registered"}'),
     });
 
-    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
 
     await expect(registerUser(payload)).rejects.toThrow('Email already registered');
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/register', {
