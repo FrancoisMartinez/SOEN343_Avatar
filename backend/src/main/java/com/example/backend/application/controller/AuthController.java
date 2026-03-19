@@ -27,7 +27,10 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(errorBody(e.getMessage(), "Invalid credentials"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorBody(e.getMessage(), "Login failed"));
         }
     }
 
@@ -38,7 +41,17 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(errorBody(e.getMessage(), "Registration failed"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorBody(e.getMessage(), "Registration failed"));
         }
+    }
+
+    private Map<String, String> errorBody(String message, String fallback) {
+        if (message == null || message.isBlank()) {
+            return Map.of("error", fallback);
+        }
+        return Map.of("error", message);
     }
 }

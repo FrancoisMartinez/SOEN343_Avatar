@@ -44,6 +44,8 @@ node_modules
 dist
 dist-ssr
 *.local
+coverage/
+frontend/coverage/
 
 # Editor directories and files
 .vscode/*
