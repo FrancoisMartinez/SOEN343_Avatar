@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   onError: (msg: string) => void;
@@ -8,8 +10,11 @@ interface LoginFormProps {
 export default function LoginForm({ onError, onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     onError('');
     onSuccess('');
@@ -19,8 +24,17 @@ export default function LoginForm({ onError, onSuccess }: LoginFormProps) {
       return;
     }
 
-    // TODO: connect to backend
-    onSuccess(`Logged in as ${email}`);
+    setLoading(true);
+    try {
+      await login({ email, password });
+      onSuccess('Login successful!');
+      navigate('/');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed';
+      onError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,8 +57,8 @@ export default function LoginForm({ onError, onSuccess }: LoginFormProps) {
         className="auth-input"
       />
 
-      <button type="submit" className="auth-submit-btn">
-        Login
+      <button type="submit" className="auth-submit-btn" disabled={loading}>
+        {loading ? 'Logging in...' : 'Login'}
       </button>
     </form>
   );

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 type Role = 'LEARNER' | 'INSTRUCTOR' | 'CAR_PROVIDER';
 
@@ -20,6 +22,9 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [roles, setRoles] = useState<Set<Role>>(new Set(['LEARNER']));
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
   const toggleRole = (role: Role) => {
     setRoles((prev) => {
@@ -28,11 +33,9 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
       if (updated.has(role)) {
         updated.delete(role);
       } else {
-        // Learner is exclusive — cannot be combined with other roles
         if (role === 'LEARNER') {
           updated.clear();
         } else {
-          // If adding Instructor or Car Provider, remove Learner
           updated.delete('LEARNER');
         }
         updated.add(role);
@@ -42,7 +45,7 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     onError('');
     onSuccess('');
@@ -67,8 +70,23 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
       return;
     }
 
-    // TODO: connect to backend
-    onSuccess(`Account created for ${email} as ${[...roles].join(', ')}`);
+    setLoading(true);
+    try {
+      await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        roles: [...roles],
+      });
+      onSuccess('Account created successfully!');
+      navigate('/');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      onError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -144,8 +162,8 @@ export default function RegisterForm({ onError, onSuccess }: RegisterFormProps) 
         ))}
       </div>
 
-      <button type="submit" className="auth-submit-btn">
-        Create Account
+      <button type="submit" className="auth-submit-btn" disabled={loading}>
+        {loading ? 'Creating Account...' : 'Create Account'}
       </button>
     </form>
   );
