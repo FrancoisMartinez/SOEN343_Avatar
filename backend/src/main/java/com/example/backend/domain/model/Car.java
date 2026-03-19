@@ -13,7 +13,6 @@ public class Car {
     private String transmissionType;
     private String location;
     private boolean isAvailable;
-    private String accessibilityFeatures;
     private double hourlyRate;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -62,14 +61,6 @@ public class Car {
 
     public void setAvailable(boolean available) {
         isAvailable = available;
-    }
-
-    public String getAccessibilityFeatures() {
-        return accessibilityFeatures;
-    }
-
-    public void setAccessibilityFeatures(String accessibilityFeatures) {
-        this.accessibilityFeatures = accessibilityFeatures;
     }
 
     public double getHourlyRate() {

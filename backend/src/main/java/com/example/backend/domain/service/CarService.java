@@ -41,7 +41,6 @@ public class CarService {
         car.setTransmissionType(request.getTransmissionType());
         car.setLocation(request.getLocation());
         car.setAvailable(request.isAvailable());
-        car.setAccessibilityFeatures(request.getAccessibilityFeatures());
         car.setHourlyRate(request.getHourlyRate());
         car.setProvider(provider);
 
@@ -60,7 +59,6 @@ public class CarService {
         car.setTransmissionType(request.getTransmissionType());
         car.setLocation(request.getLocation());
         car.setAvailable(request.isAvailable());
-        car.setAccessibilityFeatures(request.getAccessibilityFeatures());
         car.setHourlyRate(request.getHourlyRate());
 
         Car saved = carRepository.save(car);
@@ -87,8 +85,6 @@ public class CarService {
                 car.getTransmissionType(),
                 car.getLocation(),
                 car.isAvailable(),
-                car.getAccessibilityFeatures(),
-                car.getHourlyRate()
-        );
+                car.getHourlyRate());
     }
 }

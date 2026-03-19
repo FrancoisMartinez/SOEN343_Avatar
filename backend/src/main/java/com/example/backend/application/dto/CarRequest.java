@@ -5,10 +5,10 @@ public class CarRequest {
     private String transmissionType;
     private String location;
     private boolean available;
-    private String accessibilityFeatures;
     private double hourlyRate;
 
-    public CarRequest() {}
+    public CarRequest() {
+    }
 
     // --- Getters & Setters ---
 
@@ -42,14 +42,6 @@ public class CarRequest {
 
     public void setAvailable(boolean available) {
         this.available = available;
-    }
-
-    public String getAccessibilityFeatures() {
-        return accessibilityFeatures;
-    }
-
-    public void setAccessibilityFeatures(String accessibilityFeatures) {
-        this.accessibilityFeatures = accessibilityFeatures;
     }
 
     public double getHourlyRate() {

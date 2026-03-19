@@ -6,7 +6,6 @@ export interface CarData {
   transmissionType: string;
   location: string;
   available: boolean;
-  accessibilityFeatures: string;
   hourlyRate: number;
 }
 

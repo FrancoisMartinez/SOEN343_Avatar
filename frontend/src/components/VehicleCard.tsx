@@ -32,12 +32,6 @@ export default function VehicleCard({ car, onEdit, onDelete }: VehicleCardProps)
           <span className="vehicle-card__label">Rate</span>
           <span className="vehicle-card__value">${car.hourlyRate.toFixed(2)}/hr</span>
         </div>
-        {car.accessibilityFeatures && (
-          <div className="vehicle-card__detail">
-            <span className="vehicle-card__label">Accessibility</span>
-            <span className="vehicle-card__value">{car.accessibilityFeatures}</span>
-          </div>
-        )}
       </div>
 
       <div className="vehicle-card__actions">

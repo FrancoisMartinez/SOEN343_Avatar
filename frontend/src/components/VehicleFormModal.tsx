@@ -8,17 +8,18 @@ interface VehicleFormModalProps {
   onSubmit: (data: Omit<CarData, 'id'>) => void;
 }
 
-const emptyForm: Omit<CarData, 'id'> = {
+type VehicleFormData = Omit<CarData, 'id' | 'hourlyRate'> & { hourlyRate: number | '' };
+
+const emptyForm: VehicleFormData = {
   makeModel: '',
   transmissionType: 'AUTOMATIC',
   location: '',
   available: true,
-  accessibilityFeatures: '',
-  hourlyRate: 0,
+  hourlyRate: '',
 };
 
 export default function VehicleFormModal({ isOpen, car, onClose, onSubmit }: VehicleFormModalProps) {
-  const [form, setForm] = useState<Omit<CarData, 'id'>>(emptyForm);
+  const [form, setForm] = useState<VehicleFormData>(emptyForm);
 
   useEffect(() => {
     if (car) {
@@ -27,7 +28,6 @@ export default function VehicleFormModal({ isOpen, car, onClose, onSubmit }: Veh
         transmissionType: car.transmissionType,
         location: car.location,
         available: car.available,
-        accessibilityFeatures: car.accessibilityFeatures,
         hourlyRate: car.hourlyRate,
       });
     } else {
@@ -42,14 +42,22 @@ export default function VehicleFormModal({ isOpen, car, onClose, onSubmit }: Veh
     setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked
-             : type === 'number' ? parseFloat(value) || 0
+             : type === 'number' ? (value === '' ? '' : Number(value))
              : value,
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    if (form.hourlyRate === '') return;
+
+    onSubmit({
+      makeModel: form.makeModel,
+      transmissionType: form.transmissionType,
+      location: form.location,
+      available: form.available,
+      hourlyRate: form.hourlyRate,
+    });
   };
 
   return (
@@ -111,18 +119,6 @@ export default function VehicleFormModal({ isOpen, car, onClose, onSubmit }: Veh
               value={form.hourlyRate}
               onChange={handleChange}
               required
-            />
-          </div>
-
-          <div className="vehicle-form__group">
-            <label htmlFor="accessibilityFeatures">Accessibility Features</label>
-            <input
-              id="accessibilityFeatures"
-              name="accessibilityFeatures"
-              type="text"
-              value={form.accessibilityFeatures}
-              onChange={handleChange}
-              placeholder="e.g. Wheelchair ramp, hand controls"
             />
           </div>
 
