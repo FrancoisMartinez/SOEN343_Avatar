@@ -4,6 +4,8 @@ public class CarRequest {
     private String makeModel;
     private String transmissionType;
     private String location;
+    private Double latitude;
+    private Double longitude;
     private boolean available;
     private double hourlyRate;
 
@@ -34,6 +36,22 @@ public class CarRequest {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public boolean isAvailable() {

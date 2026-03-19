@@ -5,6 +5,8 @@ export interface CarData {
   makeModel: string;
   transmissionType: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   available: boolean;
   hourlyRate: number;
 }

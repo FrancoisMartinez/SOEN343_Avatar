@@ -98,12 +98,16 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   padding: 0.9rem 1rem;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  cursor: pointer;
 }
 .vehicle-card:hover {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(100, 108, 255, 0.25);
-  transform: translateY(-1px);
+}
+.vehicle-card--selected {
+  border-color: #646cff;
+  background: rgba(100, 108, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(100, 108, 255, 0.3);
 }
 
 .vehicle-card__header {
@@ -181,6 +185,14 @@
   cursor: pointer;
   transition: all 0.15s;
 }
+.vehicle-card__btn--locate {
+  background: rgba(72, 199, 142, 0.12);
+  color: #48c78e;
+  border-color: rgba(72, 199, 142, 0.2);
+}
+.vehicle-card__btn--locate:hover {
+  background: rgba(72, 199, 142, 0.22);
+}
 .vehicle-card__btn--edit {
   background: rgba(100, 108, 255, 0.12);
   color: #8b8fff;
@@ -215,7 +227,7 @@
   flex: 1;
 }
 
-/* ===== Modal ===== */
+/* ===== Modal (kept for other uses) ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -353,6 +365,181 @@
   transform: translateY(-1px);
 }
 
+/* ===== Inline Form Panel (sidebar) ===== */
+.vehicle-form-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+.vehicle-form-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.vehicle-form-panel__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.vehicle-form-panel .vehicle-form {
+  padding: 1rem;
+}
+
+/* ===== Address search ===== */
+.vehicle-form__address-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.vehicle-form__address-row input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.vehicle-form__address-row input:focus {
+  border-color: #646cff;
+}
+.vehicle-form__btn--search {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #646cff, #7c5cfc);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.vehicle-form__btn--search:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vehicle-form__geo-error {
+  font-size: 0.78rem;
+  color: #ff6b6b;
+  margin-top: 0.15rem;
+}
+
+.vehicle-form__suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(30, 30, 40, 0.95);
+}
+.vehicle-form__suggestions li {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  transition: background 0.15s;
+}
+.vehicle-form__suggestions li:last-child {
+  border-bottom: none;
+}
+.vehicle-form__suggestions li:hover {
+  background: rgba(100, 108, 255, 0.15);
+}
+
+/* ===== Map hint in form ===== */
+.vehicle-form__map-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* ===== Map picking banner ===== */
+.map-picking-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(100, 108, 255, 0.9);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(100, 108, 255, 0.35);
+  pointer-events: none;
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ===== Map picking cursor ===== */
+.map--picking {
+  cursor: crosshair !important;
+}
+
+.vehicle-form__selected-location {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.vehicle-form__selected-label {
+  font-weight: 600;
+  color: #48c78e;
+}
+
+/* ===== Car Markers on Main Map ===== */
+.car-marker {
+  background: none !important;
+  border: none !important;
+}
+.car-marker__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(30, 30, 40, 0.88);
+  border: 2px solid #646cff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.car-marker__inner svg {
+  fill: #646cff;
+  width: 20px;
+  height: 20px;
+}
+.car-marker--highlighted .car-marker__inner,
+.car-marker__inner--highlighted {
+  width: 44px;
+  height: 44px;
+  border-color: #48c78e;
+  background: rgba(72, 199, 142, 0.18);
+  box-shadow: 0 0 16px rgba(72, 199, 142, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: marker-pulse 1.5s ease-in-out infinite;
+}
+.car-marker--highlighted .car-marker__inner svg,
+.car-marker__inner--highlighted svg {
+  fill: #48c78e;
+  width: 24px;
+  height: 24px;
+}
+
+@keyframes marker-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(72, 199, 142, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 24px rgba(72, 199, 142, 0.7), 0 2px 12px rgba(0, 0, 0, 0.4); }
+}
+
 /* ===== Light mode ===== */
 @media (prefers-color-scheme: light) {
   .vehicle-sidebar {
@@ -366,6 +553,10 @@
   .vehicle-card:hover {
     background: rgba(0, 0, 0, 0.04);
     border-color: rgba(100, 108, 255, 0.3);
+  }
+  .vehicle-card--selected {
+    border-color: #646cff;
+    background: rgba(100, 108, 255, 0.08);
   }
   .vehicle-card__label {
     color: rgba(0, 0, 0, 0.45);
@@ -389,5 +580,35 @@
   }
   .modal-close {
     color: rgba(0, 0, 0, 0.4);
+  }
+  .vehicle-form__address-row input {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #213547;
+  }
+  .vehicle-form__suggestions {
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+  .vehicle-form__suggestions li {
+    color: #213547;
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+  }
+  .vehicle-form__suggestions li:hover {
+    background: rgba(100, 108, 255, 0.08);
+  }
+  .vehicle-form__selected-location {
+    color: rgba(0, 0, 0, 0.65);
+  }
+  .vehicle-form__map-hint {
+    color: rgba(0, 0, 0, 0.4);
+  }
+  .vehicle-form-panel__header {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+  }
+  .car-marker__inner {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: #646cff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 }

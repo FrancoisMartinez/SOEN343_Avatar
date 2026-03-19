@@ -40,6 +40,8 @@ public class CarService {
         car.setMakeModel(request.getMakeModel());
         car.setTransmissionType(request.getTransmissionType());
         car.setLocation(request.getLocation());
+        car.setLatitude(request.getLatitude());
+        car.setLongitude(request.getLongitude());
         car.setAvailable(request.isAvailable());
         car.setHourlyRate(request.getHourlyRate());
         car.setProvider(provider);
@@ -58,6 +60,8 @@ public class CarService {
         car.setMakeModel(request.getMakeModel());
         car.setTransmissionType(request.getTransmissionType());
         car.setLocation(request.getLocation());
+        car.setLatitude(request.getLatitude());
+        car.setLongitude(request.getLongitude());
         car.setAvailable(request.isAvailable());
         car.setHourlyRate(request.getHourlyRate());
 
@@ -84,6 +88,8 @@ public class CarService {
                 car.getMakeModel(),
                 car.getTransmissionType(),
                 car.getLocation(),
+                car.getLatitude(),
+                car.getLongitude(),
                 car.isAvailable(),
                 car.getHourlyRate());
     }

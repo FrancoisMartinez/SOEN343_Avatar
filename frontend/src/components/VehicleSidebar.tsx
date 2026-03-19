@@ -1,75 +1,88 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
 import VehicleCard from './VehicleCard';
 import VehicleFormModal from './VehicleFormModal';
+import type { DraftLocation } from './VehicleFormModal';
 import type { CarData } from '../services/vehicleService';
-import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
 import './VehicleSidebar.css';
 
-export default function VehicleSidebar() {
-  const { userId } = useAuth();
-  const [vehicles, setVehicles] = useState<CarData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface VehicleSidebarProps {
+  vehicles: CarData[];
+  loading: boolean;
+  error: string | null;
+  selectedCarId: number | null;
+  draftLocation: DraftLocation | null;
+  onAddVehicle: (data: Omit<CarData, 'id'>) => Promise<void>;
+  onUpdateVehicle: (carId: number, data: Omit<CarData, 'id'>) => Promise<void>;
+  onDeleteVehicle: (carId: number) => Promise<void>;
+  onSelectCar: (carId: number | null) => void;
+  onRetry: () => void;
+  onFormOpen: (car: CarData | null) => void;
+  onFormClose: () => void;
+  onLocationChange: (loc: DraftLocation) => void;
+}
 
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
+export default function VehicleSidebar({
+  vehicles,
+  loading,
+  error,
+  selectedCarId,
+  draftLocation,
+  onAddVehicle,
+  onUpdateVehicle,
+  onDeleteVehicle,
+  onSelectCar,
+  onRetry,
+  onFormOpen,
+  onFormClose,
+  onLocationChange,
+}: VehicleSidebarProps) {
+  const [formOpen, setFormOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CarData | null>(null);
-
-  const loadVehicles = useCallback(async () => {
-    if (!userId) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchVehicles(userId);
-      setVehicles(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadVehicles();
-  }, [loadVehicles]);
 
   const handleAdd = () => {
     setEditingCar(null);
-    setModalOpen(true);
+    setFormOpen(true);
+    onFormOpen(null);
   };
 
   const handleEdit = (car: CarData) => {
     setEditingCar(car);
-    setModalOpen(true);
+    setFormOpen(true);
+    onFormOpen(car);
+  };
+
+  const handleClose = () => {
+    setFormOpen(false);
+    setEditingCar(null);
+    onFormClose();
   };
 
   const handleDelete = async (carId: number) => {
-    if (!userId) return;
-    try {
-      await deleteVehicle(userId, carId);
-      setVehicles((prev) => prev.filter((c) => c.id !== carId));
-    } catch (err: any) {
-      setError(err.message);
-    }
+    await onDeleteVehicle(carId);
   };
 
   const handleSubmit = async (data: Omit<CarData, 'id'>) => {
-    if (!userId) return;
-    try {
-      if (editingCar) {
-        const updated = await updateVehicle(userId, editingCar.id!, data);
-        setVehicles((prev) => prev.map((c) => (c.id === editingCar.id ? updated : c)));
-      } else {
-        const created = await createVehicle(userId, data);
-        setVehicles((prev) => [...prev, created]);
-      }
-      setModalOpen(false);
-      setEditingCar(null);
-    } catch (err: any) {
-      setError(err.message);
+    if (editingCar) {
+      await onUpdateVehicle(editingCar.id!, data);
+    } else {
+      await onAddVehicle(data);
     }
+    handleClose();
   };
+
+  if (formOpen) {
+    return (
+      <aside className="vehicle-sidebar">
+        <VehicleFormModal
+          car={editingCar}
+          draftLocation={draftLocation}
+          onClose={handleClose}
+          onSubmit={handleSubmit}
+          onLocationChange={onLocationChange}
+        />
+      </aside>
+    );
+  }
 
   return (
     <aside className="vehicle-sidebar">
@@ -84,14 +97,14 @@ export default function VehicleSidebar() {
         {loading && (
           <div className="vehicle-sidebar__status">
             <div className="vehicle-sidebar__spinner" />
-            Loading vehicles…
+            Loading vehicles...
           </div>
         )}
 
         {error && (
           <div className="vehicle-sidebar__status vehicle-sidebar__status--error">
             {error}
-            <button className="vehicle-sidebar__retry-btn" onClick={loadVehicles}>Retry</button>
+            <button className="vehicle-sidebar__retry-btn" onClick={onRetry}>Retry</button>
           </div>
         )}
 
@@ -106,18 +119,13 @@ export default function VehicleSidebar() {
           <VehicleCard
             key={car.id}
             car={car}
+            isSelected={car.id === selectedCarId}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onLocate={(id) => onSelectCar(id)}
           />
         ))}
       </div>
-
-      <VehicleFormModal
-        isOpen={modalOpen}
-        car={editingCar}
-        onClose={() => { setModalOpen(false); setEditingCar(null); }}
-        onSubmit={handleSubmit}
-      />
     </aside>
   );
 }
