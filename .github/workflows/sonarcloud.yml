@@ -45,6 +45,7 @@ jobs:
             -Dsonar.organization=francoismartinez
             -Dsonar.sources=backend/src/main,frontend/src
             -Dsonar.tests=backend/src/test,frontend/src/tests
+            -Dsonar.exclusions=frontend/src/tests/**
             -Dsonar.java.binaries=backend/target/classes,backend/build/classes
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
           projectBaseDir: .
