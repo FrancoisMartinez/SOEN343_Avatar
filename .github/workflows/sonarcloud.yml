@@ -32,6 +32,11 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build backend classes
+        run: |
+          chmod +x backend/mvnw
+          ./backend/mvnw -f backend/pom.xml -DskipTests compile
           
       - name: Analyze with SonarCloud
 
@@ -46,6 +51,6 @@ jobs:
             -Dsonar.sources=backend/src/main,frontend/src
             -Dsonar.tests=backend/src/test,frontend/src/tests
             -Dsonar.exclusions=frontend/src/tests/**
-            -Dsonar.java.binaries=backend/target/classes,backend/build/classes
+            -Dsonar.java.binaries=backend/target/classes
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
           projectBaseDir: .
