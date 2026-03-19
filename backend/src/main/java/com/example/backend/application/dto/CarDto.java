@@ -1,26 +1,26 @@
-package com.example.backend.domain.model;
+package com.example.backend.application.dto;
 
-import jakarta.persistence.*;
-import java.util.List;
-
-@Entity
-public class Car {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class CarDto {
     private Long id;
-
     private String makeModel;
     private String transmissionType;
     private String location;
-    private boolean isAvailable;
+    private boolean available;
     private String accessibilityFeatures;
     private double hourlyRate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private CarProvider provider;
+    public CarDto() {}
 
-    @OneToMany(mappedBy = "car")
-    private List<Booking> bookings;
+    public CarDto(Long id, String makeModel, String transmissionType, String location,
+                  boolean available, String accessibilityFeatures, double hourlyRate) {
+        this.id = id;
+        this.makeModel = makeModel;
+        this.transmissionType = transmissionType;
+        this.location = location;
+        this.available = available;
+        this.accessibilityFeatures = accessibilityFeatures;
+        this.hourlyRate = hourlyRate;
+    }
 
     // --- Getters & Setters ---
 
@@ -57,11 +57,11 @@ public class Car {
     }
 
     public boolean isAvailable() {
-        return isAvailable;
+        return available;
     }
 
     public void setAvailable(boolean available) {
-        isAvailable = available;
+        this.available = available;
     }
 
     public String getAccessibilityFeatures() {
@@ -78,21 +78,5 @@ public class Car {
 
     public void setHourlyRate(double hourlyRate) {
         this.hourlyRate = hourlyRate;
-    }
-
-    public CarProvider getProvider() {
-        return provider;
-    }
-
-    public void setProvider(CarProvider provider) {
-        this.provider = provider;
-    }
-
-    public List<Booking> getBookings() {
-        return bookings;
-    }
-
-    public void setBookings(List<Booking> bookings) {
-        this.bookings = bookings;
     }
 }
