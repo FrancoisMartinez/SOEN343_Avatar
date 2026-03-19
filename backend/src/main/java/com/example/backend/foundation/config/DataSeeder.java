@@ -1,5 +1,6 @@
 package com.example.backend.foundation.config;
 
+import com.example.backend.domain.model.CarProvider;
 import com.example.backend.domain.model.Instructor;
 import com.example.backend.domain.model.Learner;
 import com.example.backend.infrastructure.repository.UserRepository;
@@ -27,7 +28,14 @@ public class DataSeeder {
                 instructor.setPassword(passwordEncoder.encode("password123"));
                 userRepository.save(instructor);
 
-                System.out.println(">>> Seeded 2 test users (learner@test.com, instructor@test.com / password123)");
+                CarProvider carProvider = new CarProvider();
+                carProvider.setFullName("Test Car Provider");
+                carProvider.setEmail("carprovider@test.com");
+                carProvider.setPassword(passwordEncoder.encode("password123"));
+                userRepository.save(carProvider);
+
+                System.out.println(
+                        ">>> Seeded 3 test users (learner@test.com, instructor@test.com, carprovider@test.com / password123)");
             }
         };
     }

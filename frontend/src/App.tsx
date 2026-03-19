@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import MapPage from './pages/MapPage';
 import AuthPage from './pages/AuthPage';
+import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<MapPage />} />
             <Route path="/login" element={<AuthPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

@@ -39,6 +39,18 @@ class AuthControllerTest {
     }
 
     @Test
+    void loginReturnsFallbackMessageWhenExceptionMessageIsNull() throws Exception {
+        when(userService.authenticate(eq("john@example.com"), eq("bad-password")))
+                .thenThrow(new RuntimeException());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"email\":\"john@example.com\",\"password\":\"bad-password\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid credentials"));
+    }
+
+    @Test
     void registerReturnsCreatedWhenRequestIsValid() throws Exception {
         AuthResponse response = new AuthResponse("jwt-token", 42L, "LEARNER");
         when(userService.register(any())).thenReturn(response);

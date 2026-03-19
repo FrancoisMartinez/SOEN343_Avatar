@@ -19,6 +19,16 @@ export interface RegisterPayload {
   roles: string[];
 }
 
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  const text = await res.text().catch(() => '');
+  try {
+    const body = JSON.parse(text);
+    return body.error || body.message || fallback;
+  } catch {
+    return text.trim() || fallback;
+  }
+}
+
 export async function loginUser(payload: LoginPayload): Promise<AuthResponseData> {
   const res = await fetch(`${API_BASE}/login`, {
     method: 'POST',
@@ -27,8 +37,9 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResponseData
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Login failed');
+    const message = await extractErrorMessage(res, 'Login failed');
+    console.error(`[Auth] Login failed (${res.status}):`, message);
+    throw new Error(message);
   }
 
   return res.json();
@@ -42,8 +53,9 @@ export async function registerUser(payload: RegisterPayload): Promise<AuthRespon
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Registration failed');
+    const message = await extractErrorMessage(res, 'Registration failed');
+    console.error(`[Auth] Registration failed (${res.status}):`, message);
+    throw new Error(message);
   }
 
   return res.json();
