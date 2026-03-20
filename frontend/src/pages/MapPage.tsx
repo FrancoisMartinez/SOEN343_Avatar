@@ -4,8 +4,15 @@ import VehicleSidebar from '../components/VehicleSidebar';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
+import { updateWeeklyAvailability } from '../services/availabilityService';
 import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
+import type { AvailabilitySlot } from '../types/availability';
+
+type CarFocusOptions = {
+  openPopup?: boolean;
+  forceRecenter?: boolean;
+};
 
 export default function MapPage() {
   const { isAuthenticated, role, userId } = useAuth();
@@ -15,6 +22,12 @@ export default function MapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+  const [carFocusEvent, setCarFocusEvent] = useState({
+    id: 0,
+    carId: null as number | null,
+    openPopup: false,
+    forceRecenter: false,
+  });
 
   const [pickingMode, setPickingMode] = useState(false);
   const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
@@ -40,9 +53,12 @@ export default function MapPage() {
   }, [isCarProvider, loadVehicles]);
 
   const handleAddVehicle = async (data: Omit<CarData, 'id'>) => {
-    if (!userId) return;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     const created = await createVehicle(userId, data);
     setVehicles((prev) => [...prev, created]);
+    return created;
   };
 
   const handleUpdateVehicle = async (carId: number, data: Omit<CarData, 'id'>) => {
@@ -51,16 +67,47 @@ export default function MapPage() {
     setVehicles((prev) => prev.map((c) => (c.id === carId ? updated : c)));
   };
 
+  const handleSetVehicleAvailability = async (carId: number, slots: AvailabilitySlot[]) => {
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    await updateWeeklyAvailability(userId, carId, { slots });
+    setVehicles((prev) => prev.map((car) => (car.id === carId ? { ...car, available: slots.length > 0 } : car)));
+  };
+
   const handleDeleteVehicle = async (carId: number) => {
     if (!userId) return;
     await deleteVehicle(userId, carId);
     setVehicles((prev) => prev.filter((c) => c.id !== carId));
-    if (selectedCarId === carId) setSelectedCarId(null);
+    if (selectedCarId === carId) {
+      setSelectedCarId(null);
+    }
   };
+
+  const handleCarFocus = useCallback((carId: number | null, options: CarFocusOptions = {}) => {
+    const openPopup = Boolean(options.openPopup) && carId != null;
+    const forceRecenter = Boolean(options.forceRecenter) && carId != null;
+
+    setSelectedCarId(carId);
+    setCarFocusEvent((prev) => ({
+      id: prev.id + 1,
+      carId,
+      openPopup,
+      forceRecenter,
+    }));
+  }, []);
 
   const handleFormOpen = (car: CarData | null) => {
     setPickingMode(true);
-    setSelectedCarId(null);
+
+    // When editing an existing car, reuse locate behavior so focus/selection stays consistent.
+    if (car?.id != null) {
+      handleCarFocus(car.id, { openPopup: true, forceRecenter: true });
+    } else {
+      handleCarFocus(null);
+    }
+
     if (car?.latitude != null && car?.longitude != null) {
       setDraftLocation({ lat: car.latitude, lng: car.longitude, address: car.location });
     } else {
@@ -71,10 +118,19 @@ export default function MapPage() {
   const handleFormClose = () => {
     setPickingMode(false);
     setDraftLocation(null);
+
+    // If a vehicle remains selected, re-open its popup once we return to normal map mode.
+    if (selectedCarId != null) {
+      handleCarFocus(selectedCarId, { openPopup: true, forceRecenter: false });
+    }
   };
 
   const handleLocationChange = (loc: DraftLocation) => {
     setDraftLocation(loc);
+  };
+
+  const handleLocateCar = (carId: number) => {
+    handleCarFocus(carId, { openPopup: true, forceRecenter: true });
   };
 
   const handleMapLocationPick = useCallback(async (lat: number, lng: number) => {
@@ -97,9 +153,10 @@ export default function MapPage() {
           selectedCarId={selectedCarId}
           draftLocation={draftLocation}
           onAddVehicle={handleAddVehicle}
+          onSetVehicleAvailability={handleSetVehicleAvailability}
           onUpdateVehicle={handleUpdateVehicle}
           onDeleteVehicle={handleDeleteVehicle}
-          onSelectCar={setSelectedCarId}
+          onLocateCar={handleLocateCar}
           onRetry={loadVehicles}
           onFormOpen={handleFormOpen}
           onFormClose={handleFormClose}
@@ -111,7 +168,8 @@ export default function MapPage() {
           <MapComponent
             vehicles={isCarProvider ? vehicles : []}
             selectedCarId={selectedCarId}
-            onSelectCar={setSelectedCarId}
+            carFocusEvent={carFocusEvent}
+            onSelectCar={(carId) => handleCarFocus(carId)}
             pickingMode={pickingMode}
             draftLocation={draftLocation}
             onLocationPick={handleMapLocationPick}

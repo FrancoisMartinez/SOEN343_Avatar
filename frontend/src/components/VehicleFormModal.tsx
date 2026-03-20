@@ -9,12 +9,20 @@ export interface DraftLocation {
   address: string;
 }
 
+export interface VehicleFormDraft {
+  form: VehicleFormData;
+  addressQuery: string;
+}
+
 interface VehicleFormProps {
   car: CarData | null;
   draftLocation: DraftLocation | null;
+  draftForm: VehicleFormDraft | null;
+  onDraftChange: (draft: VehicleFormDraft) => void;
   onClose: () => void;
-  onSubmit: (data: Omit<CarData, 'id'>) => Promise<void>;
+  onSubmit: (data: Omit<CarData, 'id'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
   onLocationChange: (loc: DraftLocation) => void;
+  onEditAvailability: (carId?: number) => void;
 }
 
 type VehicleFormData = Omit<CarData, 'id' | 'hourlyRate'> & { hourlyRate: number | '' };
@@ -29,13 +37,36 @@ const emptyForm: VehicleFormData = {
   hourlyRate: '',
 };
 
-export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit, onLocationChange }: VehicleFormProps) {
-  const [form, setForm] = useState<VehicleFormData>(emptyForm);
-  const [addressQuery, setAddressQuery] = useState('');
+export default function VehicleFormModal({
+  car,
+  draftLocation,
+  draftForm,
+  onDraftChange,
+  onClose,
+  onSubmit,
+  onLocationChange,
+  onEditAvailability,
+}: VehicleFormProps) {
+  const [form, setForm] = useState<VehicleFormData>(() => {
+    if (car) {
+      return {
+        makeModel: car.makeModel,
+        transmissionType: car.transmissionType,
+        location: car.location,
+        latitude: car.latitude,
+        longitude: car.longitude,
+        available: car.available,
+        hourlyRate: car.hourlyRate,
+      };
+    }
+    return draftForm?.form ?? emptyForm;
+  });
+  const [addressQuery, setAddressQuery] = useState(() => (car ? car.location : draftForm?.addressQuery ?? ''));
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editAvailabilityAfterSave, setEditAvailabilityAfterSave] = useState(false);
 
   useEffect(() => {
     if (car) {
@@ -50,12 +81,18 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
       });
       setAddressQuery(car.location);
     } else {
-      setForm(emptyForm);
-      setAddressQuery('');
+      setForm(draftForm?.form ?? emptyForm);
+      setAddressQuery(draftForm?.addressQuery ?? '');
     }
     setSuggestions([]);
     setGeocodeError(null);
   }, [car]);
+
+  useEffect(() => {
+    if (!car) {
+      onDraftChange({ form, addressQuery });
+    }
+  }, [car, form, addressQuery, onDraftChange]);
 
   useEffect(() => {
     if (draftLocation) {
@@ -139,9 +176,10 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
         longitude: form.longitude,
         available: form.available,
         hourlyRate: form.hourlyRate,
-      });
+      }, editAvailabilityAfterSave);
     } finally {
       setSubmitting(false);
+      setEditAvailabilityAfterSave(false);
     }
   };
 
@@ -204,6 +242,26 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
             />
             Available for booking
           </label>
+          {car?.id != null && (
+            <button
+              type="button"
+              className="vehicle-form__btn vehicle-form__btn--search"
+              onClick={() => onEditAvailability(car.id!)}
+              disabled={submitting}
+            >
+              Edit Weekly Availability
+            </button>
+          )}
+          {!car && (
+            <button
+              type="button"
+              className="vehicle-form__btn vehicle-form__btn--search"
+              onClick={() => onEditAvailability()}
+              disabled={submitting}
+            >
+              Edit Weekly Availability
+            </button>
+          )}
         </div>
 
         <div className="vehicle-form__group">
@@ -255,7 +313,12 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
           <button type="button" className="vehicle-form__btn vehicle-form__btn--cancel" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
-          <button type="submit" className="vehicle-form__btn vehicle-form__btn--submit" disabled={submitting}>
+          <button
+            type="submit"
+            className="vehicle-form__btn vehicle-form__btn--submit"
+            disabled={submitting}
+            onClick={() => setEditAvailabilityAfterSave(false)}
+          >
             {submitting ? (car ? 'Saving...' : 'Adding...') : (car ? 'Save Changes' : 'Add Vehicle')}
           </button>
         </div>

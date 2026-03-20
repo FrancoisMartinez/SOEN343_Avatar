@@ -6,11 +6,12 @@ interface VehicleCardProps {
   isSelected?: boolean;
   onEdit: (car: CarData) => void;
   onDelete: (carId: number) => Promise<void>;
+  onOpenAvailability: (carId: number) => void;
   onLocate?: (carId: number) => void;
   cardRef?: (element: HTMLDivElement | null) => void;
 }
 
-export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocate, cardRef }: VehicleCardProps) {
+export default function VehicleCard({ car, isSelected, onEdit, onDelete, onOpenAvailability, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -36,9 +37,17 @@ export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocat
     >
       <div className="vehicle-card__header">
         <h3 className="vehicle-card__title">{car.makeModel}</h3>
-        <span className={`vehicle-card__badge ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}>
+        <button
+          type="button"
+          className={`vehicle-card__badge vehicle-card__badge-btn ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenAvailability(car.id!);
+          }}
+          disabled={deleting}
+        >
           {car.available ? 'Available' : 'Unavailable'}
-        </span>
+        </button>
       </div>
 
       <div className="vehicle-card__details">

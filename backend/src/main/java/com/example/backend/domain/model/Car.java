@@ -23,6 +23,9 @@ public class Car {
     @OneToMany(mappedBy = "car")
     private List<Booking> bookings;
 
+    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AvailabilitySlot> availabilitySlots;
+
     // --- Getters & Setters ---
 
     public Long getId() {
@@ -103,5 +106,13 @@ public class Car {
 
     public void setBookings(List<Booking> bookings) {
         this.bookings = bookings;
+    }
+
+    public List<AvailabilitySlot> getAvailabilitySlots() {
+        return availabilitySlots;
+    }
+
+    public void setAvailabilitySlots(List<AvailabilitySlot> availabilitySlots) {
+        this.availabilitySlots = availabilitySlots;
     }
 }
