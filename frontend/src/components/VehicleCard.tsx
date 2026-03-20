@@ -5,15 +5,27 @@ interface VehicleCardProps {
   car: CarData;
   isSelected?: boolean;
   onEdit: (car: CarData) => void;
-  onDelete: (carId: number) => void;
+  onDelete: (carId: number) => Promise<void>;
   onLocate?: (carId: number) => void;
   cardRef?: (element: HTMLDivElement | null) => void;
 }
 
 export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const hasCoords = car.latitude != null && car.longitude != null;
+
+  const handleConfirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await onDelete(car.id!);
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div
@@ -49,24 +61,25 @@ export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocat
           <button
             className="vehicle-card__btn vehicle-card__btn--locate"
             onClick={() => onLocate?.(car.id!)}
+            disabled={deleting}
           >
             Locate
           </button>
         )}
-        <button className="vehicle-card__btn vehicle-card__btn--edit" onClick={() => onEdit(car)}>
+        <button className="vehicle-card__btn vehicle-card__btn--edit" onClick={() => onEdit(car)} disabled={deleting}>
           Edit
         </button>
         {confirmDelete ? (
           <div className="vehicle-card__confirm-group">
-            <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={() => { onDelete(car.id!); setConfirmDelete(false); }}>
-              Confirm
+            <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={handleConfirmDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Confirm'}
             </button>
-            <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => setConfirmDelete(false)}>
+            <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => setConfirmDelete(false)} disabled={deleting}>
               Cancel
             </button>
           </div>
         ) : (
-          <button className="vehicle-card__btn vehicle-card__btn--delete" onClick={() => setConfirmDelete(true)}>
+          <button className="vehicle-card__btn vehicle-card__btn--delete" onClick={() => setConfirmDelete(true)} disabled={deleting}>
             Delete
           </button>
         )}

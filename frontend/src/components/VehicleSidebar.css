@@ -181,6 +181,10 @@
   cursor: pointer;
   transition: all 0.15s;
 }
+.vehicle-card__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .vehicle-card__btn--locate {
   background: rgba(72, 199, 142, 0.12);
   color: #48c78e;
@@ -345,6 +349,12 @@
   border: none;
   cursor: pointer;
   transition: all 0.15s;
+}
+.vehicle-form__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 .vehicle-form__btn--cancel {
   background: rgba(255, 255, 255, 0.06);

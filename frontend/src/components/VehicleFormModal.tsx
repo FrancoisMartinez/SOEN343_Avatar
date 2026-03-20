@@ -13,7 +13,7 @@ interface VehicleFormProps {
   car: CarData | null;
   draftLocation: DraftLocation | null;
   onClose: () => void;
-  onSubmit: (data: Omit<CarData, 'id'>) => void;
+  onSubmit: (data: Omit<CarData, 'id'>) => Promise<void>;
   onLocationChange: (loc: DraftLocation) => void;
 }
 
@@ -35,6 +35,7 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (car) {
@@ -119,30 +120,36 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
     onLocationChange(loc);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (form.hourlyRate === '') return;
     if (!form.latitude || !form.longitude) {
       setGeocodeError('Please select a location by searching an address or clicking the map.');
       return;
     }
 
-    onSubmit({
-      makeModel: form.makeModel,
-      transmissionType: form.transmissionType,
-      location: form.location,
-      latitude: form.latitude,
-      longitude: form.longitude,
-      available: form.available,
-      hourlyRate: form.hourlyRate,
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        makeModel: form.makeModel,
+        transmissionType: form.transmissionType,
+        location: form.location,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        available: form.available,
+        hourlyRate: form.hourlyRate,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="vehicle-form-panel">
       <div className="vehicle-form-panel__header">
         <h2>{car ? 'Edit Vehicle' : 'Add Vehicle'}</h2>
-        <button className="modal-close" onClick={onClose}>&#x2715;</button>
+        <button className="modal-close" onClick={onClose} disabled={submitting}>&#x2715;</button>
       </div>
 
       <form onSubmit={handleSubmit} className="vehicle-form">
@@ -213,7 +220,7 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
               type="button"
               className="vehicle-form__btn vehicle-form__btn--search"
               onClick={handleAddressSearch}
-              disabled={searching}
+              disabled={searching || submitting}
             >
               {searching ? '...' : 'Search'}
             </button>
@@ -245,11 +252,11 @@ export default function VehicleFormModal({ car, draftLocation, onClose, onSubmit
         )}
 
         <div className="vehicle-form__actions">
-          <button type="button" className="vehicle-form__btn vehicle-form__btn--cancel" onClick={onClose}>
+          <button type="button" className="vehicle-form__btn vehicle-form__btn--cancel" onClick={onClose} disabled={submitting}>
             Cancel
           </button>
-          <button type="submit" className="vehicle-form__btn vehicle-form__btn--submit">
-            {car ? 'Save Changes' : 'Add Vehicle'}
+          <button type="submit" className="vehicle-form__btn vehicle-form__btn--submit" disabled={submitting}>
+            {submitting ? (car ? 'Saving...' : 'Adding...') : (car ? 'Save Changes' : 'Add Vehicle')}
           </button>
         </div>
       </form>
