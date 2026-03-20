@@ -7,9 +7,10 @@ interface VehicleCardProps {
   onEdit: (car: CarData) => void;
   onDelete: (carId: number) => void;
   onLocate?: (carId: number) => void;
+  cardRef?: (element: HTMLDivElement | null) => void;
 }
 
-export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocate }: VehicleCardProps) {
+export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const hasCoords = car.latitude != null && car.longitude != null;
@@ -17,6 +18,8 @@ export default function VehicleCard({ car, isSelected, onEdit, onDelete, onLocat
   return (
     <div
       className={`vehicle-card ${isSelected ? 'vehicle-card--selected' : ''}`}
+      ref={cardRef}
+      tabIndex={-1}
       onClick={() => hasCoords && onLocate?.(car.id!)}
     >
       <div className="vehicle-card__header">

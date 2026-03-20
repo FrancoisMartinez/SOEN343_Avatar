@@ -4,10 +4,8 @@
   min-width: 340px;
   display: flex;
   flex-direction: column;
-  background: rgba(30, 30, 40, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1a1a1a;
+  border-right: 1px solid #333;
   overflow: hidden;
 }
 
@@ -16,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #333;
 }
 
 .vehicle-sidebar__title {
@@ -32,14 +30,12 @@
   font-weight: 600;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #646cff, #7c5cfc);
+  background: #646cff;
   color: #fff;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
 }
 .vehicle-sidebar__add-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(100, 108, 255, 0.35);
+  background: #535bf2;
 }
 
 .vehicle-sidebar__list {
@@ -59,7 +55,7 @@
   gap: 0.5rem;
   padding: 2rem 1rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: #888;
   font-size: 0.9rem;
 }
 .vehicle-sidebar__status--error {
@@ -83,7 +79,7 @@
 .vehicle-sidebar__spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid #333;
   border-top-color: #646cff;
   border-radius: 50%;
   animation: sidebar-spin 0.7s linear infinite;
@@ -94,20 +90,20 @@
 
 /* ===== Vehicle Card ===== */
 .vehicle-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #2a2a2a;
+  border: 1px solid #444;
   border-radius: 12px;
   padding: 0.9rem 1rem;
   cursor: pointer;
 }
 .vehicle-card:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(100, 108, 255, 0.25);
+  background: #2f2f2f;
+  border-color: #646cff;
 }
 .vehicle-card--selected {
   border-color: #646cff;
-  background: rgba(100, 108, 255, 0.1);
-  box-shadow: 0 0 0 1px rgba(100, 108, 255, 0.3);
+  background: #2d2d55;
+  box-shadow: 0 0 0 1px rgba(100, 108, 255, 0.25);
 }
 
 .vehicle-card__header {
@@ -160,19 +156,19 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #888;
 }
 
 .vehicle-card__value {
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: #ccc;
 }
 
 .vehicle-card__actions {
   display: flex;
   gap: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #3a3a3a;
 }
 
 .vehicle-card__btn {
@@ -194,8 +190,8 @@
   background: rgba(72, 199, 142, 0.22);
 }
 .vehicle-card__btn--edit {
-  background: rgba(100, 108, 255, 0.12);
-  color: #8b8fff;
+  background: rgba(100, 108, 255, 0.16);
+  color: #a8acff;
   border-color: rgba(100, 108, 255, 0.2);
 }
 .vehicle-card__btn--edit:hover {
@@ -222,8 +218,8 @@
   flex: 1;
 }
 .vehicle-card__btn--cancel {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.6);
+  background: #333;
+  color: #bbb;
   flex: 1;
 }
 
@@ -236,6 +232,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   animation: fade-in 0.2s ease-out;
 }

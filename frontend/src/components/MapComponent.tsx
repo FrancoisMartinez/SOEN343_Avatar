@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import type { Marker as LeafletMarker } from 'leaflet';
 import type { CarData } from '../services/vehicleService';
 import { carIcon, carIconHighlighted } from './carMarkerIcon';
 
@@ -71,6 +72,13 @@ export default function MapComponent({
     (v) => v.latitude != null && v.longitude != null
   );
 
+  const markerRefs = useRef<Record<number, LeafletMarker | null>>({});
+
+  useEffect(() => {
+    if (selectedCarId == null) return;
+    markerRefs.current[selectedCarId]?.openPopup();
+  }, [selectedCarId]);
+
   return (
     <div
       style={{
@@ -123,8 +131,18 @@ export default function MapComponent({
             key={car.id}
             position={[car.latitude!, car.longitude!]}
             icon={car.id === selectedCarId ? carIconHighlighted : carIcon}
+            ref={(ref) => {
+              if (car.id != null) {
+                markerRefs.current[car.id] = ref;
+              }
+            }}
             eventHandlers={{
               click: () => onSelectCar?.(car.id ?? null),
+              popupclose: () => {
+                if (car.id === selectedCarId) {
+                  onSelectCar?.(null);
+                }
+              },
             }}
           >
             <Popup>

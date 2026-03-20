@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import VehicleCard from './VehicleCard';
 import VehicleFormModal from './VehicleFormModal';
 import type { DraftLocation } from './VehicleFormModal';
@@ -38,6 +38,16 @@ export default function VehicleSidebar({
 }: VehicleSidebarProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CarData | null>(null);
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (selectedCarId == null) return;
+    const selectedCard = cardRefs.current[selectedCarId];
+    if (!selectedCard) return;
+
+    selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    selectedCard.focus({ preventScroll: true });
+  }, [selectedCarId]);
 
   const handleAdd = () => {
     setEditingCar(null);
@@ -123,6 +133,11 @@ export default function VehicleSidebar({
             onEdit={handleEdit}
             onDelete={handleDelete}
             onLocate={(id) => onSelectCar(id)}
+            cardRef={(el) => {
+              if (car.id != null) {
+                cardRefs.current[car.id] = el;
+              }
+            }}
           />
         ))}
       </div>
