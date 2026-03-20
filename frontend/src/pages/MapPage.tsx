@@ -133,6 +133,32 @@ export default function MapPage() {
     handleCarFocus(carId, { openPopup: true, forceRecenter: true });
   };
 
+  useEffect(() => {
+    if (selectedCarId == null) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      const clickedCarElement = target.closest(
+        '.vehicle-card, .leaflet-marker-icon, .leaflet-popup, .leaflet-popup-content, .leaflet-popup-content-wrapper'
+      );
+
+      if (clickedCarElement) {
+        return;
+      }
+
+      handleCarFocus(null);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [selectedCarId, handleCarFocus]);
+
   const handleMapLocationPick = useCallback(async (lat: number, lng: number) => {
     setDraftLocation({ lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
     try {
