@@ -5,6 +5,9 @@ import L, { type Marker as LeafletMarker } from 'leaflet';
 import type { CarData } from '../services/vehicleService';
 import { CAR_SVG, carIcon, carIconHighlighted } from './carMarkerIcon';
 
+const LOCATE_ZOOM_LEVEL = 17;
+const CLUSTER_FIT_PADDING: [number, number] = [48, 48];
+
 interface MapComponentProps {
   vehicles?: CarData[];
   selectedCarId?: number | null;
@@ -67,10 +70,10 @@ function FlyToSelected({
         return;
       }
 
-      // If forceRecenter (Locate), always zoom to 17, even if visible.
+      // If forceRecenter (Locate), always zoom to locate level, even if visible.
       lastTargetRef.current = targetKey;
       map.stop();
-      map.flyTo(target, 17, { duration: 1 });
+      map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 1 });
     }
   }, [focusEvent, vehicles, map]);
 
@@ -86,7 +89,7 @@ function FlyToDraft({ draftLocation }: { draftLocation: { lat: number; lng: numb
     const distanceToTargetMeters = map.distance(currentCenter, target);
 
     // Skip no-op animations to prevent marker jitter while editing.
-    if (distanceToTargetMeters < 1 && map.getZoom() === 17) {
+    if (distanceToTargetMeters < 1 && map.getZoom() === LOCATE_ZOOM_LEVEL) {
       return;
     }
 
@@ -97,7 +100,7 @@ function FlyToDraft({ draftLocation }: { draftLocation: { lat: number; lng: numb
       return;
     }
 
-    map.flyTo(target, 17, { duration: 0.8 });
+    map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 0.8 });
   }, [draftLocation.lat, draftLocation.lng, map]);
 
   return null;
@@ -239,11 +242,14 @@ function ClusteredCarMarkers({
       return;
     }
 
-    const currentZoom = map.getZoom();
-    map.flyToBounds(bounds.pad(0.25), {
-      padding: [48, 48],
+    const paddingPoint = L.point(CLUSTER_FIT_PADDING[0], CLUSTER_FIT_PADDING[1]);
+    const maxAllowedZoom = Math.min(map.getMaxZoom(), LOCATE_ZOOM_LEVEL);
+    const boundsZoom = map.getBoundsZoom(bounds, false, paddingPoint);
+    const targetZoom = Math.min(maxAllowedZoom, boundsZoom);
+
+    map.stop();
+    map.flyTo(bounds.getCenter(), targetZoom, {
       duration: 0.45,
-      maxZoom: Math.min(map.getMaxZoom(), currentZoom + 2),
     });
   };
 
