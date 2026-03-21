@@ -26,12 +26,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: bun install
+
+      - name: Run frontend tests with coverage
+        working-directory: frontend
+        run: bun run test:coverage
+
+      - name: Run backend tests with coverage
+        run: |
+          chmod +x backend/mvnw
+          ./backend/mvnw -f backend/pom.xml verify
           
       - name: Analyze with SonarCloud
 
@@ -45,6 +61,8 @@ jobs:
             -Dsonar.organization=francoismartinez
             -Dsonar.sources=backend/src/main,frontend/src
             -Dsonar.tests=backend/src/test,frontend/src/tests
-            -Dsonar.java.binaries=backend/target/classes,backend/build/classes
+            -Dsonar.exclusions=frontend/src/tests/**
+            -Dsonar.java.binaries=backend/target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
           projectBaseDir: .
