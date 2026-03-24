@@ -255,77 +255,77 @@ export default function AnalyticsPage() {
                 </tbody>
               </table>
             </div>
-
-            <section style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem' }}>Service Health</h3>
-                <button onClick={loadServiceHealth} style={{ padding: '0.35rem 0.65rem' }}>Refresh</button>
-              </div>
-
-              {serviceHealthLoading && <p style={{ margin: 0 }}>Loading service health…</p>}
-              {serviceHealthError && <p style={{ margin: 0, color: '#b91c1c' }}>{serviceHealthError}</p>}
-              {!serviceHealthLoading && !serviceHealthError && serviceHealth.length === 0 && (
-                <p style={{ margin: 0 }}>No service metrics captured yet.</p>
-              )}
-
-              {!serviceHealthLoading && !serviceHealthError && serviceHealth.length > 0 && (
-                <>
-                  <section style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.6rem', marginBottom: '0.75rem' }}>
-                    <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Top 5 Slowest Endpoints</h4>
-                    <div style={{ display: 'grid', gap: '0.45rem' }}>
-                      {slowestEndpoints.map((item) => {
-                        const widthPercent = maxServiceLatency > 0 ? (item.avgLatencyMs / maxServiceLatency) * 100 : 0;
-                        return (
-                          <div key={`slow-${item.method}-${item.path}`}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.2rem' }}>
-                              <span>{item.method} {item.path}</span>
-                              <span>{item.avgLatencyMs.toFixed(1)} ms</span>
-                            </div>
-                            <div style={{ height: '8px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
-                              <div
-                                style={{
-                                  width: `${widthPercent}%`,
-                                  height: '100%',
-                                  borderRadius: '999px',
-                                  background: '#f97316',
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Method</th>
-                          <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Path</th>
-                          <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Requests</th>
-                          <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Errors</th>
-                          <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Avg Latency (ms)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {serviceHealth.map((item) => (
-                          <tr key={`${item.method}-${item.path}`}>
-                            <td style={{ padding: '0.4rem 0.25rem' }}>{item.method}</td>
-                            <td style={{ padding: '0.4rem 0.25rem' }}>{item.path}</td>
-                            <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.requestCount}</td>
-                            <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.errorCount}</td>
-                            <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.avgLatencyMs.toFixed(1)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-            </section>
           </>
         )}
+
+        <section style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem' }}>Service Health</h3>
+            <button onClick={loadServiceHealth} style={{ padding: '0.35rem 0.65rem' }}>Refresh</button>
+          </div>
+
+          {serviceHealthLoading && <p style={{ margin: 0 }}>Loading service health…</p>}
+          {serviceHealthError && <p style={{ margin: 0, color: '#b91c1c' }}>{serviceHealthError}</p>}
+          {!serviceHealthLoading && !serviceHealthError && serviceHealth.length === 0 && (
+            <p style={{ margin: 0 }}>No service metrics captured yet.</p>
+          )}
+
+          {!serviceHealthLoading && !serviceHealthError && serviceHealth.length > 0 && (
+            <>
+              <section style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.6rem', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Top 5 Slowest Endpoints</h4>
+                <div style={{ display: 'grid', gap: '0.45rem' }}>
+                  {slowestEndpoints.map((item) => {
+                    const widthPercent = maxServiceLatency > 0 ? (item.avgLatencyMs / maxServiceLatency) * 100 : 0;
+                    return (
+                      <div key={`slow-${item.method}-${item.path}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                          <span>{item.method} {item.path}</span>
+                          <span>{item.avgLatencyMs.toFixed(1)} ms</span>
+                        </div>
+                        <div style={{ height: '8px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${widthPercent}%`,
+                              height: '100%',
+                              borderRadius: '999px',
+                              background: '#f97316',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Method</th>
+                      <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Path</th>
+                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Requests</th>
+                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Errors</th>
+                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Avg Latency (ms)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceHealth.map((item) => (
+                      <tr key={`${item.method}-${item.path}`}>
+                        <td style={{ padding: '0.4rem 0.25rem' }}>{item.method}</td>
+                        <td style={{ padding: '0.4rem 0.25rem' }}>{item.path}</td>
+                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.requestCount}</td>
+                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.errorCount}</td>
+                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.avgLatencyMs.toFixed(1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </section>
       </section>
     </div>
   );
