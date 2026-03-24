@@ -2,6 +2,7 @@ package com.example.backend.application.controller;
 
 import com.example.backend.application.dto.AnalyticsResponseDTO;
 import com.example.backend.domain.service.AnalyticsService;
+import com.example.backend.foundation.analytics.ServiceMetricsAggregator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,9 +20,11 @@ import java.util.Map;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final ServiceMetricsAggregator serviceMetricsAggregator;
 
-    public AnalyticsController(AnalyticsService analyticsService) {
+    public AnalyticsController(AnalyticsService analyticsService, ServiceMetricsAggregator serviceMetricsAggregator) {
         this.analyticsService = analyticsService;
+        this.serviceMetricsAggregator = serviceMetricsAggregator;
     }
 
     /**
@@ -63,6 +66,19 @@ public class AnalyticsController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to fetch provider analytics"));
+        }
+    }
+
+    /**
+     * Get aggregated service-level health metrics by endpoint.
+     */
+    @GetMapping("/service-health")
+    public ResponseEntity<?> getServiceHealthAnalytics() {
+        try {
+            return ResponseEntity.ok(serviceMetricsAggregator.aggregateByEndpoint());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch service health analytics"));
         }
     }
 }
