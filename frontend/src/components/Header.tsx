@@ -33,6 +33,9 @@ export default function Header() {
 
         {isAuthenticated ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+              Analytics
+            </Link>
             <Link
               to="/profile"
               title="My Account"

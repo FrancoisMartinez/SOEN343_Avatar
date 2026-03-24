@@ -6,7 +6,6 @@ import type { CarData } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
 import { updateWeeklyAvailability } from '../services/availabilityService';
 import { reverseGeocode } from '../services/geocodingService';
-import { fetchCarUtilizationAnalytics, type CarUtilization } from '../services/analyticsService';
 import type { DraftLocation } from '../components/VehicleFormModal';
 import type { AvailabilitySlot } from '../types/availability';
 
@@ -22,9 +21,6 @@ export default function MapPage() {
   const [vehicles, setVehicles] = useState<CarData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<CarUtilization[]>([]);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
   const [carFocusEvent, setCarFocusEvent] = useState({
     id: 0,
@@ -56,33 +52,12 @@ export default function MapPage() {
     }
   }, [isCarProvider, loadVehicles]);
 
-  const loadAnalytics = useCallback(async () => {
-    if (!userId) return;
-    try {
-      setAnalyticsLoading(true);
-      setAnalyticsError(null);
-      const response = await fetchCarUtilizationAnalytics({ providerId: userId });
-      setAnalytics(response.carUtilizations);
-    } catch (err: any) {
-      setAnalyticsError(err.message ?? 'Failed to fetch analytics');
-    } finally {
-      setAnalyticsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (isCarProvider) {
-      loadAnalytics();
-    }
-  }, [isCarProvider, loadAnalytics]);
-
   const handleAddVehicle = async (data: Omit<CarData, 'id'>) => {
     if (!userId) {
       throw new Error('User not authenticated');
     }
     const created = await createVehicle(userId, data);
     setVehicles((prev) => [...prev, created]);
-    loadAnalytics();
     return created;
   };
 
@@ -90,7 +65,6 @@ export default function MapPage() {
     if (!userId) return;
     const updated = await updateVehicle(userId, carId, data);
     setVehicles((prev) => prev.map((c) => (c.id === carId ? updated : c)));
-    loadAnalytics();
   };
 
   const handleSetVehicleAvailability = async (carId: number, slots: AvailabilitySlot[]) => {
@@ -100,14 +74,12 @@ export default function MapPage() {
 
     await updateWeeklyAvailability(userId, carId, { slots });
     setVehicles((prev) => prev.map((car) => (car.id === carId ? { ...car, available: slots.length > 0 } : car)));
-    loadAnalytics();
   };
 
   const handleDeleteVehicle = async (carId: number) => {
     if (!userId) return;
     await deleteVehicle(userId, carId);
     setVehicles((prev) => prev.filter((c) => c.id !== carId));
-    loadAnalytics();
     if (selectedCarId === carId) {
       setSelectedCarId(null);
     }
@@ -218,45 +190,6 @@ export default function MapPage() {
         />
       )}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem', boxSizing: 'border-box', position: 'relative' }}>
-        {isCarProvider && (
-          <section style={{ marginBottom: '1rem', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '0.75rem', background: '#fff' }}>
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem' }}>Rental Analytics</h3>
-
-            {analyticsLoading && <p style={{ margin: 0 }}>Loading analytics…</p>}
-            {analyticsError && <p style={{ margin: 0, color: '#b91c1c' }}>{analyticsError}</p>}
-
-            {!analyticsLoading && !analyticsError && analytics.length === 0 && (
-              <p style={{ margin: 0 }}>No analytics available yet.</p>
-            )}
-
-            {!analyticsLoading && !analyticsError && analytics.length > 0 && (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '0.35rem 0.25rem' }}>Car</th>
-                      <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>Bookings</th>
-                      <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>Hours</th>
-                      <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>Utilization</th>
-                      <th style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analytics.map((item) => (
-                      <tr key={item.carId}>
-                        <td style={{ padding: '0.35rem 0.25rem' }}>{item.makeModel}</td>
-                        <td style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>{item.totalBookings}</td>
-                        <td style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>{item.totalBookingHours}</td>
-                        <td style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>{item.utilizationPercentage.toFixed(1)}%</td>
-                        <td style={{ textAlign: 'right', padding: '0.35rem 0.25rem' }}>${item.totalRevenue.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        )}
         <main style={{ flex: 1, width: '100%', position: 'relative' }}>
           <MapComponent
             vehicles={isCarProvider ? vehicles : []}
