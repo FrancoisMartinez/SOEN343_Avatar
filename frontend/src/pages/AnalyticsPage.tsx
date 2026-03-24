@@ -14,6 +14,13 @@ export default function AnalyticsPage() {
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
 
+  const totalBookings = analytics.reduce((sum, item) => sum + item.totalBookings, 0);
+  const totalHours = analytics.reduce((sum, item) => sum + item.totalBookingHours, 0);
+  const totalRevenue = analytics.reduce((sum, item) => sum + item.totalRevenue, 0);
+  const avgUtilization = analytics.length > 0
+    ? analytics.reduce((sum, item) => sum + item.utilizationPercentage, 0) / analytics.length
+    : 0;
+
   const loadAnalytics = useCallback(async () => {
     if (!userId) return;
 
@@ -105,30 +112,58 @@ export default function AnalyticsPage() {
         {!loading && !error && analytics.length === 0 && <p style={{ margin: 0 }}>No analytics available yet.</p>}
 
         {!loading && !error && analytics.length > 0 && (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Car</th>
-                  <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Bookings</th>
-                  <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Hours</th>
-                  <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Utilization</th>
-                  <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analytics.map((item) => (
-                  <tr key={item.carId}>
-                    <td style={{ padding: '0.4rem 0.25rem' }}>{item.makeModel}</td>
-                    <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookings}</td>
-                    <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookingHours}</td>
-                    <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.utilizationPercentage.toFixed(1)}%</td>
-                    <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>${item.totalRevenue.toFixed(2)}</td>
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gap: '0.5rem',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Bookings</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{totalBookings}</div>
+              </div>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Hours</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{totalHours}</div>
+              </div>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Revenue</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>${totalRevenue.toFixed(2)}</div>
+              </div>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Avg Utilization</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{avgUtilization.toFixed(1)}%</div>
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Car</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Bookings</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Hours</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Utilization</th>
+                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Revenue</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {analytics.map((item) => (
+                    <tr key={item.carId}>
+                      <td style={{ padding: '0.4rem 0.25rem' }}>{item.makeModel}</td>
+                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookings}</td>
+                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookingHours}</td>
+                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.utilizationPercentage.toFixed(1)}%</td>
+                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>${item.totalRevenue.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>
