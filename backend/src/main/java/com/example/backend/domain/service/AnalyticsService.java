@@ -51,9 +51,7 @@ public class AnalyticsService {
      * Calculate utilization metrics for a single car.
      */
     private CarUtilizationDTO calculateCarUtilization(Car car) {
-        List<Booking> bookings = bookingRepository.findAll().stream()
-                .filter(b -> b.getCar() != null && b.getCar().getId().equals(car.getId()))
-                .toList();
+        List<Booking> bookings = bookingRepository.findByCarId(car.getId());
 
         int totalBookings = bookings.size();
         long totalBookingHours = calculateTotalBookingHours(bookings);
