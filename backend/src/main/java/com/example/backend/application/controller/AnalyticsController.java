@@ -4,11 +4,14 @@ import com.example.backend.application.dto.AnalyticsResponseDTO;
 import com.example.backend.domain.service.AnalyticsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -25,9 +28,11 @@ public class AnalyticsController {
      * Get car utilization analytics for all cars.
      */
     @GetMapping("/car-utilization")
-    public ResponseEntity<?> getCarUtilizationAnalytics() {
+    public ResponseEntity<?> getCarUtilizationAnalytics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
-            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalytics();
+            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalytics(startDate, endDate);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -42,9 +47,15 @@ public class AnalyticsController {
      * Get car utilization analytics for a specific provider.
      */
     @GetMapping("/providers/{providerId}/car-utilization")
-    public ResponseEntity<?> getProviderCarUtilizationAnalytics(@PathVariable Long providerId) {
+    public ResponseEntity<?> getProviderCarUtilizationAnalytics(
+            @PathVariable Long providerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
-            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalyticsByProvider(providerId);
+            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalyticsByProvider(
+                    providerId,
+                    startDate,
+                    endDate);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
