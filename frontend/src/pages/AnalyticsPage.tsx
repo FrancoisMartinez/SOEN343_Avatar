@@ -7,6 +7,7 @@ import {
   type CarUtilization,
   type ServiceHealthMetric,
 } from '../services/analyticsService';
+import './AnalyticsPage.css';
 
 export default function AnalyticsPage() {
   const { isAuthenticated, role, userId } = useAuth();
@@ -86,41 +87,41 @@ export default function AnalyticsPage() {
 
   if (!isCarProvider) {
     return (
-      <div style={{ padding: '1.5rem' }}>
-        <h2 style={{ marginTop: 0 }}>Analytics</h2>
+      <div className="analytics-page">
+        <h2 className="analytics-title">Analytics</h2>
         <p>This dashboard is available for car providers only.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ flex: 1, padding: '1rem', overflow: 'auto' }}>
-      <section style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '0.75rem', background: '#fff' }}>
-        <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.2rem' }}>Rental Analytics Dashboard</h2>
+    <div className="analytics-page">
+      <section className="analytics-card">
+        <h2 className="analytics-title">Rental Analytics Dashboard</h2>
 
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-            Start Date
+        <div className="analytics-filters">
+          <label className="analytics-filter-group">
+            <span className="analytics-filter-label">Start Date</span>
             <input
               type="date"
               value={startDateInput}
               onChange={(e) => setStartDateInput(e.target.value)}
-              style={{ padding: '0.4rem' }}
+              className="analytics-input"
             />
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-            End Date
+          <label className="analytics-filter-group">
+            <span className="analytics-filter-label">End Date</span>
             <input
               type="date"
               value={endDateInput}
               onChange={(e) => setEndDateInput(e.target.value)}
-              style={{ padding: '0.4rem' }}
+              className="analytics-input"
             />
           </label>
 
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
-            <button onClick={loadAnalytics} style={{ padding: '0.5rem 0.75rem' }}>
+          <div className="analytics-btn-group">
+            <button onClick={loadAnalytics}>
               Apply
             </button>
             <button
@@ -128,71 +129,55 @@ export default function AnalyticsPage() {
                 setStartDateInput('');
                 setEndDateInput('');
               }}
-              style={{ padding: '0.5rem 0.75rem' }}
             >
               Clear
             </button>
           </div>
         </div>
 
-        {loading && <p style={{ margin: 0 }}>Loading analytics…</p>}
-        {error && <p style={{ margin: 0, color: '#b91c1c' }}>{error}</p>}
+        {loading && <p>Loading analytics…</p>}
+        {error && <p className="analytics-error">{error}</p>}
 
-        {!loading && !error && analytics.length === 0 && <p style={{ margin: 0 }}>No analytics available yet.</p>}
+        {!loading && !error && analytics.length === 0 && <p>No analytics available yet.</p>}
 
         {!loading && !error && analytics.length > 0 && (
           <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: '0.5rem',
-                marginBottom: '0.75rem',
-              }}
-            >
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Bookings</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{totalBookings}</div>
+            <div className="analytics-stats-grid">
+              <div className="analytics-stat-card">
+                <div className="analytics-stat-label">Total Bookings</div>
+                <div className="analytics-stat-value">{totalBookings}</div>
               </div>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Hours</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{totalHours}</div>
+              <div className="analytics-stat-card">
+                <div className="analytics-stat-label">Total Hours</div>
+                <div className="analytics-stat-value">{totalHours}</div>
               </div>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Revenue</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>${totalRevenue.toFixed(2)}</div>
+              <div className="analytics-stat-card">
+                <div className="analytics-stat-label">Total Revenue</div>
+                <div className="analytics-stat-value">${totalRevenue.toFixed(2)}</div>
               </div>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.5rem' }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Avg Utilization</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{avgUtilization.toFixed(1)}%</div>
+              <div className="analytics-stat-card">
+                <div className="analytics-stat-label">Avg Utilization</div>
+                <div className="analytics-stat-value">{avgUtilization.toFixed(1)}%</div>
               </div>
             </div>
 
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '0.75rem',
-                marginBottom: '0.75rem',
-              }}
-            >
-              <section style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.6rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Utilization by Car</h3>
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
+            <div className="analytics-charts-grid">
+              <section className="analytics-chart-section">
+                <h3 className="analytics-chart-title">Utilization by Car</h3>
+                <div className="analytics-chart-list">
                   {utilizationChartData.map((item) => {
                     const widthPercent = Math.max(0, Math.min(100, item.utilizationPercentage));
                     return (
                       <div key={`util-${item.carId}`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                        <div className="analytics-chart-item-header">
                           <span>{item.makeModel}</span>
                           <span>{item.utilizationPercentage.toFixed(1)}%</span>
                         </div>
-                        <div style={{ height: '8px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
+                        <div className="analytics-chart-bar-container">
                           <div
+                            className="analytics-chart-bar"
                             style={{
                               width: `${widthPercent}%`,
-                              height: '100%',
-                              borderRadius: '999px',
                               background: '#6366f1',
                             }}
                           />
@@ -203,23 +188,22 @@ export default function AnalyticsPage() {
                 </div>
               </section>
 
-              <section style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.6rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Revenue by Car</h3>
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
+              <section className="analytics-chart-section">
+                <h3 className="analytics-chart-title">Revenue by Car</h3>
+                <div className="analytics-chart-list">
                   {revenueChartData.map((item) => {
                     const widthPercent = maxRevenue > 0 ? (item.totalRevenue / maxRevenue) * 100 : 0;
                     return (
                       <div key={`rev-${item.carId}`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                        <div className="analytics-chart-item-header">
                           <span>{item.makeModel}</span>
                           <span>${item.totalRevenue.toFixed(2)}</span>
                         </div>
-                        <div style={{ height: '8px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
+                        <div className="analytics-chart-bar-container">
                           <div
+                            className="analytics-chart-bar"
                             style={{
                               width: `${widthPercent}%`,
-                              height: '100%',
-                              borderRadius: '999px',
                               background: '#22c55e',
                             }}
                           />
@@ -231,25 +215,25 @@ export default function AnalyticsPage() {
               </section>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="analytics-table-container">
+              <table className="analytics-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Car</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Bookings</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Hours</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Utilization</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Revenue</th>
+                    <th>Car</th>
+                    <th className="analytics-table-num">Bookings</th>
+                    <th className="analytics-table-num">Hours</th>
+                    <th className="analytics-table-num">Utilization</th>
+                    <th className="analytics-table-num">Revenue</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.map((item) => (
                     <tr key={item.carId}>
-                      <td style={{ padding: '0.4rem 0.25rem' }}>{item.makeModel}</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookings}</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.totalBookingHours}</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.utilizationPercentage.toFixed(1)}%</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>${item.totalRevenue.toFixed(2)}</td>
+                      <td>{item.makeModel}</td>
+                      <td className="analytics-table-num">{item.totalBookings}</td>
+                      <td className="analytics-table-num">{item.totalBookingHours}</td>
+                      <td className="analytics-table-num">{item.utilizationPercentage.toFixed(1)}%</td>
+                      <td className="analytics-table-num">${item.totalRevenue.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -258,37 +242,36 @@ export default function AnalyticsPage() {
           </>
         )}
 
-        <section style={{ marginTop: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>Service Health</h3>
-            <button onClick={loadServiceHealth} style={{ padding: '0.35rem 0.65rem' }}>Refresh</button>
+        <section className="analytics-health-section">
+          <div className="analytics-health-header">
+            <h3 className="analytics-health-title">Service Health</h3>
+            <button onClick={loadServiceHealth} className="analytics-refresh-btn">Refresh</button>
           </div>
 
-          {serviceHealthLoading && <p style={{ margin: 0 }}>Loading service health…</p>}
-          {serviceHealthError && <p style={{ margin: 0, color: '#b91c1c' }}>{serviceHealthError}</p>}
+          {serviceHealthLoading && <p>Loading service health…</p>}
+          {serviceHealthError && <p className="analytics-error">{serviceHealthError}</p>}
           {!serviceHealthLoading && !serviceHealthError && serviceHealth.length === 0 && (
-            <p style={{ margin: 0 }}>No service metrics captured yet.</p>
+            <p>No service metrics captured yet.</p>
           )}
 
           {!serviceHealthLoading && !serviceHealthError && serviceHealth.length > 0 && (
             <>
-              <section style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.6rem', marginBottom: '0.75rem' }}>
-                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Top 5 Slowest Endpoints</h4>
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
+              <section className="analytics-chart-section analytics-health-slowest">
+                <h4 className="analytics-chart-title analytics-health-sub">Top 5 Slowest Endpoints</h4>
+                <div className="analytics-chart-list">
                   {slowestEndpoints.map((item) => {
                     const widthPercent = maxServiceLatency > 0 ? (item.avgLatencyMs / maxServiceLatency) * 100 : 0;
                     return (
                       <div key={`slow-${item.method}-${item.path}`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                        <div className="analytics-chart-item-header">
                           <span>{item.method} {item.path}</span>
                           <span>{item.avgLatencyMs.toFixed(1)} ms</span>
                         </div>
-                        <div style={{ height: '8px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
+                        <div className="analytics-chart-bar-container">
                           <div
+                            className="analytics-chart-bar"
                             style={{
                               width: `${widthPercent}%`,
-                              height: '100%',
-                              borderRadius: '999px',
                               background: '#f97316',
                             }}
                           />
@@ -299,25 +282,25 @@ export default function AnalyticsPage() {
                 </div>
               </section>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="analytics-table-container">
+                <table className="analytics-table">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Method</th>
-                      <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Path</th>
-                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Requests</th>
-                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Errors</th>
-                      <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Avg Latency (ms)</th>
+                      <th>Method</th>
+                      <th>Path</th>
+                      <th className="analytics-table-num">Requests</th>
+                      <th className="analytics-table-num">Errors</th>
+                      <th className="analytics-table-num">Avg Latency (ms)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {serviceHealth.map((item) => (
                       <tr key={`${item.method}-${item.path}`}>
-                        <td style={{ padding: '0.4rem 0.25rem' }}>{item.method}</td>
-                        <td style={{ padding: '0.4rem 0.25rem' }}>{item.path}</td>
-                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.requestCount}</td>
-                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.errorCount}</td>
-                        <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.avgLatencyMs.toFixed(1)}</td>
+                        <td>{item.method}</td>
+                        <td>{item.path}</td>
+                        <td className="analytics-table-num">{item.requestCount}</td>
+                        <td className="analytics-table-num">{item.errorCount}</td>
+                        <td className="analytics-table-num">{item.avgLatencyMs.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
