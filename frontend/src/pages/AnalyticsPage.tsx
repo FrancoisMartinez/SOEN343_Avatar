@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchCarUtilizationAnalytics, type CarUtilization } from '../services/analyticsService';
+import {
+  fetchCarUtilizationAnalytics,
+  fetchServiceHealthAnalytics,
+  type CarUtilization,
+  type ServiceHealthMetric,
+} from '../services/analyticsService';
 
 export default function AnalyticsPage() {
   const { isAuthenticated, role, userId } = useAuth();
@@ -10,6 +15,9 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<CarUtilization[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serviceHealth, setServiceHealth] = useState<ServiceHealthMetric[]>([]);
+  const [serviceHealthLoading, setServiceHealthLoading] = useState(false);
+  const [serviceHealthError, setServiceHealthError] = useState<string | null>(null);
 
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
@@ -48,11 +56,25 @@ export default function AnalyticsPage() {
     }
   }, [userId, startDateInput, endDateInput]);
 
+  const loadServiceHealth = useCallback(async () => {
+    try {
+      setServiceHealthLoading(true);
+      setServiceHealthError(null);
+      const response = await fetchServiceHealthAnalytics();
+      setServiceHealth(response);
+    } catch (err: any) {
+      setServiceHealthError(err.message ?? 'Failed to fetch service health analytics');
+    } finally {
+      setServiceHealthLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isCarProvider) {
       loadAnalytics();
+      loadServiceHealth();
     }
-  }, [isCarProvider, loadAnalytics]);
+  }, [isCarProvider, loadAnalytics, loadServiceHealth]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -229,6 +251,46 @@ export default function AnalyticsPage() {
                 </tbody>
               </table>
             </div>
+
+            <section style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Service Health</h3>
+                <button onClick={loadServiceHealth} style={{ padding: '0.35rem 0.65rem' }}>Refresh</button>
+              </div>
+
+              {serviceHealthLoading && <p style={{ margin: 0 }}>Loading service health…</p>}
+              {serviceHealthError && <p style={{ margin: 0, color: '#b91c1c' }}>{serviceHealthError}</p>}
+              {!serviceHealthLoading && !serviceHealthError && serviceHealth.length === 0 && (
+                <p style={{ margin: 0 }}>No service metrics captured yet.</p>
+              )}
+
+              {!serviceHealthLoading && !serviceHealthError && serviceHealth.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Method</th>
+                        <th style={{ textAlign: 'left', padding: '0.4rem 0.25rem' }}>Path</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Requests</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Errors</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>Avg Latency (ms)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {serviceHealth.map((item) => (
+                        <tr key={`${item.method}-${item.path}`}>
+                          <td style={{ padding: '0.4rem 0.25rem' }}>{item.method}</td>
+                          <td style={{ padding: '0.4rem 0.25rem' }}>{item.path}</td>
+                          <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.requestCount}</td>
+                          <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.errorCount}</td>
+                          <td style={{ textAlign: 'right', padding: '0.4rem 0.25rem' }}>{item.avgLatencyMs.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </>
         )}
       </section>
