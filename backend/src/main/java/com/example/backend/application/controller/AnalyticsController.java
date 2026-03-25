@@ -1,0 +1,84 @@
+package com.example.backend.application.controller;
+
+import com.example.backend.application.dto.AnalyticsResponseDTO;
+import com.example.backend.domain.service.AnalyticsService;
+import com.example.backend.foundation.analytics.ServiceMetricsAggregator;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/analytics")
+public class AnalyticsController {
+
+    private final AnalyticsService analyticsService;
+    private final ServiceMetricsAggregator serviceMetricsAggregator;
+
+    public AnalyticsController(AnalyticsService analyticsService, ServiceMetricsAggregator serviceMetricsAggregator) {
+        this.analyticsService = analyticsService;
+        this.serviceMetricsAggregator = serviceMetricsAggregator;
+    }
+
+    /**
+     * Get car utilization analytics for all cars.
+     */
+    @GetMapping("/car-utilization")
+    public ResponseEntity<?> getCarUtilizationAnalytics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        try {
+            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalytics(startDate, endDate);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch analytics"));
+        }
+    }
+
+    /**
+     * Get car utilization analytics for a specific provider.
+     */
+    @GetMapping("/providers/{providerId}/car-utilization")
+    public ResponseEntity<?> getProviderCarUtilizationAnalytics(
+            @PathVariable Long providerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        try {
+            AnalyticsResponseDTO response = analyticsService.getCarUtilizationAnalyticsByProvider(
+                    providerId,
+                    startDate,
+                    endDate);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch provider analytics"));
+        }
+    }
+
+    /**
+     * Get aggregated service-level health metrics by endpoint.
+     */
+    @GetMapping("/service-health")
+    public ResponseEntity<?> getServiceHealthAnalytics() {
+        try {
+            return ResponseEntity.ok(serviceMetricsAggregator.aggregateByEndpoint());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch service health analytics"));
+        }
+    }
+}

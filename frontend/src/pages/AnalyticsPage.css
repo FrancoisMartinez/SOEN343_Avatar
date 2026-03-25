@@ -1,0 +1,260 @@
+.analytics-page {
+  flex: 1;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.analytics-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.analytics-title {
+  margin: 0 0 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Filters */
+.analytics-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  align-items: flex-end;
+}
+
+.analytics-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analytics-filter-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.analytics-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: #fff;
+  color: #1f2937;
+}
+
+.analytics-btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Stats Grid */
+.analytics-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.analytics-stat-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #f9fafb;
+}
+
+.analytics-stat-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.analytics-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Charts Grid */
+.analytics-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.analytics-chart-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #fff;
+}
+
+.analytics-chart-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.analytics-chart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.analytics-chart-item-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.analytics-chart-bar-container {
+  height: 10px;
+  border-radius: 999px;
+  background-color: #f1f5f9;
+  overflow: hidden;
+}
+
+.analytics-chart-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Tables */
+.analytics-table-container {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table th {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 2px solid #f3f4f6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.analytics-table td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.analytics-table-num {
+  text-align: right !important;
+}
+
+/* Service Health */
+.analytics-health-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.analytics-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.analytics-health-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.analytics-refresh-btn {
+  padding: 0.35rem 0.65rem;
+}
+
+.analytics-health-slowest {
+  margin-bottom: 1.5rem;
+}
+
+.analytics-health-sub {
+  font-size: 0.9rem;
+}
+
+/* Feedback */
+.analytics-error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  .analytics-card {
+    background-color: #1a1a1a;
+    border-color: #333;
+    color: #f9fafb;
+  }
+
+  .analytics-filter-label {
+    color: #9ca3af;
+  }
+
+  .analytics-input {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+  }
+
+  .analytics-stat-card {
+    background-color: #242424;
+    border-color: #333;
+  }
+
+  .analytics-stat-label {
+    color: #9ca3af;
+  }
+
+  .analytics-stat-value {
+    color: #fff;
+  }
+
+  .analytics-chart-section {
+    background-color: #1a1a1a;
+    border-color: #333;
+  }
+
+  .analytics-chart-bar-container {
+    background-color: #333;
+  }
+
+  .analytics-table th {
+    border-bottom-color: #333;
+    color: #9ca3af;
+  }
+
+  .analytics-table td {
+    border-bottom-color: #222;
+    color: #d1d5db;
+  }
+
+  .analytics-table th.analytics-table-num,
+  .analytics-table td.analytics-table-num {
+    color: #f9fafb;
+  }
+
+  .analytics-health-section {
+    border-top-color: #333;
+  }
+
+  .analytics-error {
+    color: #ef4444;
+  }
+}
