@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import MapComponent from '../components/MapComponent';
 import VehicleSidebar from '../components/VehicleSidebar';
+import NavigationPanel from '../components/NavigationPanel';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
@@ -31,6 +32,7 @@ export default function MapPage() {
 
   const [pickingMode, setPickingMode] = useState(false);
   const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
+  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
 
   const loadVehicles = useCallback(async () => {
     if (!userId) return;
@@ -199,7 +201,14 @@ export default function MapPage() {
             pickingMode={pickingMode}
             draftLocation={draftLocation}
             onLocationPick={handleMapLocationPick}
+            routePolyline={routePolyline}
           />
+          {isAuthenticated && (
+            <NavigationPanel
+              onRoute={(polyline) => setRoutePolyline(polyline)}
+              onClear={() => setRoutePolyline(null)}
+            />
+          )}
         </main>
       </div>
     </div>
