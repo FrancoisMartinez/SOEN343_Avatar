@@ -8,7 +8,7 @@ interface NavigationPanelProps {
   onClear: () => void;
 }
 
-export default function NavigationPanel({ onRoute, onClear }: NavigationPanelProps) {
+export default function NavigationPanel({ onRoute, onClear }: Readonly<NavigationPanelProps>) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);

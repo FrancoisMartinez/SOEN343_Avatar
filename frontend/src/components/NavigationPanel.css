@@ -85,7 +85,7 @@
 }
 
 .nav-panel__btn {
-  background: #4a90d9;
+  background: #1558a0;
   color: #fff;
   border: none;
   border-radius: 7px;
@@ -98,10 +98,10 @@
 }
 
 .nav-panel__btn:hover:not(:disabled) {
-  background: #357abd;
+  background: #0d4585;
 }
 
 .nav-panel__btn:disabled {
-  background: #b0c9e8;
+  background: #7aabdb;
   cursor: not-allowed;
 }

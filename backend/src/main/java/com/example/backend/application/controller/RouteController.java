@@ -19,6 +19,7 @@ import java.util.Map;
 public class RouteController {
 
     private static final Logger log = LoggerFactory.getLogger(RouteController.class);
+    private static final String ERROR_KEY = "error";
 
     private final RouteService routeService;
 
@@ -43,15 +44,15 @@ public class RouteController {
         } catch (IllegalArgumentException e) {
             log.warn("Invalid coordinates in directions request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Invalid coordinates: " + e.getMessage()));
+                    .body(Map.of(ERROR_KEY, "Invalid coordinates: " + e.getMessage()));
         } catch (RoutingUnavailableException e) {
             log.error("Routing service unavailable", e);
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body(Map.of("error", "Routing service is temporarily unavailable"));
+                    .body(Map.of(ERROR_KEY, "Routing service is temporarily unavailable"));
         } catch (RuntimeException e) {
             log.warn("No route found: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "No route found between the specified locations"));
+                    .body(Map.of(ERROR_KEY, "No route found between the specified locations"));
         }
     }
 }
