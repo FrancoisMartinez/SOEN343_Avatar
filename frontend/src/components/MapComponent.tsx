@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L, { type Marker as LeafletMarker } from 'leaflet';
 import type { CarData } from '../services/vehicleService';
@@ -25,18 +25,8 @@ interface MapComponentProps {
   pickingPurpose?: 'search' | 'vehicle';
   draftLocation?: { lat: number; lng: number; address?: string } | null;
   onLocationPick?: (lat: number, lng: number) => void;
-  onMapMove?: (lat: number, lng: number) => void;
   onRecenter?: () => void;
-}
-
-function MapMoveHandler({ onMove }: { onMove: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    moveend(e) {
-      const center = e.target.getCenter();
-      onMove(center.lat, center.lng);
-    },
-  });
-  return null;
+  routePolyline?: [number, number][] | null;
 }
 
 function FlyToSelected({
@@ -419,6 +409,16 @@ function ClusteredCarMarkers({
   );
 }
 
+function FitRouteBounds({ polyline }: { polyline: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (polyline.length < 2) return;
+    const bounds = L.latLngBounds(polyline);
+    map.fitBounds(bounds, { padding: [48, 48] });
+  }, [polyline, map]);
+  return null;
+}
+
 export default function MapComponent({
   vehicles = [],
   selectedCarId = null,
@@ -431,8 +431,8 @@ export default function MapComponent({
   pickingPurpose = 'vehicle',
   draftLocation = null,
   onLocationPick,
-  onMapMove,
   onRecenter,
+  routePolyline = null,
 }: MapComponentProps) {
   const center: [number, number] = [45.4947, -73.5779];
   const tileUrl = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png';
@@ -562,14 +562,19 @@ export default function MapComponent({
       >
         <TileLayer key={tileUrl} url={tileUrl} />
 
-        {onMapMove && <MapMoveHandler onMove={onMapMove} />}
-
         {userLocation && (
           <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon} zIndexOffset={1000}>
             <Popup>
               <div style={{ fontSize: '13px', fontWeight: 'bold' }}>You are here</div>
             </Popup>
           </Marker>
+        )}
+
+        {routePolyline && routePolyline.length >= 2 && (
+          <>
+            <Polyline positions={routePolyline} color="#4a90d9" weight={5} opacity={0.85} />
+            <FitRouteBounds polyline={routePolyline} />
+          </>
         )}
 
         {!pickingMode && (

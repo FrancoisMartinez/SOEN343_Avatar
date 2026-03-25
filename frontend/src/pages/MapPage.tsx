@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import MapComponent from '../components/MapComponent';
 import VehicleSidebar from '../components/VehicleSidebar';
+import NavigationPanel from '../components/NavigationPanel';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData, SearchFilters } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle, searchVehicles } from '../services/vehicleService';
@@ -35,8 +36,8 @@ export default function MapPage() {
   const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
   const [searchCenter, setSearchCenter] = useState<DraftLocation | null>(null);
   const [searchRadius, setSearchRadius] = useState(5);
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 45.4947, lng: -73.5779 });
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
 
   const handleSearchVehicles = useCallback(async (filters: SearchFilters = {}) => {
     try {
@@ -102,13 +103,8 @@ export default function MapPage() {
       setHasInitialSearchPerformed(true);
       // Default initial search is broad (anywhere)
       handleSearchVehicles({});
-      
-      // If we have user location, we can center the map but don't force filter yet
-      if (userLocation) {
-        setMapCenter(userLocation);
-      }
     }
-  }, [isLearner, hasInitialSearchPerformed, handleSearchVehicles, userLocation]);
+  }, [isLearner, hasInitialSearchPerformed, handleSearchVehicles]);
 
   useEffect(() => {
     if (isCarProvider) {
@@ -351,9 +347,15 @@ export default function MapPage() {
             pickingPurpose={pickingPurpose}
             draftLocation={draftLocation}
             onLocationPick={handleMapLocationPick}
-            onMapMove={(lat, lng) => setMapCenter({ lat, lng })}
             onRecenter={handleRecenter}
+            routePolyline={routePolyline}
           />
+          {isAuthenticated && (
+            <NavigationPanel
+              onRoute={(polyline) => setRoutePolyline(polyline)}
+              onClear={() => setRoutePolyline(null)}
+            />
+          )}
         </main>
       </div>
     </div>
