@@ -1,6 +1,7 @@
 package com.example.backend.application.controller;
 
 import com.example.backend.domain.service.UserService;
+import com.example.backend.foundation.analytics.ApiRequestMetricsStore;
 import com.example.backend.infrastructure.security.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -15,6 +16,9 @@ class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private ApiRequestMetricsStore apiRequestMetricsStore;
 
     @MockitoBean
     private UserService userService;
