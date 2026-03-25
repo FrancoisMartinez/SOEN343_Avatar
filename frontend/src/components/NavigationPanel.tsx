@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { geocodeAddress } from '../services/geocodingService';
 import { getDirections, type RouteResult } from '../services/routeService';
 import './NavigationPanel.css';
@@ -17,16 +17,14 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const didAutoGps = useRef(false);
 
-  // Auto-detect user location on mount
-  useEffect(() => {
-    if (didAutoGps.current) return;
-    didAutoGps.current = true;
-
-    if (!navigator.geolocation) return;
-
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
     setGpsLoading(true);
+    setError(null);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -40,11 +38,12 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
         setGpsLoading(false);
       },
       () => {
+        setError('Location access denied. Please enter your address manually.');
         setGpsLoading(false);
       },
       { timeout: 8000 }
     );
-  }, []);
+  };
 
   const geocodeField = async (
     address: string,
@@ -106,22 +105,33 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
 
       <div className="nav-panel__field">
         <label htmlFor="nav-from" className="nav-panel__label">From</label>
-        <input
-          id="nav-from"
-          className="nav-panel__input"
-          type="text"
-          placeholder={gpsLoading ? 'Detecting location…' : 'Your location'}
-          value={fromAddress}
-          onChange={(e) => {
-            setFromAddress(e.target.value);
-            setFromCoords(null);
-            setRouteInfo(null);
-          }}
-          onBlur={() => geocodeField(fromAddress, setFromCoords, setFromAddress)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') geocodeField(fromAddress, setFromCoords, setFromAddress);
-          }}
-        />
+        <div className="nav-panel__input-row">
+          <input
+            id="nav-from"
+            className="nav-panel__input"
+            type="text"
+            placeholder="Your location"
+            value={fromAddress}
+            onChange={(e) => {
+              setFromAddress(e.target.value);
+              setFromCoords(null);
+              setRouteInfo(null);
+            }}
+            onBlur={() => geocodeField(fromAddress, setFromCoords, setFromAddress)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') geocodeField(fromAddress, setFromCoords, setFromAddress);
+            }}
+          />
+          <button
+            className="nav-panel__gps-btn"
+            onClick={handleUseMyLocation}
+            disabled={gpsLoading}
+            aria-label="Use my current location"
+            type="button"
+          >
+            {gpsLoading ? '…' : '⊙'}
+          </button>
+        </div>
       </div>
 
       <div className="nav-panel__field">

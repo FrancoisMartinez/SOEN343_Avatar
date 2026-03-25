@@ -54,6 +54,33 @@
   color: #888;
 }
 
+.nav-panel__input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.nav-panel__gps-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1558a0;
+  line-height: 1;
+}
+
+.nav-panel__gps-btn:hover:not(:disabled) {
+  background: #f0f4fa;
+}
+
+.nav-panel__gps-btn:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
 .nav-panel__input {
   border: 1px solid #ddd;
   border-radius: 6px;

@@ -30,7 +30,6 @@ describe('NavigationPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Disable auto-GPS so it doesn't interfere
     Object.defineProperty(window.navigator, 'geolocation', {
       value: undefined,
       configurable: true,
@@ -44,6 +43,50 @@ describe('NavigationPanel', () => {
     expect(screen.getByLabelText('To')).toBeTruthy();
     const btn = screen.getByRole('button', { name: /get directions/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows error when geolocation is unavailable and use-location is clicked', () => {
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
+
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('populates From field after user explicitly requests geolocation', async () => {
+    const mockGeolocation = {
+      getCurrentPosition: vi.fn((success) =>
+        success({ coords: { latitude: 45.5, longitude: -73.6 } })
+      ),
+    };
+    Object.defineProperty(window.navigator, 'geolocation', {
+      value: mockGeolocation,
+      configurable: true,
+    });
+    mockGeocode.mockResolvedValueOnce([PLACE_A]);
+
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('From') as HTMLInputElement).value).toBe('Montreal, QC');
+    });
+  });
+
+  it('shows error when geolocation access is denied', async () => {
+    const mockGeolocation = {
+      getCurrentPosition: vi.fn((_success, error) => error(new Error('denied'))),
+    };
+    Object.defineProperty(window.navigator, 'geolocation', {
+      value: mockGeolocation,
+      configurable: true,
+    });
+
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy();
+    });
   });
 
   it('shows error when geocoding returns no results', async () => {
@@ -149,13 +192,11 @@ describe('NavigationPanel', () => {
 
   it('clears fromCoords and routeInfo when From input changes', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
-    const fromInput = screen.getByLabelText('From');
-    fireEvent.change(fromInput, { target: { value: 'New value' } });
-    // Button should still be disabled (coords cleared)
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: 'New value' } });
     expect((screen.getByRole('button', { name: /get directions/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('geocodes on Enter keydown', async () => {
+  it('geocodes From field on Enter keydown', async () => {
     mockGeocode.mockResolvedValueOnce([PLACE_A]);
 
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
@@ -164,5 +205,26 @@ describe('NavigationPanel', () => {
     fireEvent.keyDown(fromInput, { key: 'Enter' });
 
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+  });
+
+  it('falls back to coordinates when reverse geocoding fails after geolocation', async () => {
+    const mockGeolocation = {
+      getCurrentPosition: vi.fn((success) =>
+        success({ coords: { latitude: 45.5, longitude: -73.6 } })
+      ),
+    };
+    Object.defineProperty(window.navigator, 'geolocation', {
+      value: mockGeolocation,
+      configurable: true,
+    });
+    mockGeocode.mockRejectedValueOnce(new Error('geocode failed'));
+
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+    fireEvent.click(screen.getByRole('button', { name: /use my current location/i }));
+
+    await waitFor(() => {
+      const input = screen.getByLabelText('From') as HTMLInputElement;
+      expect(input.value).toMatch(/45\.5/);
+    });
   });
 });
