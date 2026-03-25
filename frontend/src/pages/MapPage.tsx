@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import MapComponent from '../components/MapComponent';
 import VehicleSidebar from '../components/VehicleSidebar';
 import NavigationPanel from '../components/NavigationPanel';
+import ParkingPanel from '../components/ParkingPanel';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
@@ -9,6 +10,7 @@ import { updateWeeklyAvailability } from '../services/availabilityService';
 import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
 import type { AvailabilitySlot } from '../types/availability';
+import type { ParkingSpot } from '../services/parkingService';
 
 type CarFocusOptions = {
   openPopup?: boolean;
@@ -33,6 +35,10 @@ export default function MapPage() {
   const [pickingMode, setPickingMode] = useState(false);
   const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
   const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+  const [parkingActive, setParkingActive] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number }>({ lat: 45.4947, lon: -73.5779 });
+  const [navigateToDestination, setNavigateToDestination] = useState<{ lat: number; lon: number; name: string } | null>(null);
 
   const loadVehicles = useCallback(async () => {
     if (!userId) return;
@@ -202,12 +208,25 @@ export default function MapPage() {
             draftLocation={draftLocation}
             onLocationPick={handleMapLocationPick}
             routePolyline={routePolyline}
+            parkingSpots={parkingSpots}
+            onCenterChange={(lat, lon) => setMapCenter({ lat, lon })}
+            onNavigateToParking={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
           />
           {isAuthenticated && (
-            <NavigationPanel
-              onRoute={(polyline) => setRoutePolyline(polyline)}
-              onClear={() => setRoutePolyline(null)}
-            />
+            <>
+              <NavigationPanel
+                onRoute={(polyline) => setRoutePolyline(polyline)}
+                onClear={() => setRoutePolyline(null)}
+                navigateTo={navigateToDestination}
+              />
+              <ParkingPanel
+                mapCenter={mapCenter}
+                onParkingSpots={setParkingSpots}
+                onNavigateTo={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
+                active={parkingActive}
+                onToggle={setParkingActive}
+              />
+            </>
           )}
         </main>
       </div>

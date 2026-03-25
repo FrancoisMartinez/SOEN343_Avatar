@@ -1,0 +1,37 @@
+.parking-toggle-btn {
+  position: absolute;
+  top: 80px;
+  left: 10px;
+  z-index: 1000;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.parking-toggle-btn:hover {
+  background: #f4f4f4;
+}
+
+.parking-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.parking-error {
+  position: absolute;
+  top: 120px;
+  left: 10px;
+  z-index: 1000;
+  background: #fff3f3;
+  border: 1px solid #e57373;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #c62828;
+  max-width: 220px;
+}

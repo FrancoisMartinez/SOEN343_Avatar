@@ -6,9 +6,10 @@ import './NavigationPanel.css';
 interface NavigationPanelProps {
   onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
   onClear: () => void;
+  navigateTo?: { lat: number; lon: number; name: string } | null;
 }
 
-export default function NavigationPanel({ onRoute, onClear }: NavigationPanelProps) {
+export default function NavigationPanel({ onRoute, onClear, navigateTo }: NavigationPanelProps) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -45,6 +46,15 @@ export default function NavigationPanel({ onRoute, onClear }: NavigationPanelPro
       { timeout: 8000 }
     );
   }, []);
+
+  // Pre-fill destination when a parking spot is clicked
+  useEffect(() => {
+    if (!navigateTo) return;
+    setToAddress(navigateTo.name);
+    setToCoords({ lat: navigateTo.lat, lon: navigateTo.lon });
+    setRouteInfo(null);
+    setError(null);
+  }, [navigateTo]);
 
   const geocodeField = async (
     address: string,

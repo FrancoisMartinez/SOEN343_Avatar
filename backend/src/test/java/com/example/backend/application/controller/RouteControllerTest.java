@@ -1,5 +1,6 @@
 package com.example.backend.application.controller;
 
+import com.example.backend.application.dto.ParkingSpot;
 import com.example.backend.application.dto.RouteResult;
 import com.example.backend.domain.service.RouteService;
 import com.example.backend.domain.service.RoutingUnavailableException;
@@ -71,5 +72,53 @@ class RouteControllerTest {
         @SuppressWarnings("unchecked")
         Map<String, String> body = (Map<String, String>) response.getBody();
         assertEquals("No route found between the specified locations", body.get("error"));
+    }
+
+    // ── Parking endpoint tests ─────────────────────────────────────────────────
+
+    @Test
+    void getParkingNearby_validCoordinates_returns200WithSpots() {
+        List<ParkingSpot> spots = List.of(new ParkingSpot("Lot A", 45.5, -73.6));
+        when(routeService.getParkingNearby(45.5, -73.6, 800)).thenReturn(spots);
+
+        ResponseEntity<?> response = controller.getParkingNearby(45.5, -73.6, 800);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(spots, response.getBody());
+    }
+
+    @Test
+    void getParkingNearby_invalidCoordinates_returns400WithSafeMessage() {
+        when(routeService.getParkingNearby(999.0, 0.0, 800))
+                .thenThrow(new IllegalArgumentException("Invalid latitude for search location: 999.0"));
+
+        ResponseEntity<?> response = controller.getParkingNearby(999.0, 0.0, 800);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = (Map<String, String>) response.getBody();
+        assertTrue(body.get("error").contains("Invalid coordinates"));
+    }
+
+    @Test
+    void getParkingNearby_serviceUnavailable_returns502WithSafeMessage() {
+        when(routeService.getParkingNearby(45.5, -73.6, 800))
+                .thenThrow(new RuntimeException("Parking service unavailable"));
+
+        ResponseEntity<?> response = controller.getParkingNearby(45.5, -73.6, 800);
+
+        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = (Map<String, String>) response.getBody();
+        assertEquals("Parking service is temporarily unavailable", body.get("error"));
+    }
+
+    @Test
+    void getParkingNearby_usesDefaultRadius800() {
+        when(routeService.getParkingNearby(45.5, -73.6, 800)).thenReturn(List.of());
+
+        ResponseEntity<?> response = controller.getParkingNearby(45.5, -73.6, 800);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 }

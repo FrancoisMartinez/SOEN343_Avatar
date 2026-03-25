@@ -3,7 +3,16 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents 
 import 'leaflet/dist/leaflet.css';
 import L, { type Marker as LeafletMarker } from 'leaflet';
 import type { CarData } from '../services/vehicleService';
+import type { ParkingSpot } from '../services/parkingService';
 import { CAR_SVG, carIcon, carIconHighlighted } from './carMarkerIcon';
+
+const parkingIcon = L.divIcon({
+  html: '<div style="background:#1565c0;color:#fff;border-radius:4px;padding:2px 5px;font-size:12px;font-weight:700;border:2px solid #0d47a1;white-space:nowrap">P</div>',
+  className: '',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+  popupAnchor: [0, -14],
+});
 
 const LOCATE_ZOOM_LEVEL = 17;
 const CLUSTER_FIT_PADDING: [number, number] = [48, 48];
@@ -22,6 +31,9 @@ interface MapComponentProps {
   draftLocation?: { lat: number; lng: number } | null;
   onLocationPick?: (lat: number, lng: number) => void;
   routePolyline?: [number, number][] | null;
+  parkingSpots?: ParkingSpot[];
+  onCenterChange?: (lat: number, lon: number) => void;
+  onNavigateToParking?: (lat: number, lon: number, name: string) => void;
 }
 
 function FlyToSelected({
@@ -334,6 +346,16 @@ function ClusteredCarMarkers({
   );
 }
 
+function MapCenterTracker({ onCenterChange }: { onCenterChange: (lat: number, lon: number) => void }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const c = map.getCenter();
+      onCenterChange(c.lat, c.lng);
+    },
+  });
+  return null;
+}
+
 function FitRouteBounds({ polyline }: { polyline: [number, number][] }) {
   const map = useMap();
   useEffect(() => {
@@ -353,6 +375,9 @@ export default function MapComponent({
   draftLocation = null,
   onLocationPick,
   routePolyline = null,
+  parkingSpots = [],
+  onCenterChange,
+  onNavigateToParking,
 }: MapComponentProps) {
   const center: [number, number] = [45.4947, -73.5779];
   const tileUrl = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png';
@@ -436,12 +461,39 @@ export default function MapComponent({
       >
         <TileLayer key={tileUrl} url={tileUrl} />
 
+        {onCenterChange && <MapCenterTracker onCenterChange={onCenterChange} />}
+
         {routePolyline && routePolyline.length >= 2 && (
           <>
             <Polyline positions={routePolyline} color="#4a90d9" weight={5} opacity={0.85} />
             <FitRouteBounds polyline={routePolyline} />
           </>
         )}
+
+        {parkingSpots.map((spot, i) => (
+          <Marker
+            key={`parking-${i}-${spot.lat}-${spot.lon}`}
+            position={[spot.lat, spot.lon]}
+            icon={parkingIcon}
+          >
+            <Popup autoPan={false}>
+              <div style={{ fontFamily: 'inherit', minWidth: 120 }}>
+                <strong>{spot.name}</strong>
+                {onNavigateToParking && (
+                  <>
+                    <br />
+                    <button
+                      style={{ marginTop: 6, fontSize: '0.82em', cursor: 'pointer' }}
+                      onClick={() => onNavigateToParking(spot.lat, spot.lon, spot.name)}
+                    >
+                      Directions here
+                    </button>
+                  </>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {!pickingMode && (
           <FlyToSelected
