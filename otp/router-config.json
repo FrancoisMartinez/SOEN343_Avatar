@@ -1,0 +1,27 @@
+{
+  "routingDefaults": {
+    "walkSpeed": 1.3,
+    "stairsReluctance": 1.5,
+    "walkReluctance": 2.0
+  },
+  "updaters": [
+    {
+      "type": "stop-time-updater",
+      "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates",
+      "feedId": "stm",
+      "frequencySec": 30,
+      "headers": {
+        "apiKey": "l71f097f58877e4aff8161478469b485c2"
+      }
+    },
+    {
+      "type": "vehicle-positions",
+      "url": "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions",
+      "feedId": "stm",
+      "frequencySec": 30,
+      "headers": {
+        "apiKey": "l71f097f58877e4aff8161478469b485c2"
+      }
+    }
+  ]
+}

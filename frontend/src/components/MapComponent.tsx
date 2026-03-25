@@ -26,7 +26,7 @@ interface MapComponentProps {
   draftLocation?: { lat: number; lng: number; address?: string } | null;
   onLocationPick?: (lat: number, lng: number) => void;
   onRecenter?: () => void;
-  routePolyline?: [number, number][] | null;
+  routePolyline?: { polyline: [number, number][]; mode: 'driving' | 'transit' } | null;
 }
 
 function FlyToSelected({
@@ -570,10 +570,15 @@ export default function MapComponent({
           </Marker>
         )}
 
-        {routePolyline && routePolyline.length >= 2 && (
+        {routePolyline && routePolyline.polyline.length >= 2 && (
           <>
-            <Polyline positions={routePolyline} color="#4a90d9" weight={5} opacity={0.85} />
-            <FitRouteBounds polyline={routePolyline} />
+            <Polyline 
+              positions={routePolyline.polyline} 
+              color="#646cff" 
+              weight={5} 
+              opacity={0.85} 
+            />
+            <FitRouteBounds polyline={routePolyline.polyline} />
           </>
         )}
 

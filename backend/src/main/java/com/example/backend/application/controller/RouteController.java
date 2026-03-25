@@ -55,4 +55,33 @@ public class RouteController {
                     .body(Map.of(ERROR_KEY, "No route found between the specified locations"));
         }
     }
+
+    /**
+     * Get transit directions between two coordinates.
+     *
+     * GET /api/routes/transit?fromLat=&fromLon=&toLat=&toLon=
+     */
+    @GetMapping("/transit")
+    public ResponseEntity<?> getTransitDirections(
+            @RequestParam double fromLat,
+            @RequestParam double fromLon,
+            @RequestParam double toLat,
+            @RequestParam double toLon) {
+        try {
+            RouteResult result = routeService.getTransitDirections(fromLat, fromLon, toLat, toLon);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid coordinates in transit request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(ERROR_KEY, "Invalid coordinates: " + e.getMessage()));
+        } catch (RoutingUnavailableException e) {
+            log.error("Transit routing service unavailable", e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of(ERROR_KEY, "Transit routing service is temporarily unavailable"));
+        } catch (RuntimeException e) {
+            log.warn("No transit route found: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(ERROR_KEY, "No transit route found between the specified locations"));
+        }
+    }
 }

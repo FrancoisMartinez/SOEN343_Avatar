@@ -37,7 +37,7 @@ export default function MapPage() {
   const [searchCenter, setSearchCenter] = useState<DraftLocation | null>(null);
   const [searchRadius, setSearchRadius] = useState(5);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
+  const [routePolyline, setRoutePolyline] = useState<{ polyline: [number, number][]; mode: 'driving' | 'transit' } | null>(null);
 
   const handleSearchVehicles = useCallback(async (filters: SearchFilters = {}) => {
     try {
@@ -352,7 +352,7 @@ export default function MapPage() {
           />
           {isAuthenticated && (
             <NavigationPanel
-              onRoute={(polyline) => setRoutePolyline(polyline)}
+              onRoute={(polyline, distance, duration, mode) => setRoutePolyline({ polyline, mode })}
               onClear={() => setRoutePolyline(null)}
             />
           )}

@@ -24,7 +24,7 @@ class RouteControllerTest {
     void getDirections_validCoordinates_returns200WithRouteResult() {
         RouteResult result = new RouteResult(
                 List.of(new double[]{45.5, -73.6}, new double[]{45.51, -73.59}),
-                1.2, 3
+                1.5, 5, List.of()
         );
         when(routeService.getDirections(45.5, -73.6, 45.51, -73.59)).thenReturn(result);
 

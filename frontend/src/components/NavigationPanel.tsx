@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { geocodeAddress } from '../services/geocodingService';
-import { getDirections, type RouteResult } from '../services/routeService';
+import { getDirections, getTransitDirections, type RouteResult } from '../services/routeService';
 import './NavigationPanel.css';
 
 interface NavigationPanelProps {
-  onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
+  onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number, mode: 'driving' | 'transit') => void;
   onClear: () => void;
 }
 
@@ -13,6 +13,7 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [toCoords, setToCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [mode, setMode] = useState<'driving' | 'transit'>('driving');
   const [routeInfo, setRouteInfo] = useState<Pick<RouteResult, 'distanceKm' | 'durationMin'> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +74,12 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
     setLoading(true);
     setError(null);
     try {
-      const result = await getDirections(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
-      setRouteInfo({ distanceKm: result.distanceKm, durationMin: result.durationMin });
-      onRoute(result.polyline, result.distanceKm, result.durationMin);
+      const result = mode === 'transit' 
+        ? await getTransitDirections(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon)
+        : await getDirections(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
+
+      setRouteInfo(result);
+      onRoute(result.polyline, result.distanceKm, result.durationMin, mode);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not get directions.');
     } finally {
@@ -102,6 +106,21 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
             ✕
           </button>
         )}
+      </div>
+
+      <div className="nav-panel__mode-selector">
+        <button 
+          className={`nav-panel__mode-btn ${mode === 'driving' ? 'nav-panel__mode-btn--active' : ''}`}
+          onClick={() => { setMode('driving'); setRouteInfo(null); }}
+        >
+          🚗 Driving
+        </button>
+        <button 
+          className={`nav-panel__mode-btn ${mode === 'transit' ? 'nav-panel__mode-btn--active' : ''}`}
+          onClick={() => { setMode('transit'); setRouteInfo(null); }}
+        >
+          🚌 Transit
+        </button>
       </div>
 
       <div className="nav-panel__field">
@@ -150,6 +169,26 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
         <div className="nav-panel__info">
           <span><span aria-hidden="true">🛣</span> {routeInfo.distanceKm} km</span>
           <span><span aria-hidden="true">⏱</span> {routeInfo.durationMin} min</span>
+        </div>
+      )}
+
+      {routeInfo && routeInfo.steps && routeInfo.steps.length > 0 && (
+        <div className="nav-panel__steps">
+          {routeInfo.steps.map((step, idx) => (
+            <div key={idx} className="nav-panel__step">
+              <div className="nav-panel__step-icon">
+                {step.mode === 'WALK' ? '🚶‍♂️' : step.mode === 'DRIVING' ? '🚗' : '🚌'}
+              </div>
+              <div className="nav-panel__step-details">
+                <div className="nav-panel__step-instruction">{step.instruction}</div>
+                <div className="nav-panel__step-meta">
+                  {step.distanceKm > 0 ? `${step.distanceKm} km` : ''} 
+                  {step.distanceKm > 0 && step.durationMin > 0 ? ' • ' : ''}
+                  {step.durationMin > 0 ? `${step.durationMin} min` : ''}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

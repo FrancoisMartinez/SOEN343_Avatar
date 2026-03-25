@@ -43,7 +43,7 @@ public class OSRMAdapter {
     public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon) {
         // Use Locale.US to ensure decimal points in the URL regardless of JVM locale
         String url = String.format(Locale.US,
-                "%s/%f,%f;%f,%f?overview=full&geometries=geojson",
+                "%s/%f,%f;%f,%f?overview=full&geometries=geojson&steps=true",
                 OSRM_BASE, fromLon, fromLat, toLon, toLat
         );
 
@@ -74,10 +74,41 @@ public class OSRMAdapter {
                 polyline.add(new double[]{lat, lon});
             }
 
+            List<com.example.backend.application.dto.RouteStep> steps = new ArrayList<>();
+            JsonNode legs = route.path("legs");
+            if (legs.isArray() && !legs.isEmpty()) {
+                JsonNode osrmSteps = legs.get(0).path("steps");
+                if (osrmSteps.isArray()) {
+                    for (JsonNode step : osrmSteps) {
+                        JsonNode maneuver = step.path("maneuver");
+                        String type = maneuver.path("type").asText("");
+                        String modifier = maneuver.path("modifier").asText("");
+                        String name = step.path("name").asText("");
+                        double stepDistKm = Math.round((step.path("distance").asDouble(0) / 1000.0) * 10.0) / 10.0;
+                        int stepDurMin = (int) Math.ceil(step.path("duration").asDouble(0) / 60.0);
+                        
+                        String instruction = type;
+                        if (!modifier.isEmpty()) {
+                            instruction += " " + modifier;
+                        }
+                        if (!name.isEmpty()) {
+                            instruction += " onto " + name;
+                        }
+
+                        // Capitalize first letter
+                        if (!instruction.isEmpty()) {
+                            instruction = instruction.substring(0, 1).toUpperCase() + instruction.substring(1);
+                        }
+
+                        steps.add(new com.example.backend.application.dto.RouteStep(instruction, stepDistKm, stepDurMin, "DRIVING"));
+                    }
+                }
+            }
+
             double distanceKm = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;
             int durationMin = (int) Math.ceil(durationSeconds / 60.0);
 
-            return new RouteResult(polyline, distanceKm, durationMin);
+            return new RouteResult(polyline, distanceKm, durationMin, steps);
 
         } catch (IllegalStateException e) {
             throw e;

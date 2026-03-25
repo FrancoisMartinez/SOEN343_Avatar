@@ -22,18 +22,21 @@ class RouteServiceTest {
     @Mock
     private OSRMAdapter osrmAdapter;
 
+    @Mock
+    private com.example.backend.infrastructure.adapter.OTPAdapter otpAdapter;
+
     private RouteService routeService;
 
     @BeforeEach
     void setUp() {
-        routeService = new RouteService(osrmAdapter);
+        routeService = new RouteService(osrmAdapter, otpAdapter);
     }
 
     @Test
     void getDirections_validCoordinates_delegatesToAdapter() {
         RouteResult expected = new RouteResult(
                 List.of(new double[]{45.5, -73.6}, new double[]{45.51, -73.59}),
-                1.2, 3
+                1.2, 3, List.of()
         );
         when(osrmAdapter.getDirections(45.5, -73.6, 45.51, -73.59)).thenReturn(expected);
 
@@ -89,7 +92,7 @@ class RouteServiceTest {
 
     @Test
     void getDirections_boundaryCoordinates_valid() {
-        RouteResult expected = new RouteResult(List.of(new double[]{90.0, 180.0}), 0.0, 0);
+        RouteResult expected = new RouteResult(List.of(new double[]{90.0, 180.0}), 0.0, 0, List.of());
         when(osrmAdapter.getDirections(90.0, 180.0, -90.0, -180.0)).thenReturn(expected);
 
         RouteResult result = routeService.getDirections(90.0, 180.0, -90.0, -180.0);

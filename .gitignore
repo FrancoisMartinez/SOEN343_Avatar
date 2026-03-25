@@ -58,3 +58,9 @@ frontend/coverage/
 *.njsproj
 *.sln
 *.sw?
+
+# OpenTripPlanner (OTP) data and executables
+otp/*.jar
+otp/*.zip
+otp/*.pbf
+otp/*.obj

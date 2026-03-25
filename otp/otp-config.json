@@ -1,0 +1,6 @@
+{
+  "server": {
+    "port": 8081,
+    "securePort": 8082
+  }
+}
