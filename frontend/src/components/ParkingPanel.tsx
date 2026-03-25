@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { ParkingSpot } from '../services/parkingService';
 import { getParkingNearby } from '../services/parkingService';
+export type { ParkingSpot } from '../services/parkingService';
 import './ParkingPanel.css';
 
 interface ParkingPanelProps {
@@ -17,7 +17,7 @@ export default function ParkingPanel({
   onNavigateTo,
   active,
   onToggle,
-}: ParkingPanelProps) {
+}: Readonly<ParkingPanelProps>) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ export default function ParkingPanel({
         aria-pressed={active}
         aria-label={active ? 'Hide parking spots' : 'Show nearby parking spots'}
       >
-        {loading ? 'Loading...' : active ? 'P Hide Parking' : 'P Show Parking'}
+        {loading ? 'Loading...' : (active ? 'P Hide Parking' : 'P Show Parking')}
       </button>
 
       {error && (
@@ -64,4 +64,3 @@ export default function ParkingPanel({
   );
 }
 
-export type { ParkingSpot };

@@ -36,7 +36,7 @@ export async function getParkingNearby(
 
   const data = await res.json();
   if (!Array.isArray(data)) {
-    throw new Error('Unexpected response format from parking service');
+    throw new TypeError('Unexpected response format from parking service');
   }
   return data as ParkingSpot[];
 }

@@ -29,6 +29,11 @@ public class OSRMAdapter {
         this.restTemplate = new RestTemplate(factory);
     }
 
+    /** Package-private constructor for unit testing. */
+    OSRMAdapter(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     /**
      * Fetch driving directions between two coordinates using the public OSRM API.
      *
@@ -53,7 +58,7 @@ public class OSRMAdapter {
             JsonNode root = objectMapper.readTree(response);
             String code = root.path("code").asText();
             if (!"Ok".equals(code)) {
-                throw new RuntimeException("No route found between the specified locations");
+                throw new IllegalStateException("No route found between the specified locations");
             }
 
             JsonNode route = root.path("routes").get(0);
@@ -74,10 +79,10 @@ public class OSRMAdapter {
 
             return new RouteResult(polyline, distanceKm, durationMin);
 
-        } catch (RuntimeException e) {
+        } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse routing response");
+            throw new RoutingUnavailableException("Failed to parse routing response", e);
         }
     }
 }

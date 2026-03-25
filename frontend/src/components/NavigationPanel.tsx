@@ -9,7 +9,7 @@ interface NavigationPanelProps {
   navigateTo?: { lat: number; lon: number; name: string } | null;
 }
 
-export default function NavigationPanel({ onRoute, onClear, navigateTo }: NavigationPanelProps) {
+export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readonly<NavigationPanelProps>) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);

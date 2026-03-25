@@ -1,6 +1,7 @@
 package com.example.backend.infrastructure.adapter;
 
 import com.example.backend.application.dto.ParkingSpot;
+import com.example.backend.domain.service.ParkingUnavailableException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public class OverpassAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(OverpassAdapter.class);
     private static final String OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+    private static final String CENTER = "center";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
     private static final int READ_TIMEOUT_MS = 15_000;
 
@@ -34,6 +36,11 @@ public class OverpassAdapter {
         factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
         factory.setReadTimeout(READ_TIMEOUT_MS);
         this.restTemplate = new RestTemplate(factory);
+    }
+
+    /** Package-private constructor for unit testing. */
+    OverpassAdapter(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -63,7 +70,7 @@ public class OverpassAdapter {
             response = restTemplate.postForObject(OVERPASS_URL, request, String.class);
         } catch (Exception e) {
             log.error("Overpass API request failed", e);
-            throw new RuntimeException("Parking service unavailable");
+            throw new ParkingUnavailableException("Parking service unavailable", e);
         }
 
         try {
@@ -76,9 +83,9 @@ public class OverpassAdapter {
                 double spotLon;
 
                 // Ways have a "center" object; nodes have lat/lon directly
-                if (element.has("center")) {
-                    spotLat = element.path("center").path("lat").asDouble();
-                    spotLon = element.path("center").path("lon").asDouble();
+                if (element.has(CENTER)) {
+                    spotLat = element.path(CENTER).path("lat").asDouble();
+                    spotLon = element.path(CENTER).path("lon").asDouble();
                 } else {
                     spotLat = element.path("lat").asDouble();
                     spotLon = element.path("lon").asDouble();
@@ -90,7 +97,7 @@ public class OverpassAdapter {
             return spots;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse parking response");
+            throw new ParkingUnavailableException("Failed to parse parking response", e);
         }
     }
 }
