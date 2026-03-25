@@ -151,4 +151,13 @@ class RouteServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> routeService.getParkingNearby(Double.NaN, -73.6, 500));
     }
+
+    @Test
+    void getParkingNearby_noSpotsFound_returnsEmptyList() {
+        when(overpassAdapter.getParkingNearby(eq(45.5), eq(-73.6), eq(500))).thenReturn(List.of());
+
+        List<ParkingSpot> result = routeService.getParkingNearby(45.5, -73.6, 500);
+
+        assertTrue(result.isEmpty());
+    }
 }

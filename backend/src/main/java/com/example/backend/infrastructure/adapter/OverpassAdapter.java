@@ -3,6 +3,8 @@ package com.example.backend.infrastructure.adapter;
 import com.example.backend.application.dto.ParkingSpot;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -10,6 +12,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +21,7 @@ import java.util.Locale;
 @Component
 public class OverpassAdapter {
 
+    private static final Logger log = LoggerFactory.getLogger(OverpassAdapter.class);
     private static final String OVERPASS_URL = "https://overpass-api.de/api/interpreter";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
     private static final int READ_TIMEOUT_MS = 15_000;
@@ -47,15 +52,18 @@ public class OverpassAdapter {
                 radiusMeters, lat, lon
         );
 
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        HttpEntity<String> request = new HttpEntity<>("data=" + query, headers);
+        HttpEntity<String> request = new HttpEntity<>("data=" + encodedQuery, headers);
 
         String response;
         try {
             response = restTemplate.postForObject(OVERPASS_URL, request, String.class);
         } catch (Exception e) {
-            throw new RuntimeException("Parking service unavailable: " + e.getMessage());
+            log.error("Overpass API request failed", e);
+            throw new RuntimeException("Parking service unavailable");
         }
 
         try {

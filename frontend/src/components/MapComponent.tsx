@@ -470,9 +470,9 @@ export default function MapComponent({
           </>
         )}
 
-        {parkingSpots.map((spot, i) => (
+        {parkingSpots.map((spot) => (
           <Marker
-            key={`parking-${i}-${spot.lat}-${spot.lon}`}
+            key={`parking-${spot.lat}-${spot.lon}`}
             position={[spot.lat, spot.lon]}
             icon={parkingIcon}
           >

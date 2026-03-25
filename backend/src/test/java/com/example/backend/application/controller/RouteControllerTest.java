@@ -114,11 +114,14 @@ class RouteControllerTest {
     }
 
     @Test
-    void getParkingNearby_usesDefaultRadius800() {
+    void getParkingNearby_noSpotsFound_returns200WithEmptyArray() {
         when(routeService.getParkingNearby(45.5, -73.6, 800)).thenReturn(List.of());
 
         ResponseEntity<?> response = controller.getParkingNearby(45.5, -73.6, 800);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        List<ParkingSpot> body = (List<ParkingSpot>) response.getBody();
+        assertTrue(body.isEmpty());
     }
 }
