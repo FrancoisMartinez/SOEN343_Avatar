@@ -178,21 +178,20 @@ export default function LocationPicker({
         </ul>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.1rem' }}>
-        <div className="vehicle-form__map-hint">
-          Or use your location or click on the map
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+        <div className="vehicle-form__map-hint" style={{ marginTop: 0 }}>
+          Or click on the map or use your location
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            type="button"
-            className={`vehicle-sidebar__location-btn ${locating ? 'vehicle-sidebar__location-btn--active' : ''}`}
-            onClick={handleUseMyLocation}
-            disabled={locating}
-            style={{ flex: 1, padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
-          >
-            {locating ? 'Locating...' : '📍 Use My Location'}
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`vehicle-sidebar__location-btn ${locating ? 'vehicle-sidebar__location-btn--active' : ''}`}
+          onClick={handleUseMyLocation}
+          disabled={locating}
+          title="Use My Location"
+          style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', borderRadius: '4px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          {locating ? '⏳' : '📍'}
+        </button>
       </div>
 
       {draftLocation && (
