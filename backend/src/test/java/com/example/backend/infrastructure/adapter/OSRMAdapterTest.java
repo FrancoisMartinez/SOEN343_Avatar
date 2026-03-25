@@ -1,16 +1,18 @@
 package com.example.backend.infrastructure.adapter;
 
 import com.example.backend.application.dto.RouteResult;
+import com.example.backend.application.dto.TransportMode;
+import com.example.backend.domain.service.NoRouteFoundException;
 import com.example.backend.domain.service.RoutingUnavailableException;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class OSRMAdapterTest {
 
@@ -34,12 +36,14 @@ class OSRMAdapterTest {
     void getDirections_validResponse_returnsRouteResult() {
         when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
 
-        RouteResult result = adapter.getDirections(45.5, -73.6, 45.51, -73.59);
+        RouteResult result = adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
 
         assertNotNull(result);
         assertEquals(2, result.polyline().size());
         assertEquals(1.2, result.distanceKm());
         assertEquals(3, result.durationMin());
+        assertEquals(TransportMode.DRIVING, result.mode());
+        assertTrue(result.legs().isEmpty());
         // OSRM returns [lon, lat]; adapter converts to [lat, lon]
         assertArrayEquals(new double[]{45.5, -73.6}, result.polyline().get(0), 0.001);
         assertArrayEquals(new double[]{45.51, -73.59}, result.polyline().get(1), 0.001);
@@ -51,16 +55,16 @@ class OSRMAdapterTest {
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThrows(RoutingUnavailableException.class,
-                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59));
+                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING));
     }
 
     @Test
-    void getDirections_osrmReturnsNoRoute_throwsIllegalStateException() {
+    void getDirections_osrmReturnsNoRoute_throwsNoRouteFoundException() {
         when(restTemplate.getForObject(anyString(), eq(String.class)))
                 .thenReturn("{\"code\":\"NoRoute\",\"routes\":[]}");
 
-        assertThrows(IllegalStateException.class,
-                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59));
+        assertThrows(NoRouteFoundException.class,
+                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING));
     }
 
     @Test
@@ -69,7 +73,7 @@ class OSRMAdapterTest {
                 .thenReturn("not-json{{");
 
         assertThrows(RoutingUnavailableException.class,
-                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59));
+                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING));
     }
 
     @Test
@@ -77,8 +81,47 @@ class OSRMAdapterTest {
         // Ensures Locale.US decimal formatting (no comma as decimal separator)
         when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
 
-        RouteResult result = adapter.getDirections(48.8566, 2.3522, 48.8575, 2.3530);
+        RouteResult result = adapter.getDirections(48.8566, 2.3522, 48.8575, 2.3530, TransportMode.DRIVING);
 
         assertNotNull(result);
+    }
+
+    @Test
+    void getDirections_drivingMode_usesDrivingProfileInUrl() {
+        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+
+        adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
+
+        verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
+        assertTrue(urlCaptor.getValue().contains("/driving/"));
+    }
+
+    @Test
+    void getDirections_bicycleMode_usesBicycleProfileInUrl() {
+        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+
+        adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BICYCLE);
+
+        verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
+        assertTrue(urlCaptor.getValue().contains("/bicycle/"));
+    }
+
+    @Test
+    void getDirections_walkMode_usesFootProfileInUrl() {
+        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+
+        adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.WALK);
+
+        verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
+        assertTrue(urlCaptor.getValue().contains("/foot/"));
+    }
+
+    @Test
+    void getDirections_busMode_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> adapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS));
     }
 }

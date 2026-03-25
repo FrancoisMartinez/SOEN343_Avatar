@@ -1,6 +1,8 @@
 package com.example.backend.infrastructure.adapter;
 
 import com.example.backend.application.dto.RouteResult;
+import com.example.backend.application.dto.TransportMode;
+import com.example.backend.domain.service.NoRouteFoundException;
 import com.example.backend.domain.service.RoutingUnavailableException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -15,7 +17,7 @@ import java.util.Locale;
 @Component
 public class OSRMAdapter {
 
-    private static final String OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
+    private static final String OSRM_BASE = "https://router.project-osrm.org/route/v1";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
     private static final int READ_TIMEOUT_MS = 10_000;
 
@@ -35,16 +37,18 @@ public class OSRMAdapter {
     }
 
     /**
-     * Fetch driving directions between two coordinates using the public OSRM API.
+     * Fetch directions between two coordinates using the public OSRM API.
+     * Supports DRIVING, BICYCLE, and WALK modes.
      *
      * @return RouteResult with polyline [[lat, lon], ...], distanceKm, durationMin
-     * @throws RuntimeException if OSRM is unreachable or returns no route
+     * @throws NoRouteFoundException       if OSRM returns no route
+     * @throws RoutingUnavailableException if the service is unreachable or response is unparseable
      */
-    public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon) {
+    public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon, TransportMode mode) {
         // Use Locale.US to ensure decimal points in the URL regardless of JVM locale
         String url = String.format(Locale.US,
-                "%s/%f,%f;%f,%f?overview=full&geometries=geojson",
-                OSRM_BASE, fromLon, fromLat, toLon, toLat
+                "%s/%s/%f,%f;%f,%f?overview=full&geometries=geojson",
+                OSRM_BASE, osrmProfile(mode), fromLon, fromLat, toLon, toLat
         );
 
         String response;
@@ -58,7 +62,7 @@ public class OSRMAdapter {
             JsonNode root = objectMapper.readTree(response);
             String code = root.path("code").asText();
             if (!"Ok".equals(code)) {
-                throw new IllegalStateException("No route found between the specified locations");
+                throw new NoRouteFoundException("No route found between the specified locations");
             }
 
             JsonNode route = root.path("routes").get(0);
@@ -77,12 +81,21 @@ public class OSRMAdapter {
             double distanceKm = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;
             int durationMin = (int) Math.ceil(durationSeconds / 60.0);
 
-            return new RouteResult(polyline, distanceKm, durationMin);
+            return new RouteResult(polyline, distanceKm, durationMin, mode, List.of());
 
-        } catch (IllegalStateException e) {
+        } catch (NoRouteFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new RoutingUnavailableException("Failed to parse routing response", e);
         }
+    }
+
+    private static String osrmProfile(TransportMode mode) {
+        return switch (mode) {
+            case DRIVING -> "driving";
+            case BICYCLE -> "bicycle";
+            case WALK -> "foot";
+            case BUS -> throw new IllegalArgumentException("BUS mode is not supported by OSRM");
+        };
     }
 }
