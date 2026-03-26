@@ -4,6 +4,11 @@ import com.example.backend.application.dto.BookingRequest;
 import com.example.backend.application.dto.BookingResponse;
 import com.example.backend.application.dto.FinishBookingRequest;
 import com.example.backend.domain.model.*;
+import com.example.backend.domain.service.observer.BookingEvent;
+import com.example.backend.domain.service.observer.BookingEventPublisher;
+import com.example.backend.domain.service.state.BookingContext;
+import com.example.backend.domain.service.pricing.PricingStrategy;
+import com.example.backend.domain.service.pricing.PricingStrategyFactory;
 import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.LearnerRepository;
@@ -23,15 +28,21 @@ public class BookingService {
     private final CarRepository carRepository;
     private final LearnerRepository learnerRepository;
     private final AvailabilitySlotRepository availabilitySlotRepository;
+    private final PricingStrategyFactory pricingStrategyFactory;
+    private final BookingEventPublisher bookingEventPublisher;
 
     public BookingService(BookingRepository bookingRepository,
                           CarRepository carRepository,
                           LearnerRepository learnerRepository,
-                          AvailabilitySlotRepository availabilitySlotRepository) {
+                          AvailabilitySlotRepository availabilitySlotRepository,
+                          PricingStrategyFactory pricingStrategyFactory,
+                          BookingEventPublisher bookingEventPublisher) {
         this.bookingRepository = bookingRepository;
         this.carRepository = carRepository;
         this.learnerRepository = learnerRepository;
         this.availabilitySlotRepository = availabilitySlotRepository;
+        this.pricingStrategyFactory = pricingStrategyFactory;
+        this.bookingEventPublisher = bookingEventPublisher;
     }
 
     /**
@@ -56,7 +67,9 @@ public class BookingService {
         validateAvailability(car.getId(), date, startTime, endTime);
         validateNoOverlap(car.getId(), date, startTime, endTime);
 
-        double totalCost = request.getDuration() * car.getHourlyRate();
+        // Strategy Pattern: delegate pricing to the selected strategy
+        PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(request.getPricingStrategy());
+        double totalCost = pricingStrategy.calculatePrice(car, request.getDuration(), date, startTime);
 
         Booking booking = new Booking();
         booking.setCar(car);
@@ -68,6 +81,10 @@ public class BookingService {
         booking.setStatus("CONFIRMED");
 
         Booking saved = bookingRepository.save(booking);
+
+        // Observer Pattern: notify all observers about the new booking
+        bookingEventPublisher.publish(new BookingEvent(BookingEvent.EventType.CREATED, saved));
+
         return toResponse(saved);
     }
 
@@ -99,12 +116,9 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
 
-        if ("FINISHED".equals(booking.getStatus())) {
-            throw new IllegalArgumentException("Booking is already finished");
-        }
-        if ("CANCELLED".equals(booking.getStatus())) {
-            throw new IllegalArgumentException("Cannot finish a cancelled booking");
-        }
+        // State Pattern: delegate transition validation to the current state
+        BookingContext bookingContext = new BookingContext(booking);
+        bookingContext.finish(); // throws IllegalStateException if transition is invalid
 
         // Deduct balance from learner
         Learner learner = booking.getLearner();
@@ -125,8 +139,11 @@ public class BookingService {
             carRepository.save(car);
         }
 
-        booking.setStatus("FINISHED");
         Booking saved = bookingRepository.save(booking);
+
+        // Observer Pattern: notify all observers about the finished booking
+        bookingEventPublisher.publish(new BookingEvent(BookingEvent.EventType.FINISHED, saved));
+
         return toResponse(saved);
     }
 
