@@ -13,6 +13,7 @@ public class BookingResponse {
     private int duration;
     private double totalCost;
     private String status;
+    private String learnerName;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -40,4 +41,7 @@ public class BookingResponse {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getLearnerName() { return learnerName; }
+    public void setLearnerName(String learnerName) { this.learnerName = learnerName; }
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   getUserProfile,
   updateUserProfile,
+  addBalance,
   type UserProfile,
   type UpdateProfilePayload,
 } from '../services/userService';
@@ -20,6 +21,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Balance top-up state
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [topUpSuccess, setTopUpSuccess] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -81,6 +88,28 @@ export default function ProfilePage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleTopUp = async () => {
+    if (!token) return;
+    const amount = parseFloat(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setTopUpError('Please enter a valid positive amount');
+      return;
+    }
+    setTopUpLoading(true);
+    setTopUpError(null);
+    setTopUpSuccess(false);
+    try {
+      const updated = await addBalance(token, amount);
+      setProfile(updated);
+      setTopUpAmount('');
+      setTopUpSuccess(true);
+    } catch (err: any) {
+      setTopUpError(err.message || 'Failed to add balance');
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
+
   const formatRole = (role: string) =>
     role.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -88,7 +117,7 @@ export default function ProfilePage() {
     return (
       <div className="profile-page">
         <div className="profile-card">
-          <p className="profile-loading">Loading profile…</p>
+          <p className="profile-loading">Loading profile...</p>
         </div>
       </div>
     );
@@ -129,7 +158,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleChange('fullName', e.target.value)}
               />
             ) : (
-              <span className="profile-field-value">{profile.fullName || '—'}</span>
+              <span className="profile-field-value">{profile.fullName || '\u2014'}</span>
             )}
           </div>
 
@@ -143,7 +172,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleChange('email', e.target.value)}
               />
             ) : (
-              <span className="profile-field-value">{profile.email || '—'}</span>
+              <span className="profile-field-value">{profile.email || '\u2014'}</span>
             )}
           </div>
 
@@ -156,7 +185,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleChange('licenseNumber', e.target.value)}
               />
             ) : (
-              <span className="profile-field-value">{profile.licenseNumber || '—'}</span>
+              <span className="profile-field-value">{profile.licenseNumber || '\u2014'}</span>
             )}
           </div>
 
@@ -170,7 +199,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleChange('licenseIssueDate', e.target.value)}
               />
             ) : (
-              <span className="profile-field-value">{profile.licenseIssueDate || '—'}</span>
+              <span className="profile-field-value">{profile.licenseIssueDate || '\u2014'}</span>
             )}
           </div>
 
@@ -183,7 +212,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleChange('licenseRegion', e.target.value)}
               />
             ) : (
-              <span className="profile-field-value">{profile.licenseRegion || '—'}</span>
+              <span className="profile-field-value">{profile.licenseRegion || '\u2014'}</span>
             )}
           </div>
 
@@ -197,7 +226,7 @@ export default function ProfilePage() {
           {editing ? (
             <>
               <button className="profile-btn profile-btn--primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : 'Save Changes'}
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button className="profile-btn profile-btn--secondary" onClick={handleCancel} disabled={saving}>
                 Cancel
@@ -209,6 +238,41 @@ export default function ProfilePage() {
             </button>
           )}
         </div>
+
+        {/* Balance Section - Learner only */}
+        {profile.role === 'LEARNER' && profile.balance !== null && (
+          <div className="profile-balance">
+            <div className="profile-balance__header">
+              <span className="profile-field-label">Balance</span>
+              <span className="profile-balance__amount">${(profile.balance ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="profile-balance__topup">
+              <input
+                className="profile-input profile-balance__input"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="Amount to add"
+                value={topUpAmount}
+                onChange={(e) => {
+                  setTopUpAmount(e.target.value);
+                  setTopUpError(null);
+                  setTopUpSuccess(false);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleTopUp(); }}
+              />
+              <button
+                className="profile-balance__add-btn"
+                onClick={handleTopUp}
+                disabled={topUpLoading || !topUpAmount}
+              >
+                {topUpLoading ? '...' : '+'}
+              </button>
+            </div>
+            {topUpError && <p className="profile-error" style={{ marginTop: '0.25rem' }}>{topUpError}</p>}
+            {topUpSuccess && <p className="profile-success" style={{ marginTop: '0.25rem' }}>Balance added successfully.</p>}
+          </div>
+        )}
       </div>
     </div>
   );

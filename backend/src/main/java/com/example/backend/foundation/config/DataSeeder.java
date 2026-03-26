@@ -28,6 +28,7 @@ public class DataSeeder {
                 learner.setFullName("Test Learner");
                 learner.setEmail("learner@test.com");
                 learner.setPassword(passwordEncoder.encode("password123"));
+                learner.setBalance(200.0);
                 userRepository.save(learner);
 
                 Instructor instructor = new Instructor();

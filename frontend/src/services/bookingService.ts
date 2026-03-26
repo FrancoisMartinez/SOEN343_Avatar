@@ -10,6 +10,7 @@ export interface BookingData {
   duration: number;
   totalCost: number;
   status: string;
+  learnerName?: string;
 }
 
 export interface CreateBookingPayload {
@@ -18,6 +19,12 @@ export interface CreateBookingPayload {
   date: string;       // "YYYY-MM-DD"
   startTime: string;  // "HH:mm"
   duration: number;   // 1-12 hours
+}
+
+export interface FinishBookingPayload {
+  latitude: number;
+  longitude: number;
+  location: string;
 }
 
 function authHeaders(): Record<string, string> {
@@ -51,11 +58,21 @@ export async function fetchLearnerBookings(learnerId: number): Promise<BookingDa
   return res.json();
 }
 
-/** Mark a booking as finished */
-export async function finishBooking(bookingId: number): Promise<BookingData> {
+/** Get all bookings for a provider's cars (read-only) */
+export async function fetchProviderBookings(providerId: number): Promise<BookingData[]> {
+  const res = await fetch(`${API_BASE}/provider/${providerId}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch provider bookings');
+  return res.json();
+}
+
+/** Finish a booking with a new car location */
+export async function finishBooking(bookingId: number, payload?: FinishBookingPayload): Promise<BookingData> {
   const res = await fetch(`${API_BASE}/${bookingId}/finish`, {
     method: 'PUT',
     headers: authHeaders(),
+    body: payload ? JSON.stringify(payload) : undefined,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

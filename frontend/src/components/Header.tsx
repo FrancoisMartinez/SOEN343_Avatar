@@ -38,6 +38,11 @@ export default function Header() {
                 My Reservations
               </Link>
             )}
+            {role === 'CAR_PROVIDER' && (
+              <Link to="/provider-reservations" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                Car Reservations
+              </Link>
+            )}
             <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
               Analytics
             </Link>

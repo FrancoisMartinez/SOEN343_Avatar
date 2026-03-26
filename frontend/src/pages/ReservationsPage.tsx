@@ -1,20 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLearnerBookings, finishBooking, type BookingData } from '../services/bookingService';
+import { getUserProfile } from '../services/userService';
 import ReservationCard from '../components/ReservationCard';
+import FinishReservationModal from '../components/FinishReservationModal';
 import './ReservationsPage.css';
 
 /**
  * ReservationsPage: Dashboard showing all of a learner's bookings.
- * Displays each reservation with details and a "Finish Reservation" action.
+ * "Finish Reservation" opens a map modal for location selection,
+ * then deducts balance and updates the car location.
  */
 export default function ReservationsPage() {
-  const { userId, isAuthenticated, role } = useAuth();
+  const { userId, token, isAuthenticated, role } = useAuth();
 
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [finishingId, setFinishingId] = useState<number | null>(null);
+  const [finishingBooking, setFinishingBooking] = useState<BookingData | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
 
   const loadBookings = useCallback(async () => {
     if (!userId) return;
@@ -30,25 +35,55 @@ export default function ReservationsPage() {
     }
   }, [userId]);
 
+  const loadBalance = useCallback(async () => {
+    if (!token) return;
+    try {
+      const profile = await getUserProfile(token);
+      setBalance(profile.balance);
+    } catch {
+      // non-critical
+    }
+  }, [token]);
+
   useEffect(() => {
     if (isAuthenticated && role === 'LEARNER') {
       loadBookings();
+      loadBalance();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, role, loadBookings]);
+  }, [isAuthenticated, role, loadBookings, loadBalance]);
 
-  const handleFinish = async (bookingId: number) => {
-    setFinishingId(bookingId);
+  const handleFinishClick = (bookingId: number) => {
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+
+    // Check balance before opening modal
+    if (balance !== null && balance < booking.totalCost) {
+      alert(`Insufficient balance. You need $${booking.totalCost.toFixed(2)} but only have $${balance.toFixed(2)}. Please add funds in your profile.`);
+      return;
+    }
+
+    setFinishingBooking(booking);
+  };
+
+  const handleFinishConfirm = async (lat: number, lng: number, address: string) => {
+    if (!finishingBooking?.id) return;
+    setSubmitting(true);
     try {
-      const updated = await finishBooking(bookingId);
-      setBookings((prev) =>
-        prev.map((b) => (b.id === bookingId ? updated : b))
-      );
+      const updated = await finishBooking(finishingBooking.id, {
+        latitude: lat,
+        longitude: lng,
+        location: address,
+      });
+      setBookings((prev) => prev.map((b) => (b.id === finishingBooking.id ? updated : b)));
+      setFinishingBooking(null);
+      // Refresh balance after deduction
+      loadBalance();
     } catch (err: any) {
       alert(err.message || 'Failed to finish reservation');
     } finally {
-      setFinishingId(null);
+      setSubmitting(false);
     }
   };
 
@@ -66,6 +101,11 @@ export default function ReservationsPage() {
     <div className="reservations-page">
       <div className="reservations-page__header">
         <h2 className="reservations-page__title">My Reservations</h2>
+        {balance !== null && (
+          <span className="reservations-page__balance">
+            Balance: <strong>${balance.toFixed(2)}</strong>
+          </span>
+        )}
       </div>
 
       {loading && (
@@ -95,11 +135,20 @@ export default function ReservationsPage() {
           <ReservationCard
             key={booking.id}
             booking={booking}
-            onFinish={handleFinish}
-            finishing={finishingId === booking.id}
+            onFinish={handleFinishClick}
+            finishing={submitting && finishingBooking?.id === booking.id}
           />
         ))}
       </div>
+
+      {finishingBooking && (
+        <FinishReservationModal
+          booking={finishingBooking}
+          onConfirm={handleFinishConfirm}
+          onCancel={() => setFinishingBooking(null)}
+          submitting={submitting}
+        />
+      )}
     </div>
   );
 }

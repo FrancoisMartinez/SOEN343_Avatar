@@ -48,6 +48,25 @@ public class UserController {
         }
     }
 
+    @PostMapping("/me/balance")
+    public ResponseEntity<?> addBalance(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Double> body) {
+        try {
+            Long userId = extractUserId(authHeader);
+            Double amount = body.get("amount");
+            if (amount == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Amount is required"));
+            }
+            return ResponseEntity.ok(userService.addBalance(userId, amount));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private Long extractUserId(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new RuntimeException("Missing or invalid Authorization header");

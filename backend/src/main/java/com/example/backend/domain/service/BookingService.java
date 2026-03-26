@@ -2,12 +2,14 @@ package com.example.backend.domain.service;
 
 import com.example.backend.application.dto.BookingRequest;
 import com.example.backend.application.dto.BookingResponse;
+import com.example.backend.application.dto.FinishBookingRequest;
 import com.example.backend.domain.model.*;
 import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.LearnerRepository;
 import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -37,7 +39,6 @@ public class BookingService {
      * Total cost is computed server-side: duration * hourlyRate.
      */
     public BookingResponse createBooking(BookingRequest request) {
-        // Validate duration range
         if (request.getDuration() < 1 || request.getDuration() > 12) {
             throw new IllegalArgumentException("Duration must be between 1 and 12 hours");
         }
@@ -52,16 +53,11 @@ public class BookingService {
         LocalTime startTime = LocalTime.parse(request.getStartTime());
         LocalTime endTime = startTime.plusHours(request.getDuration());
 
-        // Validate that the requested slot fits within the car's weekly availability
         validateAvailability(car.getId(), date, startTime, endTime);
-
-        // Prevent overlapping bookings for the same car on the same date
         validateNoOverlap(car.getId(), date, startTime, endTime);
 
-        // Calculate cost
         double totalCost = request.getDuration() * car.getHourlyRate();
 
-        // Create and save the booking
         Booking booking = new Booking();
         booking.setCar(car);
         booking.setLearner(learner);
@@ -86,20 +82,54 @@ public class BookingService {
     }
 
     /**
-     * Marks a booking as FINISHED (placeholder - no business logic yet).
+     * Returns all bookings for cars owned by a given provider (read-only).
      */
-    public BookingResponse finishBooking(Long bookingId) {
+    public List<BookingResponse> getBookingsForProvider(Long providerId) {
+        return bookingRepository.findByProviderIdOrderByDateDesc(providerId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * Finishes a booking: deducts balance from learner and updates car location.
+     */
+    @Transactional
+    public BookingResponse finishBooking(Long bookingId, FinishBookingRequest request) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if ("FINISHED".equals(booking.getStatus())) {
+            throw new IllegalArgumentException("Booking is already finished");
+        }
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new IllegalArgumentException("Cannot finish a cancelled booking");
+        }
+
+        // Deduct balance from learner
+        Learner learner = booking.getLearner();
+        if (learner.getBalance() < booking.getTotalCost()) {
+            throw new IllegalArgumentException("Insufficient balance");
+        }
+        learner.setBalance(learner.getBalance() - booking.getTotalCost());
+        learnerRepository.save(learner);
+
+        // Update car location
+        Car car = booking.getCar();
+        if (request != null && request.getLatitude() != null && request.getLongitude() != null) {
+            car.setLatitude(request.getLatitude());
+            car.setLongitude(request.getLongitude());
+            if (request.getLocation() != null && !request.getLocation().isBlank()) {
+                car.setLocation(request.getLocation());
+            }
+            carRepository.save(car);
+        }
+
         booking.setStatus("FINISHED");
         Booking saved = bookingRepository.save(booking);
         return toResponse(saved);
     }
 
-    /**
-     * Checks that the requested time slot falls within one of the car's
-     * weekly availability windows for the corresponding day of week.
-     */
     private void validateAvailability(Long carId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         List<AvailabilitySlot> slots = availabilitySlotRepository.findByCarIdOrderByDayOfWeekAscStartMinuteAsc(carId);
@@ -119,10 +149,6 @@ public class BookingService {
         }
     }
 
-    /**
-     * Ensures no existing booking for the same car on the same date
-     * overlaps with the requested time window.
-     */
     private void validateNoOverlap(Long carId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         List<Booking> existingBookings = bookingRepository.findActiveBookingsByCarAndDate(carId, date);
 
@@ -132,7 +158,6 @@ public class BookingService {
         boolean hasOverlap = existingBookings.stream().anyMatch(b -> {
             int bStart = b.getStartTime().getHour() * 60 + b.getStartTime().getMinute();
             int bEnd = bStart + (b.getDuration() * 60);
-            // Two ranges overlap if one starts before the other ends
             return reqStart < bEnd && reqEnd > bStart;
         });
 
@@ -141,13 +166,13 @@ public class BookingService {
         }
     }
 
-    /** Maps a Booking entity to the response DTO */
     private BookingResponse toResponse(Booking booking) {
         BookingResponse res = new BookingResponse();
         res.setId(booking.getId());
         res.setCarId(booking.getCar().getId());
         res.setCarName(booking.getCar().getMakeModel());
         res.setUserId(booking.getLearner().getId());
+        res.setLearnerName(booking.getLearner().getFullName());
         res.setDate(booking.getDate().toString());
         res.setStartTime(booking.getStartTime().toString());
         res.setDuration(booking.getDuration());

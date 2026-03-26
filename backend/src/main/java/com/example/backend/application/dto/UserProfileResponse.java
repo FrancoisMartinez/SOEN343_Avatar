@@ -10,12 +10,13 @@ public class UserProfileResponse {
     private LocalDate licenseIssueDate;
     private String licenseRegion;
     private String role;
+    private Double balance;
 
     public UserProfileResponse() {}
 
     public UserProfileResponse(Long id, String fullName, String email,
                                String licenseNumber, LocalDate licenseIssueDate,
-                               String licenseRegion, String role) {
+                               String licenseRegion, String role, Double balance) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
@@ -23,6 +24,7 @@ public class UserProfileResponse {
         this.licenseIssueDate = licenseIssueDate;
         this.licenseRegion = licenseRegion;
         this.role = role;
+        this.balance = balance;
     }
 
     public Long getId() { return id; }
@@ -45,4 +47,7 @@ public class UserProfileResponse {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Double getBalance() { return balance; }
+    public void setBalance(Double balance) { this.balance = balance; }
 }

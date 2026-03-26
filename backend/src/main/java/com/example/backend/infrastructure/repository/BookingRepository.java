@@ -20,4 +20,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByLearnerIdOrderByDateDesc(Long learnerId);
 
     List<Booking> findByCarId(Long carId);
+
+    /** Find all bookings for cars owned by a specific provider, ordered by date descending */
+    @Query("SELECT b FROM Booking b WHERE b.car.provider.id = :providerId ORDER BY b.date DESC")
+    List<Booking> findByProviderIdOrderByDateDesc(@Param("providerId") Long providerId);
 }

@@ -3,16 +3,18 @@ import './ReservationCard.css';
 
 interface ReservationCardProps {
   booking: BookingData;
-  onFinish: (bookingId: number) => void;
+  onFinish?: (bookingId: number) => void;
   finishing?: boolean;
+  readOnly?: boolean;
 }
 
 /**
- * ReservationCard: Displays a single reservation with its details
- * and a "Finish Reservation" action button.
+ * ReservationCard: Displays a single reservation with its details.
+ * Supports both learner view (with finish action) and provider view (read-only).
  */
-export default function ReservationCard({ booking, onFinish, finishing }: ReservationCardProps) {
+export default function ReservationCard({ booking, onFinish, finishing, readOnly }: ReservationCardProps) {
   const isFinished = booking.status === 'FINISHED';
+  const showFinishBtn = !readOnly && !isFinished && onFinish;
 
   return (
     <div className={`reservation-card ${isFinished ? 'reservation-card--finished' : ''}`}>
@@ -24,6 +26,12 @@ export default function ReservationCard({ booking, onFinish, finishing }: Reserv
       </div>
 
       <div className="reservation-card__details">
+        {booking.learnerName && (
+          <div className="reservation-card__detail">
+            <span className="reservation-card__label">Learner</span>
+            <span className="reservation-card__value">{booking.learnerName}</span>
+          </div>
+        )}
         <div className="reservation-card__detail">
           <span className="reservation-card__label">Date</span>
           <span className="reservation-card__value">
@@ -46,7 +54,7 @@ export default function ReservationCard({ booking, onFinish, finishing }: Reserv
         </div>
       </div>
 
-      {!isFinished && (
+      {showFinishBtn && (
         <button
           className="reservation-card__finish-btn"
           onClick={() => onFinish(booking.id!)}
