@@ -2,6 +2,8 @@ package com.example.backend.domain.service;
 
 import com.example.backend.application.dto.ParkingSpot;
 import com.example.backend.application.dto.RouteResult;
+import com.example.backend.application.dto.TransportMode;
+import com.example.backend.infrastructure.adapter.HereTransitAdapter;
 import com.example.backend.infrastructure.adapter.OSRMAdapter;
 import com.example.backend.infrastructure.adapter.OverpassAdapter;
 import org.springframework.stereotype.Service;
@@ -14,22 +16,28 @@ public class RouteService {
     private static final int MAX_PARKING_RADIUS_METERS = 1_000;
 
     private final OSRMAdapter osrmAdapter;
+    private final HereTransitAdapter hereTransitAdapter;
     private final OverpassAdapter overpassAdapter;
 
-    public RouteService(OSRMAdapter osrmAdapter, OverpassAdapter overpassAdapter) {
+    public RouteService(OSRMAdapter osrmAdapter, HereTransitAdapter hereTransitAdapter, OverpassAdapter overpassAdapter) {
         this.osrmAdapter = osrmAdapter;
+        this.hereTransitAdapter = hereTransitAdapter;
         this.overpassAdapter = overpassAdapter;
     }
 
     /**
-     * Get driving directions between two geographic coordinates.
+     * Get directions between two geographic coordinates for the given transport mode.
+     * BUS mode uses the HERE Transit API; all other modes use OSRM.
      *
      * @throws IllegalArgumentException if any coordinate is out of valid geographic range
      */
-    public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon) {
+    public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon, TransportMode mode) {
         validateCoordinates(fromLat, fromLon, "origin");
         validateCoordinates(toLat, toLon, "destination");
-        return osrmAdapter.getDirections(fromLat, fromLon, toLat, toLon);
+        if (mode == TransportMode.BUS) {
+            return hereTransitAdapter.getTransitDirections(fromLat, fromLon, toLat, toLon);
+        }
+        return osrmAdapter.getDirections(fromLat, fromLon, toLat, toLon, mode);
     }
 
     /**

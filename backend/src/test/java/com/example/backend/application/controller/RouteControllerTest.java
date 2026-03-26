@@ -2,6 +2,8 @@ package com.example.backend.application.controller;
 
 import com.example.backend.application.dto.ParkingSpot;
 import com.example.backend.application.dto.RouteResult;
+import com.example.backend.application.dto.TransportMode;
+import com.example.backend.domain.service.NoRouteFoundException;
 import com.example.backend.domain.service.RouteService;
 import com.example.backend.domain.service.RoutingUnavailableException;
 import org.junit.jupiter.api.Test;
@@ -25,11 +27,38 @@ class RouteControllerTest {
     void getDirections_validCoordinates_returns200WithRouteResult() {
         RouteResult result = new RouteResult(
                 List.of(new double[]{45.5, -73.6}, new double[]{45.51, -73.59}),
-                1.2, 3
+                1.2, 3, TransportMode.DRIVING, List.of()
         );
-        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59)).thenReturn(result);
+        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING)).thenReturn(result);
 
-        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59);
+        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(result, response.getBody());
+    }
+
+    @Test
+    void getDirections_defaultModeDriving_returns200() {
+        RouteResult result = new RouteResult(
+                List.of(new double[]{45.5, -73.6}),
+                1.2, 3, TransportMode.DRIVING, List.of()
+        );
+        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING)).thenReturn(result);
+
+        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void getDirections_busMode_returns200WithLegs() {
+        RouteResult result = new RouteResult(
+                List.of(new double[]{45.5, -73.6}),
+                1.5, 17, TransportMode.BUS, List.of()
+        );
+        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS)).thenReturn(result);
+
+        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(result, response.getBody());
@@ -37,10 +66,10 @@ class RouteControllerTest {
 
     @Test
     void getDirections_invalidCoordinates_returns400WithSafeMessage() {
-        when(routeService.getDirections(999.0, 0.0, 45.0, -73.0))
+        when(routeService.getDirections(999.0, 0.0, 45.0, -73.0, TransportMode.DRIVING))
                 .thenThrow(new IllegalArgumentException("Invalid latitude for origin: 999.0"));
 
-        ResponseEntity<?> response = controller.getDirections(999.0, 0.0, 45.0, -73.0);
+        ResponseEntity<?> response = controller.getDirections(999.0, 0.0, 45.0, -73.0, TransportMode.DRIVING);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         @SuppressWarnings("unchecked")
@@ -50,10 +79,10 @@ class RouteControllerTest {
 
     @Test
     void getDirections_routingServiceUnavailable_returns502WithSafeMessage() {
-        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59))
+        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING))
                 .thenThrow(new RoutingUnavailableException("Routing service unavailable"));
 
-        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59);
+        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
 
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
         @SuppressWarnings("unchecked")
@@ -63,10 +92,10 @@ class RouteControllerTest {
 
     @Test
     void getDirections_noRouteFound_returns400WithSafeMessage() {
-        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59))
-                .thenThrow(new RuntimeException("No route found between the specified locations"));
+        when(routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING))
+                .thenThrow(new NoRouteFoundException("No route found between the specified locations"));
 
-        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59);
+        ResponseEntity<?> response = controller.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         @SuppressWarnings("unchecked")
