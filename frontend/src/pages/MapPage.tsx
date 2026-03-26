@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import MapComponent from '../components/MapComponent';
 import VehicleSidebar from '../components/VehicleSidebar';
 import NavigationPanel from '../components/NavigationPanel';
+import ParkingPanel from '../components/ParkingPanel';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData, SearchFilters } from '../services/vehicleService';
 import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle, searchVehicles } from '../services/vehicleService';
@@ -9,6 +10,8 @@ import { updateWeeklyAvailability } from '../services/availabilityService';
 import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
 import type { AvailabilitySlot } from '../types/availability';
+import type { ParkingSpot } from '../services/parkingService';
+import './MapPage.css';
 
 type CarFocusOptions = {
   openPopup?: boolean;
@@ -38,6 +41,10 @@ export default function MapPage() {
   const [searchRadius, setSearchRadius] = useState(5);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+  const [parkingActive, setParkingActive] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number }>({ lat: 45.4947, lon: -73.5779 });
+  const [navigateToDestination, setNavigateToDestination] = useState<{ lat: number; lon: number; name: string } | null>(null);
 
   const handleSearchVehicles = useCallback(async (filters: SearchFilters = {}) => {
     try {
@@ -68,8 +75,8 @@ export default function MapPage() {
       setError(null);
       const data = await fetchVehicles(userId);
       setVehicles(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load vehicles');
     } finally {
       setLoading(false);
     }
@@ -349,12 +356,25 @@ export default function MapPage() {
             onLocationPick={handleMapLocationPick}
             onRecenter={handleRecenter}
             routePolyline={routePolyline}
+            parkingSpots={parkingSpots}
+            onCenterChange={(lat, lon) => setMapCenter({ lat, lon })}
+            onNavigateToParking={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
           />
           {isAuthenticated && (
-            <NavigationPanel
-              onRoute={(polyline) => setRoutePolyline(polyline)}
-              onClear={() => setRoutePolyline(null)}
-            />
+            <div className="map-controls-overlay">
+              <NavigationPanel
+                onRoute={(polyline) => setRoutePolyline(polyline)}
+                onClear={() => setRoutePolyline(null)}
+                navigateTo={navigateToDestination}
+              />
+              <ParkingPanel
+                mapCenter={mapCenter}
+                onParkingSpots={setParkingSpots}
+                onNavigateTo={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
+                active={parkingActive}
+                onToggle={setParkingActive}
+              />
+            </div>
           )}
         </main>
       </div>

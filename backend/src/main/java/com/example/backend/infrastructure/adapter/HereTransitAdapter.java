@@ -34,8 +34,7 @@ public class HereTransitAdapter {
     private static final long HERE_RETRY_BACKOFF_MS = 200L;
 
     // HERE flexible polyline encoding table
-    private static final String ENCODING_TABLE =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    private static final String ENCODING_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
     private final RestTemplate restTemplate;
     private final String apiKey;
@@ -65,15 +64,16 @@ public class HereTransitAdapter {
      * Fetch public transit directions using the HERE Transit API v8.
      * Returns a route with individual legs (walking + transit sections).
      *
-     * @return RouteResult with combined polyline, total duration, and per-leg breakdown
+     * @return RouteResult with combined polyline, total duration, and per-leg
+     *         breakdown
      * @throws NoRouteFoundException       if HERE returns no transit route
-     * @throws RoutingUnavailableException if the service is unreachable or response is unparseable
+     * @throws RoutingUnavailableException if the service is unreachable or response
+     *                                     is unparseable
      */
     public RouteResult getTransitDirections(double fromLat, double fromLon, double toLat, double toLon) {
         String url = String.format(Locale.US,
                 "%s?origin=%f,%f&destination=%f,%f&return=polyline&apikey=%s",
-                HERE_TRANSIT_BASE, fromLat, fromLon, toLat, toLon, apiKey
-        );
+                HERE_TRANSIT_BASE, fromLat, fromLon, toLat, toLon, apiKey);
 
         RoutingUnavailableException lastError = null;
 
@@ -86,12 +86,10 @@ public class HereTransitAdapter {
                     // Client errors (e.g., invalid API key) will not succeed on retry.
                     if (httpEx.getStatusCode().is4xxClientError()) {
                         throw new RoutingUnavailableException(
-                                "Transit service unavailable (HTTP " + httpEx.getStatusCode() + ")", httpEx
-                        );
+                                "Transit service unavailable (HTTP " + httpEx.getStatusCode() + ")", httpEx);
                     }
                     throw new RoutingUnavailableException(
-                            "Transit service unavailable (HTTP " + httpEx.getStatusCode() + ")", httpEx
-                    );
+                            "Transit service unavailable (HTTP " + httpEx.getStatusCode() + ")", httpEx);
                 }
 
                 JsonNode root = objectMapper.readTree(response);
@@ -125,7 +123,8 @@ public class HereTransitAdapter {
                         String transportMode = transport.path("mode").asText(null);
                         String fromStop = section.path("departure").path("place").path("name").asText(null);
                         String toStop = section.path("arrival").path("place").path("name").asText(null);
-                        legs.add(new JourneyLeg("TRANSIT", lineLabel, transportMode, fromStop, toStop, durationMin, sectionPolyline));
+                        legs.add(new JourneyLeg("TRANSIT", lineLabel, transportMode, fromStop, toStop, durationMin,
+                                sectionPolyline));
                     }
                 }
 
@@ -174,7 +173,8 @@ public class HereTransitAdapter {
 
     /**
      * HERE responses may omit `travelSummary.duration`.
-     * If missing, fall back to computing duration from `departure.time` and `arrival.time`.
+     * If missing, fall back to computing duration from `departure.time` and
+     * `arrival.time`.
      */
     private static int parseSectionDurationSeconds(JsonNode section) {
         JsonNode durationNode = section.path("travelSummary").path("duration");
@@ -223,9 +223,11 @@ public class HereTransitAdapter {
             }
         }
 
-        if (values.size() < 2) return List.of();
+        if (values.size() < 2)
+            return List.of();
 
-        // values[0] = version, values[1] = header (precision | third_dim << 4 | third_dim_precision << 7)
+        // values[0] = version, values[1] = header (precision | third_dim << 4 |
+        // third_dim_precision << 7)
         long header = values.get(1);
         int precision = (int) (header & 0xF);
         int thirdDim = (int) ((header >> 4) & 0x7);
@@ -241,7 +243,7 @@ public class HereTransitAdapter {
             long lonDelta = values.get(i + 1);
             lastLat += (latDelta & 1) != 0 ? ~(latDelta >> 1) : (latDelta >> 1);
             lastLon += (lonDelta & 1) != 0 ? ~(lonDelta >> 1) : (lonDelta >> 1);
-            polyline.add(new double[]{lastLat / factor, lastLon / factor});
+            polyline.add(new double[] { lastLat / factor, lastLon / factor });
         }
 
         return polyline;
@@ -252,8 +254,7 @@ public class HereTransitAdapter {
         for (int i = 1; i < polyline.size(); i++) {
             total += haversineKm(
                     polyline.get(i - 1)[0], polyline.get(i - 1)[1],
-                    polyline.get(i)[0], polyline.get(i)[1]
-            );
+                    polyline.get(i)[0], polyline.get(i)[1]);
         }
         return Math.round(total * 10.0) / 10.0;
     }
@@ -264,7 +265,7 @@ public class HereTransitAdapter {
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }

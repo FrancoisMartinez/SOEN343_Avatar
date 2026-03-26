@@ -18,156 +18,157 @@ import static org.mockito.Mockito.when;
 
 class HereTransitAdapterTest {
 
-    // Verified HERE flexible polyline encoding for [(45.5, -73.6), (45.51, -73.59)]
-    // Header: "BF" (version=1, precision=5), then two delta-encoded coordinate pairs
-    private static final String POLYLINE_2PT = "BFg321I__mhOw-Bw-B";
+  // Verified HERE flexible polyline encoding for [(45.5, -73.6), (45.51, -73.59)]
+  // Header: "BF" (version=1, precision=5), then two delta-encoded coordinate
+  // pairs
+  private static final String POLYLINE_2PT = "BFg321I__mhOw-Bw-B";
 
-    private static final String VALID_RESPONSE = """
+  private static final String VALID_RESPONSE = """
+      {
+        "routes": [{
+          "sections": [
             {
-              "routes": [{
-                "sections": [
-                  {
-                    "type": "pedestrian",
-                    "departure": { "place": { "name": "Origin" } },
-                    "arrival":   { "place": { "name": "Bus Stop Guy" } },
-                    "travelSummary": { "duration": 300 },
-                    "polyline": "%s"
-                  },
-                  {
-                    "type": "transit",
-                    "departure": { "place": { "name": "Bus Stop Guy" } },
-                    "arrival":   { "place": { "name": "Berri-UQAM" } },
-                    "travelSummary": { "duration": 720 },
-                    "transport": { "mode": "bus", "name": "24" },
-                    "polyline": "%s"
-                  }
-                ]
-              }]
-            }
-            """.formatted(POLYLINE_2PT, POLYLINE_2PT);
-
-    private static final String VALID_RESPONSE_NO_TRAVEL_SUMMARY = """
+              "type": "pedestrian",
+              "departure": { "place": { "name": "Origin" } },
+              "arrival":   { "place": { "name": "Bus Stop Guy" } },
+              "travelSummary": { "duration": 300 },
+              "polyline": "%s"
+            },
             {
-              "routes": [{
-                "sections": [
-                  {
-                    "type": "pedestrian",
-                    "departure": {
-                      "time": "2020-01-01T00:00:00-04:00",
-                      "place": { "name": "Origin" }
-                    },
-                    "arrival": {
-                      "time": "2020-01-01T00:05:00-04:00",
-                      "place": { "name": "Bus Stop Guy" }
-                    },
-                    "polyline": "%s"
-                  },
-                  {
-                    "type": "transit",
-                    "departure": {
-                      "time": "2020-01-01T00:05:00-04:00",
-                      "place": { "name": "Bus Stop Guy" }
-                    },
-                    "arrival": {
-                      "time": "2020-01-01T00:17:00-04:00",
-                      "place": { "name": "Berri-UQAM" }
-                    },
-                    "transport": { "mode": "bus", "name": "24" },
-                    "polyline": "%s"
-                  }
-                ]
-              }]
+              "type": "transit",
+              "departure": { "place": { "name": "Bus Stop Guy" } },
+              "arrival":   { "place": { "name": "Berri-UQAM" } },
+              "travelSummary": { "duration": 720 },
+              "transport": { "mode": "bus", "name": "24" },
+              "polyline": "%s"
             }
-            """.formatted(POLYLINE_2PT, POLYLINE_2PT);
+          ]
+        }]
+      }
+      """.formatted(POLYLINE_2PT, POLYLINE_2PT);
 
-    private final RestTemplate restTemplate = mock(RestTemplate.class);
-    private final HereTransitAdapter adapter = new HereTransitAdapter(restTemplate, "test-key");
+  private static final String VALID_RESPONSE_NO_TRAVEL_SUMMARY = """
+      {
+        "routes": [{
+          "sections": [
+            {
+              "type": "pedestrian",
+              "departure": {
+                "time": "2020-01-01T00:00:00-04:00",
+                "place": { "name": "Origin" }
+              },
+              "arrival": {
+                "time": "2020-01-01T00:05:00-04:00",
+                "place": { "name": "Bus Stop Guy" }
+              },
+              "polyline": "%s"
+            },
+            {
+              "type": "transit",
+              "departure": {
+                "time": "2020-01-01T00:05:00-04:00",
+                "place": { "name": "Bus Stop Guy" }
+              },
+              "arrival": {
+                "time": "2020-01-01T00:17:00-04:00",
+                "place": { "name": "Berri-UQAM" }
+              },
+              "transport": { "mode": "bus", "name": "24" },
+              "polyline": "%s"
+            }
+          ]
+        }]
+      }
+      """.formatted(POLYLINE_2PT, POLYLINE_2PT);
 
-    @Test
-    void getTransitDirections_validResponse_returnsRouteWithLegs() {
-        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
+  private final RestTemplate restTemplate = mock(RestTemplate.class);
+  private final HereTransitAdapter adapter = new HereTransitAdapter(restTemplate, "test-key");
 
-        RouteResult result = adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59);
+  @Test
+  void getTransitDirections_validResponse_returnsRouteWithLegs() {
+    when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE);
 
-        assertNotNull(result);
-        assertEquals(TransportMode.BUS, result.mode());
-        assertEquals(2, result.legs().size());
+    RouteResult result = adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59);
 
-        // First leg: walking
-        assertEquals("WALK", result.legs().get(0).type());
-        assertNull(result.legs().get(0).lineLabel());
-        assertEquals(5, result.legs().get(0).durationMin()); // 300s / 60 = 5
+    assertNotNull(result);
+    assertEquals(TransportMode.BUS, result.mode());
+    assertEquals(2, result.legs().size());
 
-        // Second leg: transit
-        assertEquals("TRANSIT", result.legs().get(1).type());
-        assertEquals("24", result.legs().get(1).lineLabel());
-        assertEquals("bus", result.legs().get(1).transportMode());
-        assertEquals("Bus Stop Guy", result.legs().get(1).fromStop());
-        assertEquals("Berri-UQAM", result.legs().get(1).toStop());
-        assertEquals(12, result.legs().get(1).durationMin()); // 720s / 60 = 12
+    // First leg: walking
+    assertEquals("WALK", result.legs().get(0).type());
+    assertNull(result.legs().get(0).lineLabel());
+    assertEquals(5, result.legs().get(0).durationMin()); // 300s / 60 = 5
 
-        // Combined polyline: 2 points per section × 2 sections = 4 total
-        assertEquals(4, result.polyline().size());
+    // Second leg: transit
+    assertEquals("TRANSIT", result.legs().get(1).type());
+    assertEquals("24", result.legs().get(1).lineLabel());
+    assertEquals("bus", result.legs().get(1).transportMode());
+    assertEquals("Bus Stop Guy", result.legs().get(1).fromStop());
+    assertEquals("Berri-UQAM", result.legs().get(1).toStop());
+    assertEquals(12, result.legs().get(1).durationMin()); // 720s / 60 = 12
 
-        // Total duration: (300 + 720) / 60 = 17 min
-        assertEquals(17, result.durationMin());
-    }
+    // Combined polyline: 2 points per section × 2 sections = 4 total
+    assertEquals(4, result.polyline().size());
 
-    @Test
-    void getTransitDirections_networkError_throwsRoutingUnavailableException() {
-        when(restTemplate.getForObject(anyString(), eq(String.class)))
-                .thenThrow(new ResourceAccessException("Connection refused"));
+    // Total duration: (300 + 720) / 60 = 17 min
+    assertEquals(17, result.durationMin());
+  }
 
-        assertThrows(RoutingUnavailableException.class,
-                () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
-    }
+  @Test
+  void getTransitDirections_networkError_throwsRoutingUnavailableException() {
+    when(restTemplate.getForObject(anyString(), eq(String.class)))
+        .thenThrow(new ResourceAccessException("Connection refused"));
 
-    @Test
-    void getTransitDirections_noRoutesInResponse_throwsNoRouteFoundException() {
-        when(restTemplate.getForObject(anyString(), eq(String.class)))
-                .thenReturn("{\"routes\":[]}");
+    assertThrows(RoutingUnavailableException.class,
+        () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
+  }
 
-        assertThrows(NoRouteFoundException.class,
-                () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
-    }
+  @Test
+  void getTransitDirections_noRoutesInResponse_throwsNoRouteFoundException() {
+    when(restTemplate.getForObject(anyString(), eq(String.class)))
+        .thenReturn("{\"routes\":[]}");
 
-    @Test
-    void getTransitDirections_malformedJson_throwsRoutingUnavailableException() {
-        when(restTemplate.getForObject(anyString(), eq(String.class)))
-                .thenReturn("not-json{{");
+    assertThrows(NoRouteFoundException.class,
+        () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
+  }
 
-        assertThrows(RoutingUnavailableException.class,
-                () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
-    }
+  @Test
+  void getTransitDirections_malformedJson_throwsRoutingUnavailableException() {
+    when(restTemplate.getForObject(anyString(), eq(String.class)))
+        .thenReturn("not-json{{");
 
-    @Test
-    void getTransitDirections_whenTravelSummaryMissing_usesDepartureArrivalTimes() {
-        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE_NO_TRAVEL_SUMMARY);
+    assertThrows(RoutingUnavailableException.class,
+        () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
+  }
 
-        RouteResult result = adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59);
+  @Test
+  void getTransitDirections_whenTravelSummaryMissing_usesDepartureArrivalTimes() {
+    when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE_NO_TRAVEL_SUMMARY);
 
-        assertNotNull(result);
-        assertEquals(TransportMode.BUS, result.mode());
-        assertEquals(2, result.legs().size());
+    RouteResult result = adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59);
 
-        // 5 minutes and 12 minutes computed from timestamps.
-        assertEquals(5, result.legs().get(0).durationMin());
-        assertEquals(12, result.legs().get(1).durationMin());
-        assertEquals(17, result.durationMin());
-    }
+    assertNotNull(result);
+    assertEquals(TransportMode.BUS, result.mode());
+    assertEquals(2, result.legs().size());
 
-    @Test
-    void decodeFlexiblePolyline_twoPoints_decodesCorrectly() {
-        List<double[]> points = HereTransitAdapter.decodeFlexiblePolyline(POLYLINE_2PT);
+    // 5 minutes and 12 minutes computed from timestamps.
+    assertEquals(5, result.legs().get(0).durationMin());
+    assertEquals(12, result.legs().get(1).durationMin());
+    assertEquals(17, result.durationMin());
+  }
 
-        assertEquals(2, points.size());
-        assertArrayEquals(new double[]{45.5, -73.6}, points.get(0), 0.00001);
-        assertArrayEquals(new double[]{45.51, -73.59}, points.get(1), 0.00001);
-    }
+  @Test
+  void decodeFlexiblePolyline_twoPoints_decodesCorrectly() {
+    List<double[]> points = HereTransitAdapter.decodeFlexiblePolyline(POLYLINE_2PT);
 
-    @Test
-    void decodeFlexiblePolyline_invalidCharacter_throwsIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class,
-                () -> HereTransitAdapter.decodeFlexiblePolyline("BF!invalid"));
-    }
+    assertEquals(2, points.size());
+    assertArrayEquals(new double[] { 45.5, -73.6 }, points.get(0), 0.00001);
+    assertArrayEquals(new double[] { 45.51, -73.59 }, points.get(1), 0.00001);
+  }
+
+  @Test
+  void decodeFlexiblePolyline_invalidCharacter_throwsIllegalArgumentException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> HereTransitAdapter.decodeFlexiblePolyline("BF!invalid"));
+  }
 }

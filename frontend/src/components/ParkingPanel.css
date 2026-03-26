@@ -1,0 +1,79 @@
+.parking-panel {
+  --parking-bg: #ffffff;
+  --parking-text: #1a1a1a;
+  --parking-border: #d7dde7;
+  --parking-primary: #646cff;
+  --parking-primary-hover: #535bf2;
+  --parking-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  --parking-error-bg: #fff3f3;
+  --parking-error-border: #e57373;
+  --parking-error-text: #c62828;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.parking-toggle-btn {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--parking-border);
+  background: var(--parking-bg);
+  color: var(--parking-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: var(--parking-shadow);
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.parking-toggle-btn:hover:not(:disabled) {
+  border-color: var(--parking-primary);
+  color: var(--parking-primary);
+  transform: translateY(-1px);
+}
+
+.parking-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.parking-error {
+  margin: 0;
+  background: var(--parking-error-bg);
+  border: 1px solid var(--parking-error-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  color: var(--parking-error-text);
+  max-width: 220px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .parking-panel {
+    --parking-bg: rgba(24, 28, 34, 0.96);
+    --parking-text: #eef2f6;
+    --parking-border: rgba(255, 255, 255, 0.14);
+    --parking-primary: #7c5cfc;
+    --parking-primary-hover: #646cff;
+    --parking-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+    --parking-error-bg: rgba(121, 47, 47, 0.24);
+    --parking-error-border: rgba(255, 143, 143, 0.65);
+    --parking-error-text: #ffb5b5;
+  }
+
+  .parking-toggle-btn:hover:not(:disabled) {
+    color: var(--parking-primary-hover);
+  }
+}
+
+@media (max-width: 820px) {
+  .parking-toggle-btn {
+    height: 38px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+}

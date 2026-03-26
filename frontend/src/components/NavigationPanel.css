@@ -23,15 +23,12 @@
   --address-suggestions-bg: var(--nav-suggestion-bg);
   --address-suggestion-hover: var(--nav-suggestion-hover);
 
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
+  position: relative;
   background: var(--nav-bg);
   border-radius: 10px;
   box-shadow: var(--nav-panel-shadow);
   padding: 14px 16px;
-  width: 260px;
+  width: min(260px, calc(100vw - 180px));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -228,5 +225,11 @@
     --nav-danger: #ff8d8d;
     --nav-suggestion-bg: rgba(19, 22, 28, 0.98);
     --nav-suggestion-hover: rgba(100, 108, 255, 0.18);
+  }
+}
+
+@media (max-width: 820px) {
+  .nav-panel {
+    width: min(260px, calc(100vw - 140px));
   }
 }

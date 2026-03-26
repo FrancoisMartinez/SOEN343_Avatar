@@ -37,9 +37,10 @@ function requestCurrentPosition(options: PositionOptions): Promise<GeolocationPo
 interface NavigationPanelProps {
   onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
   onClear: () => void;
+  navigateTo?: { lat: number; lon: number; name: string } | null;
 }
 
-export default function NavigationPanel({ onRoute, onClear }: Readonly<NavigationPanelProps>) {
+export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readonly<NavigationPanelProps>) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -96,9 +97,9 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
         setFromAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
       }
       setFromSuggestions([]);
-    } catch (error) {
-      if (isGeolocationError(error)) {
-        setError(getLocationErrorMessage(error));
+    } catch (locationError) {
+      if (isGeolocationError(locationError)) {
+        setError(getLocationErrorMessage(locationError));
       } else {
         setError('Could not get your location. Please try again.');
       }
@@ -111,9 +112,19 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   useEffect(() => {
     if (didAutoGps.current) return;
     didAutoGps.current = true;
-
     void setFromToCurrentLocation();
   }, []);
+
+  // Pre-fill destination when a parking spot is clicked.
+  useEffect(() => {
+    if (!navigateTo) return;
+    setToAddress(navigateTo.name);
+    setToCoords({ lat: navigateTo.lat, lon: navigateTo.lon });
+    setToSuggestions([]);
+    setRouteInfo(null);
+    setLegs([]);
+    setError(null);
+  }, [navigateTo]);
 
   const searchField = async (
     address: string,
@@ -224,114 +235,114 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
 
       {!isCollapsed && (
         <>
-      <div className="nav-panel__modes" role="group" aria-label="Transport mode">
-        {MODES.map(({ value, label, icon }) => (
+          <div className="nav-panel__modes" role="group" aria-label="Transport mode">
+            {MODES.map(({ value, label, icon }) => (
+              <button
+                key={value}
+                className={`nav-panel__mode-btn${selectedMode === value ? ' nav-panel__mode-btn--active' : ''}`}
+                onClick={() => handleModeChange(value)}
+                title={label}
+              >
+                <span aria-hidden="true">{icon}</span>
+                <span className="nav-panel__mode-label">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="nav-panel__field">
+            <AddressSearchField
+              inputId="nav-from"
+              label="From"
+              placeholder={gpsLoading ? 'Detecting location...' : 'Your location'}
+              value={fromAddress}
+              searching={fromSearching}
+              suggestions={fromSuggestions}
+              suggestionsAriaLabel="From suggestions"
+              onChange={(value) => {
+                setFromAddress(value);
+                setFromCoords(null);
+                setFromSuggestions([]);
+                setRouteInfo(null);
+              }}
+              onSearch={() => {
+                void searchField(fromAddress, setFromSearching, setFromSuggestions);
+              }}
+              onSelectSuggestion={selectFromSuggestion}
+              onClear={clearFrom}
+              clearAriaLabel="Clear start"
+            />
+            <button
+              type="button"
+              className="nav-panel__current-location"
+              onClick={() => {
+                void setFromToCurrentLocation();
+              }}
+              disabled={gpsLoading}
+            >
+              {gpsLoading ? 'Locating...' : 'Use current location'}
+            </button>
+          </div>
+
+          <div className="nav-panel__field">
+            <AddressSearchField
+              inputId="nav-to"
+              label="To"
+              placeholder="Enter destination"
+              value={toAddress}
+              searching={toSearching}
+              suggestions={toSuggestions}
+              suggestionsAriaLabel="To suggestions"
+              onChange={(value) => {
+                setToAddress(value);
+                setToCoords(null);
+                setToSuggestions([]);
+                setRouteInfo(null);
+              }}
+              onSearch={() => {
+                void searchField(toAddress, setToSearching, setToSuggestions);
+              }}
+              onSelectSuggestion={selectToSuggestion}
+              onClear={clearTo}
+              clearAriaLabel="Clear destination"
+            />
+          </div>
+
+          {error && <p className="nav-panel__error" role="alert" aria-live="polite">{error}</p>}
+
+          {routeInfo && (
+            <div className="nav-panel__info">
+              <span><span aria-hidden="true">🛣</span> {routeInfo.distanceKm} km</span>
+              <span><span aria-hidden="true">⏱</span> {routeInfo.durationMin} min</span>
+              <button className="nav-panel__clear-route" onClick={handleClear}>
+                Clear
+              </button>
+            </div>
+          )}
+
+          {legs.length > 0 && (
+            <ol className="nav-panel__legs" aria-label="Journey steps">
+              {legs.map((leg, i) => (
+                <li key={`${leg.type}-${leg.fromStop ?? 'walk'}-${i}`} className="nav-panel__leg">
+                  {leg.type === 'WALK' ? (
+                    <span><span aria-hidden="true">🚶</span> Walk {leg.durationMin} min</span>
+                  ) : (
+                    <span>
+                      <span aria-hidden="true">{leg.transportMode === 'subway' ? '🚇' : '🚌'}</span>
+                      {' '}{leg.lineLabel && `Line ${leg.lineLabel}: `}{leg.fromStop} → {leg.toStop} ({leg.durationMin} min)
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+
           <button
-            key={value}
-            className={`nav-panel__mode-btn${selectedMode === value ? ' nav-panel__mode-btn--active' : ''}`}
-            onClick={() => handleModeChange(value)}
-            title={label}
+            className="nav-panel__btn"
+            onClick={handleGetDirections}
+            disabled={!canGetDirections}
           >
-            <span aria-hidden="true">{icon}</span>
-            <span className="nav-panel__mode-label">{label}</span>
+            {loading ? 'Getting directions…' : 'Get Directions'}
           </button>
-        ))}
-      </div>
-
-      <div className="nav-panel__field">
-        <AddressSearchField
-          inputId="nav-from"
-          label="From"
-          placeholder={gpsLoading ? 'Detecting location...' : 'Your location'}
-          value={fromAddress}
-          searching={fromSearching}
-          suggestions={fromSuggestions}
-          suggestionsAriaLabel="From suggestions"
-          onChange={(value) => {
-            setFromAddress(value);
-            setFromCoords(null);
-            setFromSuggestions([]);
-            setRouteInfo(null);
-          }}
-          onSearch={() => {
-            void searchField(fromAddress, setFromSearching, setFromSuggestions);
-          }}
-          onSelectSuggestion={selectFromSuggestion}
-          onClear={clearFrom}
-          clearAriaLabel="Clear start"
-        />
-        <button
-          type="button"
-          className="nav-panel__current-location"
-          onClick={() => {
-            void setFromToCurrentLocation();
-          }}
-          disabled={gpsLoading}
-        >
-          {gpsLoading ? 'Locating...' : 'Use current location'}
-        </button>
-      </div>
-
-      <div className="nav-panel__field">
-        <AddressSearchField
-          inputId="nav-to"
-          label="To"
-          placeholder="Enter destination"
-          value={toAddress}
-          searching={toSearching}
-          suggestions={toSuggestions}
-          suggestionsAriaLabel="To suggestions"
-          onChange={(value) => {
-            setToAddress(value);
-            setToCoords(null);
-            setToSuggestions([]);
-            setRouteInfo(null);
-          }}
-          onSearch={() => {
-            void searchField(toAddress, setToSearching, setToSuggestions);
-          }}
-          onSelectSuggestion={selectToSuggestion}
-          onClear={clearTo}
-          clearAriaLabel="Clear destination"
-        />
-      </div>
-
-      {error && <p className="nav-panel__error" role="alert" aria-live="polite">{error}</p>}
-
-      {routeInfo && (
-        <div className="nav-panel__info">
-          <span><span aria-hidden="true">🛣</span> {routeInfo.distanceKm} km</span>
-          <span><span aria-hidden="true">⏱</span> {routeInfo.durationMin} min</span>
-          <button className="nav-panel__clear-route" onClick={handleClear}>
-            Clear
-          </button>
-        </div>
-      )}
-
-      {legs.length > 0 && (
-        <ol className="nav-panel__legs" aria-label="Journey steps">
-          {legs.map((leg, i) => (
-            <li key={`${leg.type}-${leg.fromStop ?? 'walk'}-${i}`} className="nav-panel__leg">
-              {leg.type === 'WALK' ? (
-                <span><span aria-hidden="true">🚶</span> Walk {leg.durationMin} min</span>
-              ) : (
-                <span>
-                  <span aria-hidden="true">{leg.transportMode === 'subway' ? '🚇' : '🚌'}</span>
-                  {' '}{leg.lineLabel && `Line ${leg.lineLabel}: `}{leg.fromStop} → {leg.toStop} ({leg.durationMin} min)
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <button
-        className="nav-panel__btn"
-        onClick={handleGetDirections}
-        disabled={!canGetDirections}
-      >
-        {loading ? 'Getting directions…' : 'Get Directions'}
-      </button>
         </>
       )}
     </div>

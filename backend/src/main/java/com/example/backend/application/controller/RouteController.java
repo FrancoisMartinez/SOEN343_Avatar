@@ -1,5 +1,6 @@
 package com.example.backend.application.controller;
 
+import com.example.backend.application.dto.ParkingSpot;
 import com.example.backend.application.dto.RouteResult;
 import com.example.backend.application.dto.TransportMode;
 import com.example.backend.domain.service.NoRouteFoundException;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -73,6 +75,30 @@ public class RouteController {
             log.warn("Unexpected routing error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of(ERROR_KEY, "No route found between the specified locations"));
+        }
+    }
+
+    /**
+     * Get public parking spots near a location.
+     *
+     * GET /api/routes/parking?lat=&lon=&radius=
+     */
+    @GetMapping("/parking")
+    public ResponseEntity<?> getParkingNearby(
+            @RequestParam double lat,
+            @RequestParam double lon,
+            @RequestParam(defaultValue = "800") int radius) {
+        try {
+            List<ParkingSpot> spots = routeService.getParkingNearby(lat, lon, radius);
+            return ResponseEntity.ok(spots);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid coordinates in parking request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(ERROR_KEY, "Invalid coordinates: " + e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Parking service unavailable: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of(ERROR_KEY, "Parking service is temporarily unavailable"));
         }
     }
 }
