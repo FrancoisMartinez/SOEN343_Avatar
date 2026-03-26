@@ -17,7 +17,9 @@ import java.util.Locale;
 @Component
 public class OSRMAdapter {
 
-    private static final String OSRM_BASE = "https://router.project-osrm.org/route/v1";
+    private static final String OSRM_DRIVING_BASE = "https://router.project-osrm.org/route/v1/driving";
+    private static final String OSRM_BICYCLE_BASE = "https://routing.openstreetmap.de/routed-bike/route/v1/bicycle";
+    private static final String OSRM_FOOT_BASE    = "https://routing.openstreetmap.de/routed-foot/route/v1/foot";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
     private static final int READ_TIMEOUT_MS = 10_000;
 
@@ -47,8 +49,8 @@ public class OSRMAdapter {
     public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon, TransportMode mode) {
         // Use Locale.US to ensure decimal points in the URL regardless of JVM locale
         String url = String.format(Locale.US,
-                "%s/%s/%f,%f;%f,%f?overview=full&geometries=geojson",
-                OSRM_BASE, osrmProfile(mode), fromLon, fromLat, toLon, toLat
+                "%s/%f,%f;%f,%f?overview=full&geometries=geojson",
+                osrmBase(mode), fromLon, fromLat, toLon, toLat
         );
 
         String response;
@@ -90,11 +92,11 @@ public class OSRMAdapter {
         }
     }
 
-    private static String osrmProfile(TransportMode mode) {
+    private static String osrmBase(TransportMode mode) {
         return switch (mode) {
-            case DRIVING -> "driving";
-            case BICYCLE -> "bicycle";
-            case WALK -> "foot";
+            case DRIVING -> OSRM_DRIVING_BASE;
+            case BICYCLE -> OSRM_BICYCLE_BASE;
+            case WALK -> OSRM_FOOT_BASE;
             case BUS -> throw new IllegalArgumentException("BUS mode is not supported by OSRM");
         };
     }

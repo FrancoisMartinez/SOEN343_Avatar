@@ -30,14 +30,14 @@ class HereTransitAdapterTest {
                     "type": "pedestrian",
                     "departure": { "place": { "name": "Origin" } },
                     "arrival":   { "place": { "name": "Bus Stop Guy" } },
-                    "duration": 300,
+                    "travelSummary": { "duration": 300 },
                     "polyline": "%s"
                   },
                   {
                     "type": "transit",
                     "departure": { "place": { "name": "Bus Stop Guy" } },
                     "arrival":   { "place": { "name": "Berri-UQAM" } },
-                    "duration": 720,
+                    "travelSummary": { "duration": 720 },
                     "transport": { "mode": "bus", "name": "24" },
                     "polyline": "%s"
                   }

@@ -82,7 +82,7 @@ public class HereTransitAdapter {
 
             for (JsonNode section : sections) {
                 String type = section.path("type").asText();
-                int durationSec = section.path("duration").asInt();
+                int durationSec = section.path("travelSummary").path("duration").asInt();
                 totalDurationSec += durationSec;
                 int durationMin = (int) Math.ceil(durationSec / 60.0);
 
