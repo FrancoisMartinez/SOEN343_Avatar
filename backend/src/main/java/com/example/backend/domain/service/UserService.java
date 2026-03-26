@@ -5,6 +5,7 @@ import com.example.backend.application.dto.RegisterRequest;
 import com.example.backend.application.dto.UpdateProfileRequest;
 import com.example.backend.application.dto.UserProfileResponse;
 import com.example.backend.domain.model.*;
+import com.example.backend.infrastructure.repository.LearnerRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
 import com.example.backend.infrastructure.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,19 +15,18 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final LearnerRepository learnerRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, LearnerRepository learnerRepository,
+                       JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.learnerRepository = learnerRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Authenticate a user by email and password.
-     * Follows the sequence: findByEmail → verify password → generate JWT.
-     */
     public AuthResponse authenticate(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
@@ -39,9 +39,6 @@ public class UserService {
         return new AuthResponse(token, user.getId(), user.getRole());
     }
 
-    /**
-     * Register a new user. Creates the appropriate subclass based on the first role provided.
-     */
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
@@ -80,7 +77,25 @@ public class UserService {
         return toProfileResponse(saved);
     }
 
+    /**
+     * Adds funds to a learner's balance. Amount must be positive.
+     */
+    public UserProfileResponse addBalance(Long userId, double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        Learner learner = learnerRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Learner not found"));
+        learner.setBalance(learner.getBalance() + amount);
+        Learner saved = learnerRepository.save(learner);
+        return toProfileResponse(saved);
+    }
+
     private UserProfileResponse toProfileResponse(User user) {
+        Double balance = null;
+        if (user instanceof Learner learner) {
+            balance = learner.getBalance();
+        }
         return new UserProfileResponse(
                 user.getId(),
                 user.getFullName(),
@@ -88,7 +103,8 @@ public class UserService {
                 user.getLicenseNumber(),
                 user.getLicenseIssueDate(),
                 user.getLicenseRegion(),
-                user.getRole()
+                user.getRole(),
+                balance
         );
     }
 

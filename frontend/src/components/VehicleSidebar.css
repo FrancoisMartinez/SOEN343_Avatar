@@ -1078,6 +1078,21 @@
   letter-spacing: 0.01em;
 }
 
+/* ===== Delete Error ===== */
+.vehicle-card__error {
+  width: 100%;
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  margin-top: 0.25rem;
+}
+
+/* ===== Booking Overlay within Vehicle Card ===== */
+.vehicle-card__booking-overlay {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #3a3a3a;
+}
+
 /* ===== Light mode ===== */
 @media (prefers-color-scheme: light) {
   .vehicle-sidebar {

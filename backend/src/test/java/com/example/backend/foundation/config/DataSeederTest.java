@@ -1,5 +1,6 @@
 package com.example.backend.foundation.config;
 
+import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -20,13 +21,14 @@ class DataSeederTest {
     void seedUsersCreatesUsersWhenRepositoryIsEmpty() throws Exception {
         UserRepository userRepository = mock(UserRepository.class);
         CarRepository carRepository = mock(CarRepository.class);
+        AvailabilitySlotRepository availabilitySlotRepository = mock(AvailabilitySlotRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         DataSeeder dataSeeder = new DataSeeder();
 
         when(userRepository.count()).thenReturn(0L);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
 
-        CommandLineRunner runner = dataSeeder.seedUsersAndCars(userRepository, carRepository, passwordEncoder);
+        CommandLineRunner runner = dataSeeder.seedUsersAndCars(userRepository, carRepository, availabilitySlotRepository, passwordEncoder);
         runner.run();
 
         verify(userRepository, times(3)).save(any());
@@ -38,12 +40,13 @@ class DataSeederTest {
     void seedUsersDoesNothingWhenRepositoryHasData() throws Exception {
         UserRepository userRepository = mock(UserRepository.class);
         CarRepository carRepository = mock(CarRepository.class);
+        AvailabilitySlotRepository availabilitySlotRepository = mock(AvailabilitySlotRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         DataSeeder dataSeeder = new DataSeeder();
 
         when(userRepository.count()).thenReturn(1L);
 
-        CommandLineRunner runner = dataSeeder.seedUsersAndCars(userRepository, carRepository, passwordEncoder);
+        CommandLineRunner runner = dataSeeder.seedUsersAndCars(userRepository, carRepository, availabilitySlotRepository, passwordEncoder);
         runner.run();
 
         verify(userRepository, never()).save(any());

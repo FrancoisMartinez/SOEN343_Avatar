@@ -85,5 +85,8 @@ export async function deleteVehicle(providerId: number, carId: number): Promise<
     method: 'DELETE',
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to delete vehicle');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? 'Failed to delete vehicle');
+  }
 }

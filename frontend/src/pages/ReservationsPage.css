@@ -1,0 +1,90 @@
+/* ===== Reservations Page ===== */
+.reservations-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reservations-page__header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.reservations-page__balance {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+.reservations-page__balance strong {
+  color: #4ade80;
+}
+
+.reservations-page__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.reservations-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+.reservations-page__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.reservations-page__status--error {
+  color: #f87171;
+  flex-direction: column;
+}
+
+.reservations-page__retry-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #ccc;
+  cursor: pointer;
+}
+.reservations-page__retry-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.reservations-page__empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.reservations-page__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #444;
+  border-top-color: #646cff;
+  border-radius: 50%;
+  animation: reservations-spin 0.6s linear infinite;
+}
+
+@keyframes reservations-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

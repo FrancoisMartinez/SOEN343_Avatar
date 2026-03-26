@@ -16,7 +16,7 @@ function AccountIcon() {
 }
 
 export default function Header() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, role, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -33,6 +33,16 @@ export default function Header() {
 
         {isAuthenticated ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {role === 'LEARNER' && (
+              <Link to="/reservations" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                My Reservations
+              </Link>
+            )}
+            {role === 'CAR_PROVIDER' && (
+              <Link to="/provider-reservations" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                Car Reservations
+              </Link>
+            )}
             <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
               Analytics
             </Link>

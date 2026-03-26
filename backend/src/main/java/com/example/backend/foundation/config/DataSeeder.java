@@ -1,9 +1,11 @@
 package com.example.backend.foundation.config;
 
+import com.example.backend.domain.model.AvailabilitySlot;
 import com.example.backend.domain.model.Car;
 import com.example.backend.domain.model.CarProvider;
 import com.example.backend.domain.model.Instructor;
 import com.example.backend.domain.model.Learner;
+import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -11,19 +13,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 @Configuration
 public class DataSeeder {
 
     @Bean
-    CommandLineRunner seedUsersAndCars(UserRepository userRepository, CarRepository carRepository, PasswordEncoder passwordEncoder) {
+    CommandLineRunner seedUsersAndCars(UserRepository userRepository, CarRepository carRepository,
+            AvailabilitySlotRepository availabilitySlotRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             if (userRepository.count() == 0) {
                 Learner learner = new Learner();
                 learner.setFullName("Test Learner");
                 learner.setEmail("learner@test.com");
                 learner.setPassword(passwordEncoder.encode("password123"));
+                learner.setBalance(200.0);
                 userRepository.save(learner);
 
                 Instructor instructor = new Instructor();
@@ -84,8 +89,40 @@ public class DataSeeder {
 
                 carRepository.saveAll(List.of(car1, car2, car3, car4));
 
-                System.out.println(">>> Seeded 4 test cars for carprovider@test.com");
+                // Seed availability slots for available cars (Mon-Fri 08:00-18:00, Sat 09:00-14:00 UTC)
+                seedWeekdayAvailability(availabilitySlotRepository, car1);
+                seedWeekdayAvailability(availabilitySlotRepository, car2);
+                // car3 is unavailable — no slots
+                seedWeekdayAvailability(availabilitySlotRepository, car4);
+
+                System.out.println(">>> Seeded 4 test cars with availability for carprovider@test.com");
             }
         };
+    }
+
+    /**
+     * Creates default weekly availability: Mon-Fri 08:00-18:00, Sat 09:00-14:00.
+     * Times are stored as UTC minutes-from-midnight.
+     */
+    private void seedWeekdayAvailability(AvailabilitySlotRepository repo, Car car) {
+        // Monday through Friday: 08:00 - 18:00
+        for (DayOfWeek day : List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)) {
+            AvailabilitySlot slot = new AvailabilitySlot();
+            slot.setCar(car);
+            slot.setDayOfWeek(day);
+            slot.setStartMinute(8 * 60);   // 08:00
+            slot.setEndMinute(18 * 60);    // 18:00
+            slot.setAvailable(true);
+            repo.save(slot);
+        }
+        // Saturday: 09:00 - 14:00
+        AvailabilitySlot satSlot = new AvailabilitySlot();
+        satSlot.setCar(car);
+        satSlot.setDayOfWeek(DayOfWeek.SATURDAY);
+        satSlot.setStartMinute(9 * 60);   // 09:00
+        satSlot.setEndMinute(14 * 60);    // 14:00
+        satSlot.setAvailable(true);
+        repo.save(satSlot);
     }
 }
