@@ -19,9 +19,9 @@ public class OSRMAdapter {
 
     private static final String OSRM_DRIVING_BASE = "https://router.project-osrm.org/route/v1/driving";
     private static final String OSRM_BICYCLE_BASE = "https://routing.openstreetmap.de/routed-bike/route/v1/bicycle";
-    private static final String OSRM_FOOT_BASE    = "https://routing.openstreetmap.de/routed-foot/route/v1/foot";
+    private static final String OSRM_FOOT_BASE = "https://routing.openstreetmap.de/routed-foot/route/v1/foot";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
-    private static final int READ_TIMEOUT_MS = 20_000;
+    private static final int READ_TIMEOUT_MS = 50_000;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -44,14 +44,14 @@ public class OSRMAdapter {
      *
      * @return RouteResult with polyline [[lat, lon], ...], distanceKm, durationMin
      * @throws NoRouteFoundException       if OSRM returns no route
-     * @throws RoutingUnavailableException if the service is unreachable or response is unparseable
+     * @throws RoutingUnavailableException if the service is unreachable or response
+     *                                     is unparseable
      */
     public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon, TransportMode mode) {
         // Use Locale.US to ensure decimal points in the URL regardless of JVM locale
         String url = String.format(Locale.US,
                 "%s/%f,%f;%f,%f?overview=full&geometries=geojson",
-                osrmBase(mode), fromLon, fromLat, toLon, toLat
-        );
+                osrmBase(mode), fromLon, fromLat, toLon, toLat);
 
         String response;
         try {
@@ -77,7 +77,7 @@ public class OSRMAdapter {
             for (JsonNode coord : coordinates) {
                 double lon = coord.get(0).asDouble();
                 double lat = coord.get(1).asDouble();
-                polyline.add(new double[]{lat, lon});
+                polyline.add(new double[] { lat, lon });
             }
 
             double distanceKm = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;

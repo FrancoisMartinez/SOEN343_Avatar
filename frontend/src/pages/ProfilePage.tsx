@@ -11,7 +11,7 @@ import {
 import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -47,6 +47,11 @@ export default function ProfilePage() {
       .catch(() => setError('Failed to load profile.'))
       .finally(() => setLoading(false));
   }, [token, isAuthenticated, navigate]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const handleEdit = () => {
     setSuccess(false);
@@ -273,6 +278,26 @@ export default function ProfilePage() {
             {topUpSuccess && <p className="profile-success" style={{ marginTop: '0.25rem' }}>Balance added successfully.</p>}
           </div>
         )}
+
+        <div className="profile-logout-section">
+          <button className="profile-btn profile-btn--danger" onClick={handleLogout}>
+            <svg 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              width="18" 
+              height="18"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );
