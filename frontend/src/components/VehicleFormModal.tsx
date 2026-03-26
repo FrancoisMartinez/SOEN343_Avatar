@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { CarData } from '../services/vehicleService';
-import { geocodeAddress } from '../services/geocodingService';
-import type { GeocodingResult } from '../services/geocodingService';
+import LocationPicker from './LocationPicker';
 
 export interface DraftLocation {
   lat: number;
@@ -23,6 +22,8 @@ interface VehicleFormProps {
   onSubmit: (data: Omit<CarData, 'id'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
   onLocationChange: (loc: DraftLocation) => void;
   onEditAvailability: (carId?: number) => void;
+  onFormOpen?: (car: CarData | null) => void;
+  onFormClose?: () => void;
 }
 
 type VehicleFormData = Omit<CarData, 'id' | 'hourlyRate'> & { hourlyRate: number | '' };
@@ -46,6 +47,8 @@ export default function VehicleFormModal({
   onSubmit,
   onLocationChange,
   onEditAvailability,
+  onFormOpen,
+  onFormClose,
 }: VehicleFormProps) {
   const [form, setForm] = useState<VehicleFormData>(() => {
     if (car) {
@@ -62,8 +65,6 @@ export default function VehicleFormModal({
     return draftForm?.form ?? emptyForm;
   });
   const [addressQuery, setAddressQuery] = useState(() => (car ? car.location : draftForm?.addressQuery ?? ''));
-  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editAvailabilityAfterSave, setEditAvailabilityAfterSave] = useState(false);
@@ -84,7 +85,6 @@ export default function VehicleFormModal({
       setForm(draftForm?.form ?? emptyForm);
       setAddressQuery(draftForm?.addressQuery ?? '');
     }
-    setSuggestions([]);
     setGeocodeError(null);
   }, [car]);
 
@@ -115,46 +115,6 @@ export default function VehicleFormModal({
              : type === 'number' ? (value === '' ? '' : Number(value))
              : value,
     }));
-  };
-
-  const handleAddressSearch = useCallback(async () => {
-    if (!addressQuery.trim()) return;
-    setSearching(true);
-    setGeocodeError(null);
-    setSuggestions([]);
-    try {
-      const results = await geocodeAddress(addressQuery);
-      if (results.length === 0) {
-        setGeocodeError('No results found. Try a different address.');
-      } else {
-        setSuggestions(results);
-      }
-    } catch {
-      setGeocodeError('Geocoding failed. Please try again.');
-    } finally {
-      setSearching(false);
-    }
-  }, [addressQuery]);
-
-  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddressSearch();
-    }
-  };
-
-  const selectSuggestion = (result: GeocodingResult) => {
-    const loc: DraftLocation = { lat: result.lat, lng: result.lon, address: result.displayName };
-    setForm((prev) => ({
-      ...prev,
-      location: result.displayName,
-      latitude: result.lat,
-      longitude: result.lon,
-    }));
-    setAddressQuery(result.displayName);
-    setSuggestions([]);
-    setGeocodeError(null);
-    onLocationChange(loc);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +151,12 @@ export default function VehicleFormModal({
       </div>
 
       <form onSubmit={handleSubmit} className="vehicle-form">
+        {geocodeError && (
+          <div className="vehicle-form__geo-error" style={{ color: '#ff6b6b', fontSize: '0.8rem' }}>
+            {geocodeError}
+          </div>
+        )}
+
         <div className="vehicle-form__group">
           <label htmlFor="makeModel">Make &amp; Model</label>
           <input
@@ -264,50 +230,22 @@ export default function VehicleFormModal({
           )}
         </div>
 
-        <div className="vehicle-form__group">
-          <label>Location</label>
-          <div className="vehicle-form__address-row">
-            <input
-              type="text"
-              value={addressQuery}
-              onChange={(e) => setAddressQuery(e.target.value)}
-              onKeyDown={handleAddressKeyDown}
-              placeholder="Search an address..."
-            />
-            <button
-              type="button"
-              className="vehicle-form__btn vehicle-form__btn--search"
-              onClick={handleAddressSearch}
-              disabled={searching || submitting}
-            >
-              {searching ? '...' : 'Search'}
-            </button>
-          </div>
-
-          {geocodeError && (
-            <div className="vehicle-form__geo-error">{geocodeError}</div>
-          )}
-
-          {suggestions.length > 0 && (
-            <ul className="vehicle-form__suggestions">
-              {suggestions.map((s, i) => (
-                <li key={i} onClick={() => selectSuggestion(s)}>
-                  {s.displayName}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="vehicle-form__map-hint">
-            Or click on the map to pick a location
-          </div>
-        </div>
-
-        {form.location && (
-          <div className="vehicle-form__selected-location">
-            <span className="vehicle-form__selected-label">Selected:</span> {form.location}
-          </div>
-        )}
+        <LocationPicker
+          initialAddress={car ? car.location : draftForm?.addressQuery ?? ''}
+          draftLocation={draftLocation}
+          onLocationChange={(loc) => {
+            onLocationChange(loc);
+            setAddressQuery(loc.address);
+          }}
+          onPickingModeChange={(active) => {
+            if (active) {
+              onFormOpen?.(car);
+            } else {
+              onFormClose?.();
+            }
+          }}
+          label="Location"
+        />
 
         <div className="vehicle-form__actions">
           <button type="button" className="vehicle-form__btn vehicle-form__btn--cancel" onClick={onClose} disabled={submitting}>
