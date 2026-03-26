@@ -11,6 +11,7 @@ import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
 import type { AvailabilitySlot } from '../types/availability';
 import type { ParkingSpot } from '../services/parkingService';
+import './MapPage.css';
 
 type CarFocusOptions = {
   openPopup?: boolean;
@@ -360,7 +361,7 @@ export default function MapPage() {
             onNavigateToParking={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
           />
           {isAuthenticated && (
-            <>
+            <div className="map-controls-overlay">
               <NavigationPanel
                 onRoute={(polyline) => setRoutePolyline(polyline)}
                 onClear={() => setRoutePolyline(null)}
@@ -373,7 +374,7 @@ export default function MapPage() {
                 active={parkingActive}
                 onToggle={setParkingActive}
               />
-            </>
+            </div>
           )}
         </main>
       </div>

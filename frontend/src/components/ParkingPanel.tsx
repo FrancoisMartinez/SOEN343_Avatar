@@ -44,15 +44,14 @@ export default function ParkingPanel({
   };
 
   return (
-    <>
+    <div className="parking-panel">
       <button
         className="parking-toggle-btn"
         onClick={handleToggle}
         disabled={loading}
-        aria-pressed={active}
         aria-label={active ? 'Hide parking spots' : 'Show nearby parking spots'}
       >
-        {loading ? 'Loading...' : (active ? 'P Hide Parking' : 'P Show Parking')}
+        {loading ? 'Loading...' : (active ? 'Hide Parking' : 'Show Parking')}
       </button>
 
       {error && (
@@ -60,7 +59,7 @@ export default function ParkingPanel({
           {error}
         </p>
       )}
-    </>
+    </div>
   );
 }
 
