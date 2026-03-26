@@ -15,6 +15,8 @@ interface AddressSearchFieldProps {
   onClear: () => void;
   clearAriaLabel?: string;
   searchButtonText?: string;
+  showSearchButton?: boolean;
+  inputReadOnly?: boolean;
 }
 
 export default function AddressSearchField({
@@ -31,6 +33,8 @@ export default function AddressSearchField({
   onClear,
   clearAriaLabel = 'Clear address',
   searchButtonText = 'Search',
+  showSearchButton = true,
+  inputReadOnly = false,
 }: Readonly<AddressSearchFieldProps>) {
   return (
     <div className="address-search">
@@ -49,12 +53,13 @@ export default function AddressSearchField({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && showSearchButton && !inputReadOnly) {
                 e.preventDefault();
                 onSearch();
               }
             }}
             placeholder={placeholder}
+            readOnly={inputReadOnly}
           />
 
           {value && (
@@ -70,14 +75,16 @@ export default function AddressSearchField({
           )}
         </div>
 
-        <button
-          type="button"
-          className="address-search__btn"
-          onClick={onSearch}
-          disabled={searching}
-        >
-          {searching ? '...' : searchButtonText}
-        </button>
+        {showSearchButton && (
+          <button
+            type="button"
+            className="address-search__btn"
+            onClick={onSearch}
+            disabled={searching || inputReadOnly}
+          >
+            {searching ? '...' : searchButtonText}
+          </button>
+        )}
       </div>
 
       {suggestions.length > 0 && (

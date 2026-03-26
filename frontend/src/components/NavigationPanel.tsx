@@ -52,6 +52,7 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
   const [toSuggestions, setToSuggestions] = useState<GeocodingResult[]>([]);
   const [fromSearching, setFromSearching] = useState(false);
   const [toSearching, setToSearching] = useState(false);
+  const [toLockedByQuickDestination, setToLockedByQuickDestination] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -121,6 +122,7 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
     setToAddress(navigateTo.name);
     setToCoords({ lat: navigateTo.lat, lon: navigateTo.lon });
     setToSuggestions([]);
+    setToLockedByQuickDestination(true);
     setRouteInfo(null);
     setLegs([]);
     setError(null);
@@ -179,6 +181,7 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
     setToAddress('');
     setToCoords(null);
     setToSuggestions([]);
+    setToLockedByQuickDestination(false);
     setRouteInfo(null);
     setLegs([]);
   };
@@ -299,11 +302,14 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
                 setRouteInfo(null);
               }}
               onSearch={() => {
+                if (toLockedByQuickDestination) return;
                 void searchField(toAddress, setToSearching, setToSuggestions);
               }}
               onSelectSuggestion={selectToSuggestion}
               onClear={clearTo}
               clearAriaLabel="Clear destination"
+              showSearchButton={!toLockedByQuickDestination}
+              inputReadOnly={toLockedByQuickDestination}
             />
           </div>
 
@@ -313,9 +319,6 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
             <div className="nav-panel__info">
               <span><span aria-hidden="true">🛣</span> {routeInfo.distanceKm} km</span>
               <span><span aria-hidden="true">⏱</span> {routeInfo.durationMin} min</span>
-              <button className="nav-panel__clear-route" onClick={handleClear}>
-                Clear
-              </button>
             </div>
           )}
 
