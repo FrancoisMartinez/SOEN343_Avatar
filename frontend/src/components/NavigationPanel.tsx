@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { geocodeAddress } from '../services/geocodingService';
+import { geocodeAddress, type GeocodingResult } from '../services/geocodingService';
 import { getDirections, type JourneyLeg, type RouteResult, type TransportMode } from '../services/routeService';
+import AddressSearchField from './AddressSearchField';
 import './NavigationPanel.css';
 
 const MODES: { value: TransportMode; label: string; icon: string }[] = [
@@ -23,6 +24,10 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   const [selectedMode, setSelectedMode] = useState<TransportMode>('DRIVING');
   const [routeInfo, setRouteInfo] = useState<Pick<RouteResult, 'distanceKm' | 'durationMin'> | null>(null);
   const [legs, setLegs] = useState<JourneyLeg[]>([]);
+  const [fromSuggestions, setFromSuggestions] = useState<GeocodingResult[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<GeocodingResult[]>([]);
+  const [fromSearching, setFromSearching] = useState(false);
+  const [toSearching, setToSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -55,26 +60,61 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
     );
   }, []);
 
-  const geocodeField = async (
+  const searchField = async (
     address: string,
-    setCoords: (c: { lat: number; lon: number } | null) => void,
-    setAddress: (a: string) => void
+    setSearching: (s: boolean) => void,
+    setSuggestions: (results: GeocodingResult[]) => void
   ) => {
     if (!address.trim()) return;
+    setSearching(true);
+    setSuggestions([]);
     try {
       const results = await geocodeAddress(address);
       if (results.length === 0) {
         setError('Address not found. Try a more specific search.');
-        setCoords(null);
         return;
       }
-      setCoords({ lat: results[0].lat, lon: results[0].lon });
-      setAddress(results[0].displayName);
+      setSuggestions(results);
       setError(null);
     } catch {
       setError('Geocoding failed. Please try again.');
-      setCoords(null);
+    } finally {
+      setSearching(false);
     }
+  };
+
+  const selectFromSuggestion = (result: GeocodingResult) => {
+    setFromAddress(result.displayName);
+    setFromCoords({ lat: result.lat, lon: result.lon });
+    setFromSuggestions([]);
+    setRouteInfo(null);
+    setLegs([]);
+    setError(null);
+  };
+
+  const selectToSuggestion = (result: GeocodingResult) => {
+    setToAddress(result.displayName);
+    setToCoords({ lat: result.lat, lon: result.lon });
+    setToSuggestions([]);
+    setRouteInfo(null);
+    setLegs([]);
+    setError(null);
+  };
+
+  const clearFrom = () => {
+    setFromAddress('');
+    setFromCoords(null);
+    setFromSuggestions([]);
+    setRouteInfo(null);
+    setLegs([]);
+  };
+
+  const clearTo = () => {
+    setToAddress('');
+    setToCoords(null);
+    setToSuggestions([]);
+    setRouteInfo(null);
+    setLegs([]);
   };
 
   const handleGetDirections = async () => {
@@ -96,6 +136,7 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   const handleClear = () => {
     setToAddress('');
     setToCoords(null);
+    setToSuggestions([]);
     setRouteInfo(null);
     setLegs([]);
     setError(null);
@@ -127,7 +168,6 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
             key={value}
             className={`nav-panel__mode-btn${selectedMode === value ? ' nav-panel__mode-btn--active' : ''}`}
             onClick={() => handleModeChange(value)}
-            aria-pressed={selectedMode === value}
             title={label}
           >
             <span aria-hidden="true">{icon}</span>
@@ -137,42 +177,50 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
       </div>
 
       <div className="nav-panel__field">
-        <label htmlFor="nav-from" className="nav-panel__label">From</label>
-        <input
-          id="nav-from"
-          className="nav-panel__input"
-          type="text"
-          placeholder={gpsLoading ? 'Detecting location…' : 'Your location'}
+        <AddressSearchField
+          inputId="nav-from"
+          label="From"
+          placeholder={gpsLoading ? 'Detecting location...' : 'Your location'}
           value={fromAddress}
-          onChange={(e) => {
-            setFromAddress(e.target.value);
+          searching={fromSearching}
+          suggestions={fromSuggestions}
+          suggestionsAriaLabel="From suggestions"
+          onChange={(value) => {
+            setFromAddress(value);
             setFromCoords(null);
+            setFromSuggestions([]);
             setRouteInfo(null);
           }}
-          onBlur={() => geocodeField(fromAddress, setFromCoords, setFromAddress)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') geocodeField(fromAddress, setFromCoords, setFromAddress);
+          onSearch={() => {
+            void searchField(fromAddress, setFromSearching, setFromSuggestions);
           }}
+          onSelectSuggestion={selectFromSuggestion}
+          onClear={clearFrom}
+          clearAriaLabel="Clear start"
         />
       </div>
 
       <div className="nav-panel__field">
-        <label htmlFor="nav-to" className="nav-panel__label">To</label>
-        <input
-          id="nav-to"
-          className="nav-panel__input"
-          type="text"
+        <AddressSearchField
+          inputId="nav-to"
+          label="To"
           placeholder="Enter destination"
           value={toAddress}
-          onChange={(e) => {
-            setToAddress(e.target.value);
+          searching={toSearching}
+          suggestions={toSuggestions}
+          suggestionsAriaLabel="To suggestions"
+          onChange={(value) => {
+            setToAddress(value);
             setToCoords(null);
+            setToSuggestions([]);
             setRouteInfo(null);
           }}
-          onBlur={() => geocodeField(toAddress, setToCoords, setToAddress)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') geocodeField(toAddress, setToCoords, setToAddress);
+          onSearch={() => {
+            void searchField(toAddress, setToSearching, setToSuggestions);
           }}
+          onSelectSuggestion={selectToSuggestion}
+          onClear={clearTo}
+          clearAriaLabel="Clear destination"
         />
       </div>
 
@@ -206,7 +254,6 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
         className="nav-panel__btn"
         onClick={handleGetDirections}
         disabled={!canGetDirections}
-        aria-disabled={!canGetDirections}
       >
         {loading ? 'Getting directions…' : 'Get Directions'}
       </button>

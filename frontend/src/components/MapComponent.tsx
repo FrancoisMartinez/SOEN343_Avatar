@@ -572,7 +572,7 @@ export default function MapComponent({
 
         {routePolyline && routePolyline.length >= 2 && (
           <>
-            <Polyline positions={routePolyline} color="#4a90d9" weight={5} opacity={0.85} />
+            <Polyline positions={routePolyline} color="#646cff" weight={5} opacity={0.85} />
             <FitRouteBounds polyline={routePolyline} />
           </>
         )}

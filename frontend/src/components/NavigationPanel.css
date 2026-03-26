@@ -1,11 +1,35 @@
+
 .nav-panel {
+  --nav-bg: #ffffff;
+  --nav-text: #1a1a1a;
+  --nav-muted: #6c7280;
+  --nav-border: #d7dde7;
+  --nav-surface: #f2f5f9;
+  --nav-surface-hover: #e6edf6;
+  --nav-primary: #646cff;
+  --nav-primary-hover: #535bf2;
+  --nav-panel-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  --nav-input-bg: #ffffff;
+  --nav-danger: #c0392b;
+  --nav-suggestion-bg: #ffffff;
+  --nav-suggestion-hover: rgba(100, 108, 255, 0.12);
+  --address-text: var(--nav-text);
+  --address-muted: var(--nav-muted);
+  --address-border: var(--nav-border);
+  --address-input-bg: var(--nav-input-bg);
+  --address-focus: var(--nav-primary);
+  --address-button-bg: linear-gradient(135deg, #646cff, #7c5cfc);
+  --address-button-text: #fff;
+  --address-suggestions-bg: var(--nav-suggestion-bg);
+  --address-suggestion-hover: var(--nav-suggestion-hover);
+
   position: absolute;
   top: 12px;
   left: 12px;
   z-index: 1000;
-  background: #fff;
+  background: var(--nav-bg);
   border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--nav-panel-shadow);
   padding: 14px 16px;
   width: 260px;
   display: flex;
@@ -23,21 +47,21 @@
 .nav-panel__title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--nav-text);
 }
 
 .nav-panel__clear {
   background: none;
   border: none;
   cursor: pointer;
-  color: #888;
+  color: var(--nav-muted);
   font-size: 0.9rem;
   padding: 2px 4px;
   line-height: 1;
 }
 
 .nav-panel__clear:hover {
-  color: #333;
+  color: var(--nav-text);
 }
 
 .nav-panel__field {
@@ -46,46 +70,22 @@
   gap: 3px;
 }
 
-.nav-panel__label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
-}
-
-.nav-panel__input {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 7px 10px;
-  font-size: 0.85rem;
-  outline: none;
-  transition: border-color 0.15s;
-  font-family: inherit;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.nav-panel__input:focus {
-  border-color: #4a90d9;
-}
-
 .nav-panel__error {
   margin: 0;
   font-size: 0.78rem;
-  color: #c0392b;
+  color: var(--nav-danger);
 }
 
 .nav-panel__info {
   display: flex;
   gap: 16px;
   font-size: 0.83rem;
-  color: #2c3e50;
+  color: var(--nav-text);
   font-weight: 500;
 }
 
 .nav-panel__btn {
-  background: #1558a0;
+  background: var(--nav-primary);
   color: #fff;
   border: none;
   border-radius: 7px;
@@ -98,11 +98,11 @@
 }
 
 .nav-panel__btn:hover:not(:disabled) {
-  background: #0d4585;
+  background: var(--nav-primary-hover);
 }
 
 .nav-panel__btn:disabled {
-  background: #7aabdb;
+  background: color-mix(in srgb, var(--nav-primary) 55%, #a9bfd8 45%);
   cursor: not-allowed;
 }
 
@@ -117,7 +117,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  background: #f0f4f8;
+  background: var(--nav-surface);
   border: 1.5px solid transparent;
   border-radius: 6px;
   padding: 5px 2px;
@@ -128,22 +128,22 @@
 }
 
 .nav-panel__mode-btn:hover {
-  background: #e0eaf4;
+  background: var(--nav-surface-hover);
 }
 
 .nav-panel__mode-btn--active {
-  background: #ddeeff;
-  border-color: #1558a0;
+  background: color-mix(in srgb, var(--nav-primary) 18%, var(--nav-bg) 82%);
+  border-color: var(--nav-primary);
 }
 
 .nav-panel__mode-label {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #444;
+  color: var(--nav-muted);
 }
 
 .nav-panel__mode-btn--active .nav-panel__mode-label {
-  color: #1558a0;
+  color: var(--nav-primary);
 }
 
 .nav-panel__legs {
@@ -157,6 +157,24 @@
 
 .nav-panel__leg {
   font-size: 0.78rem;
-  color: #2c3e50;
+  color: var(--nav-text);
   line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav-panel {
+    --nav-bg: rgba(24, 28, 34, 0.96);
+    --nav-text: #eef2f6;
+    --nav-muted: #a0abbb;
+    --nav-border: rgba(255, 255, 255, 0.14);
+    --nav-surface: rgba(255, 255, 255, 0.06);
+    --nav-surface-hover: rgba(255, 255, 255, 0.1);
+    --nav-primary: #7c5cfc;
+    --nav-primary-hover: #646cff;
+    --nav-panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+    --nav-input-bg: rgba(255, 255, 255, 0.04);
+    --nav-danger: #ff8d8d;
+    --nav-suggestion-bg: rgba(19, 22, 28, 0.98);
+    --nav-suggestion-hover: rgba(100, 108, 255, 0.18);
+  }
 }
