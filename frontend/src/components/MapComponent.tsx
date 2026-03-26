@@ -558,6 +558,7 @@ export default function MapComponent({
         minZoom={10}
         maxZoom={18}
         attributionControl={false}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer key={tileUrl} url={tileUrl} />

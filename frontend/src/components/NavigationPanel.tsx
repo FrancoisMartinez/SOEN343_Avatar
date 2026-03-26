@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { geocodeAddress, type GeocodingResult } from '../services/geocodingService';
+import { geocodeAddress, reverseGeocode, type GeocodingResult } from '../services/geocodingService';
 import { getDirections, type JourneyLeg, type RouteResult, type TransportMode } from '../services/routeService';
 import AddressSearchField from './AddressSearchField';
 import './NavigationPanel.css';
@@ -10,6 +10,29 @@ const MODES: { value: TransportMode; label: string; icon: string }[] = [
   { value: 'BICYCLE', label: 'Bike', icon: '🚲' },
   { value: 'WALK', label: 'Walk', icon: '🚶' },
 ];
+
+function isGeolocationError(error: unknown): error is GeolocationPositionError {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
+
+function getLocationErrorMessage(error: GeolocationPositionError): string {
+  if (error.code === error.PERMISSION_DENIED) {
+    return 'Location permission is blocked for this site. Please enable it in browser settings.';
+  }
+  if (error.code === error.POSITION_UNAVAILABLE) {
+    return 'Your location is currently unavailable. Please try again in a moment.';
+  }
+  if (error.code === error.TIMEOUT) {
+    return 'Location request timed out. Please try again.';
+  }
+  return 'Could not get your location. Please try again.';
+}
+
+function requestCurrentPosition(options: PositionOptions): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
 
 interface NavigationPanelProps {
   onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
@@ -31,33 +54,65 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const didAutoGps = useRef(false);
+
+  const setFromToCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setGpsLoading(true);
+    setError(null);
+
+    try {
+      let pos: GeolocationPosition;
+      try {
+        pos = await requestCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0,
+        });
+      } catch (primaryError) {
+        if (isGeolocationError(primaryError) && primaryError.code === primaryError.PERMISSION_DENIED) {
+          throw primaryError;
+        }
+        pos = await requestCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 300000,
+        });
+      }
+
+      const { latitude, longitude } = pos.coords;
+      setFromCoords({ lat: latitude, lon: longitude });
+      setRouteInfo(null);
+      setLegs([]);
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        setFromAddress(address);
+      } catch {
+        setFromAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      }
+      setFromSuggestions([]);
+    } catch (error) {
+      if (isGeolocationError(error)) {
+        setError(getLocationErrorMessage(error));
+      } else {
+        setError('Could not get your location. Please try again.');
+      }
+    } finally {
+      setGpsLoading(false);
+    }
+  };
 
   // Auto-detect user location on mount
   useEffect(() => {
     if (didAutoGps.current) return;
     didAutoGps.current = true;
 
-    if (!navigator.geolocation) return;
-
-    setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setFromCoords({ lat: latitude, lon: longitude });
-        try {
-          const results = await geocodeAddress(`${latitude},${longitude}`);
-          setFromAddress(results[0]?.displayName ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-        } catch {
-          setFromAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-        }
-        setGpsLoading(false);
-      },
-      () => {
-        setGpsLoading(false);
-      },
-      { timeout: 8000 }
-    );
+    void setFromToCurrentLocation();
   }, []);
 
   const searchField = async (
@@ -155,13 +210,20 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
     <div className="nav-panel">
       <div className="nav-panel__header">
         <span className="nav-panel__title">Directions</span>
-        {routeInfo && (
-          <button className="nav-panel__clear" onClick={handleClear} aria-label="Clear route">
-            ✕
-          </button>
-        )}
+        <button
+          className="nav-panel__toggle"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-label={isCollapsed ? 'Expand directions panel' : 'Collapse directions panel'}
+          title={isCollapsed ? 'Expand' : 'Collapse'}
+        >
+          <span className={`nav-panel__caret${isCollapsed ? ' nav-panel__caret--collapsed' : ''}`} aria-hidden="true">
+            ▾
+          </span>
+        </button>
       </div>
 
+      {!isCollapsed && (
+        <>
       <div className="nav-panel__modes" role="group" aria-label="Transport mode">
         {MODES.map(({ value, label, icon }) => (
           <button
@@ -198,6 +260,16 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
           onClear={clearFrom}
           clearAriaLabel="Clear start"
         />
+        <button
+          type="button"
+          className="nav-panel__current-location"
+          onClick={() => {
+            void setFromToCurrentLocation();
+          }}
+          disabled={gpsLoading}
+        >
+          {gpsLoading ? 'Locating...' : 'Use current location'}
+        </button>
       </div>
 
       <div className="nav-panel__field">
@@ -230,6 +302,9 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
         <div className="nav-panel__info">
           <span><span aria-hidden="true">🛣</span> {routeInfo.distanceKm} km</span>
           <span><span aria-hidden="true">⏱</span> {routeInfo.durationMin} min</span>
+          <button className="nav-panel__clear-route" onClick={handleClear}>
+            Clear
+          </button>
         </div>
       )}
 
@@ -257,6 +332,8 @@ export default function NavigationPanel({ onRoute, onClear }: Readonly<Navigatio
       >
         {loading ? 'Getting directions…' : 'Get Directions'}
       </button>
+        </>
+      )}
     </div>
   );
 }
