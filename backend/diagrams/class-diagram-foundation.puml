@@ -1,0 +1,63 @@
+@startuml "Foundation — Partial Design Model"
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam classFontSize 11
+skinparam nodesep 10
+skinparam ranksep 20
+
+title Foundation (Partial Design Model)
+
+' === ROW 1 ===
+package "Config" #F5FFFA {
+    class ObserverConfig {
+        + registerObservers() : void
+    }
+
+    class DataSeeder {
+        + run(ApplicationArguments) : void
+    }
+}
+
+package "Analytics Pipeline (1/2)" #F5F5FF {
+    class ApiRequestMetricsFilter {
+        + doFilterInternal(Request, Response, FilterChain) : void
+    }
+
+    class ApiRequestMetricsStore {
+        + record(String, String, int, long) : void
+        + getMetrics() : List
+    }
+}
+
+' === ROW 2 ===
+package "Analytics Pipeline (2/2)" #F5F5FF {
+    class ServiceMetricsAggregator {
+        + aggregateByEndpoint() : List<EndpointMetricsSummary>
+    }
+
+    class EndpointMetricsSummary {
+        - endpoint : String
+        - method : String
+        - totalRequests : int
+        - avgLatencyMs : double
+        - maxLatencyMs : long
+        - errorRate : double
+    }
+}
+
+' Force 2-row layout
+"Config" -[hidden]down-> "Analytics Pipeline (2/2)"
+"Analytics Pipeline (1/2)" -[hidden]down-> "Analytics Pipeline (2/2)"
+
+ApiRequestMetricsFilter --> ApiRequestMetricsStore
+ServiceMetricsAggregator --> ApiRequestMetricsStore
+ServiceMetricsAggregator ..> EndpointMetricsSummary : produces >
+
+ObserverConfig ..> "BookingEventPublisher"
+DataSeeder ..> "UserRepository"
+DataSeeder ..> "CarRepository"
+
+@enduml

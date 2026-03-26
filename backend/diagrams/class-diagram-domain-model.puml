@@ -1,0 +1,93 @@
+@startuml "Domain Model — Partial Design Model"
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam classFontSize 11
+
+title Domain Model — Entities (Partial Design Model)
+
+abstract class User <<Entity>> {
+    - id : Long
+    - fullName : String
+    - email : String
+    - password : String
+    - licenseNumber : String
+    + getRole() : String
+}
+
+class Learner <<Entity>> {
+    - experienceLevel : String
+    - age : int
+    - balance : double
+}
+
+class Instructor <<Entity>> {
+    - yearsLicensed : int
+    - travelRadius : double
+    - rating : double
+    - hourlyRate : double
+}
+
+class CarProvider <<Entity>> {
+    - contactInfo : String
+}
+
+class Car <<Entity>> {
+    - id : Long
+    - makeModel : String
+    - transmissionType : String
+    - location : String
+    - latitude : double
+    - longitude : double
+    - isAvailable : boolean
+    - hourlyRate : double
+}
+
+class Booking <<Entity>> {
+    - id : Long
+    - date : LocalDate
+    - startTime : LocalTime
+    - duration : int
+    - totalCost : double
+    - status : String
+    - pickupLocation : String
+}
+
+class AvailabilitySlot <<Entity>> {
+    - id : Long
+    - dayOfWeek : String
+    - startMinute : int
+    - endMinute : int
+    - available : boolean
+}
+
+class DrivingRoute <<Entity>> {
+    - id : Long
+    - pathData : String
+    - estimatedTime : double
+}
+
+class TransitRoute <<Entity>> {
+    - id : Long
+    - transitMode : String
+    - departureTime : String
+    - arrivalLocation : String
+    - walkingDistance : double
+}
+
+User <|-- Learner
+User <|-- Instructor
+User <|-- CarProvider
+
+CarProvider "1" --> "*" Car
+Car "1" *-- "*" AvailabilitySlot
+Booking "*" --> "1" Car
+Booking "*" --> "1" Learner
+Booking "*" --> "0..1" Instructor
+Booking "1" --> "0..1" DrivingRoute
+Learner "1" --> "0..1" TransitRoute
+Instructor "1" --> "0..1" TransitRoute
+
+@enduml

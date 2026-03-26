@@ -1,0 +1,106 @@
+@startuml "Overview — Partial Design Model"
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam classFontSize 10
+skinparam packageFontSize 11
+skinparam nodesep 8
+skinparam ranksep 16
+skinparam padding 2
+
+hide members
+top to bottom direction
+
+title Backend — Architecture Overview (Partial Design Model)
+
+package "application.controller" #FFFFF0 {
+    class AuthController
+    class UserController
+    class BookingController
+    class CarController
+    class CarSearchController
+    class AvailabilityController
+    class RouteController
+    class AnalyticsController
+}
+
+package "domain.service" #EEEEFF {
+    class UserService
+    class BookingService
+    class CarService
+    class AvailabilityService
+    class RouteService
+    class AnalyticsService
+}
+
+package "domain.service  «Patterns»" #FFF5E0 {
+    interface BookingState
+    class BookingContext
+    interface PricingStrategy
+    class PricingStrategyFactory
+    interface BookingObserver
+    class BookingEventPublisher
+    interface UserFactory
+    class UserFactoryRegistry
+}
+
+package "domain.model" #EEFFEE {
+    abstract class User
+    class Learner
+    class Instructor
+    class CarProvider
+    class Car
+    class Booking
+    class AvailabilitySlot
+    class DrivingRoute
+    class TransitRoute
+
+    User <|-- Learner
+    User <|-- Instructor
+    User <|-- CarProvider
+    CarProvider --> Car
+    Car --> Booking
+    Learner --> Booking
+    Booking --> DrivingRoute
+    Car *--> AvailabilitySlot
+}
+
+package "infrastructure" #F0FFF0 {
+    interface UserRepository
+    interface CarRepository
+    interface BookingRepository
+    interface AvailabilitySlotRepository
+    class OSRMAdapter
+    class HereTransitAdapter
+    class OverpassAdapter
+    class JwtUtil
+}
+
+' Layout hints
+"application.controller" -[hidden]d-> "domain.service"
+"domain.service" -[hidden]d-> "domain.service  «Patterns»"
+"domain.service  «Patterns»" -[hidden]d-> "domain.model"
+"domain.model" -[hidden]d-> "infrastructure"
+
+' Controller → Service
+AuthController ..> UserService
+BookingController ..> BookingService
+CarController ..> CarService
+AvailabilityController ..> AvailabilityService
+RouteController ..> RouteService
+AnalyticsController ..> AnalyticsService
+
+' Service → Infrastructure
+UserService ..> UserRepository
+UserService ..> UserFactoryRegistry
+BookingService ..> BookingRepository
+BookingService ..> PricingStrategyFactory
+BookingService ..> BookingEventPublisher
+CarService ..> CarRepository
+AvailabilityService ..> AvailabilitySlotRepository
+RouteService ..> OSRMAdapter
+RouteService ..> HereTransitAdapter
+
+@enduml
