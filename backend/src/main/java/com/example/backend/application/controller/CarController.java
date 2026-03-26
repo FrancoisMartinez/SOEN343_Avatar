@@ -60,16 +60,16 @@ public class CarController {
     }
 
     /**
-     * Delete a car.
+     * Delete a car. Validates that the provider owns the car.
      */
     @DeleteMapping("/{carId}")
     public ResponseEntity<?> deleteCar(@PathVariable Long providerId,
                                        @PathVariable Long carId) {
         try {
-            carService.deleteCar(carId);
+            carService.deleteCar(providerId, carId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
     }

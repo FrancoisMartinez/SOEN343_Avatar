@@ -4,21 +4,30 @@ import com.example.backend.application.dto.CarDto;
 import com.example.backend.application.dto.CarRequest;
 import com.example.backend.domain.model.Car;
 import com.example.backend.domain.model.CarProvider;
+import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarProviderRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 public class CarService {
 
+    private static final Logger log = LoggerFactory.getLogger(CarService.class);
+
     private final CarRepository carRepository;
     private final CarProviderRepository carProviderRepository;
+    private final BookingRepository bookingRepository;
 
-    public CarService(CarRepository carRepository, CarProviderRepository carProviderRepository) {
+    public CarService(CarRepository carRepository, CarProviderRepository carProviderRepository,
+                      BookingRepository bookingRepository) {
         this.carRepository = carRepository;
         this.carProviderRepository = carProviderRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     /**
@@ -70,13 +79,30 @@ public class CarService {
     }
 
     /**
-     * Delete a car by its ID.
+     * Delete a car after verifying ownership and clearing dependent bookings.
+     * Bookings reference the car via a non-nullable FK, so they must be
+     * removed first to avoid a constraint violation.
      */
-    public void deleteCar(Long carId) {
-        if (!carRepository.existsById(carId)) {
-            throw new RuntimeException("Car not found");
+    @Transactional
+    public void deleteCar(Long providerId, Long carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new RuntimeException("Car not found"));
+
+        if (car.getProvider() == null || !car.getProvider().getId().equals(providerId)) {
+            log.warn("Delete denied: provider {} does not own car {}", providerId, carId);
+            throw new RuntimeException("You can only delete your own cars");
         }
-        carRepository.deleteById(carId);
+
+        // Remove all bookings that reference this car (prevents FK constraint violation)
+        var bookings = bookingRepository.findByCarId(carId);
+        if (!bookings.isEmpty()) {
+            log.info("Deleting {} booking(s) for car {} before removing car", bookings.size(), carId);
+            bookingRepository.deleteAll(bookings);
+        }
+
+        // AvailabilitySlots are cascade-deleted via Car.availabilitySlots mapping
+        carRepository.delete(car);
+        log.info("Car {} deleted by provider {}", carId, providerId);
     }
 
     /**

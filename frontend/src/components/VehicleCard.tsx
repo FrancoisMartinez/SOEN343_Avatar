@@ -16,6 +16,7 @@ interface VehicleCardProps {
 export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, onDelete, onOpenAvailability, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showBooking, setShowBooking] = useState(false);
 
   const hasCoords = car.latitude != null && car.longitude != null;
@@ -23,9 +24,13 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
   const handleConfirmDelete = async () => {
     if (deleting || !onDelete) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await onDelete(car.id!);
       setConfirmDelete(false);
+    } catch (err: any) {
+      console.error(`[VehicleCard] Failed to delete car ${car.id}:`, err);
+      setDeleteError(err.message || 'Delete failed');
     } finally {
       setDeleting(false);
     }
@@ -95,7 +100,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
                 <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={handleConfirmDelete} disabled={deleting}>
                   {deleting ? 'Deleting...' : 'Confirm'}
                 </button>
-                <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => { setConfirmDelete(false); setDeleteError(null); }} disabled={deleting}>
                   Cancel
                 </button>
               </div>
@@ -103,6 +108,9 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
               <button className="vehicle-card__btn vehicle-card__btn--delete" onClick={() => setConfirmDelete(true)} disabled={deleting}>
                 Delete
               </button>
+            )}
+            {deleteError && (
+              <div className="vehicle-card__error">{deleteError}</div>
             )}
           </>
         )}
