@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import { reverseGeocode } from '../services/geocodingService';
 import type { BookingData } from '../services/bookingService';
-import 'leaflet/dist/leaflet.css';
+import MapComponent from './MapComponent';
+import LocationPicker from './LocationPicker';
+import type { DraftLocation } from './VehicleFormModal';
 import './FinishReservationModal.css';
+import './VehicleSidebar.css'; // needed for LocationPicker styles
 
 interface FinishReservationModalProps {
   booking: BookingData;
@@ -13,27 +14,8 @@ interface FinishReservationModalProps {
   submitting: boolean;
 }
 
-const pinIcon = L.divIcon({
-  className: '',
-  html: `<svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="#646cff"/>
-    <circle cx="16" cy="16" r="7" fill="white"/>
-  </svg>`,
-  iconSize: [32, 42],
-  iconAnchor: [16, 42],
-});
-
-function ClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 export default function FinishReservationModal({ booking, onConfirm, onCancel, submitting }: FinishReservationModalProps) {
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<DraftLocation | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [resolving, setResolving] = useState(false);
 
@@ -47,6 +29,11 @@ export default function FinishReservationModal({ booking, onConfirm, onCancel, s
     }
     setSelectedLocation({ lat, lng, address });
     setResolving(false);
+    setShowConfirm(false);
+  };
+
+  const handleLocationChange = (loc: DraftLocation) => {
+    setSelectedLocation(loc);
     setShowConfirm(false);
   };
 
@@ -69,68 +56,60 @@ export default function FinishReservationModal({ booking, onConfirm, onCancel, s
         </div>
 
         <p className="finish-modal__hint">
-          Click on the map to set the new car location, then confirm.
+          Search for an address or click on the map to set the new car location, then confirm.
         </p>
 
-        <div className="finish-modal__map-container">
-          <MapContainer
-            center={[45.5017, -73.5673]}
-            zoom={13}
-            style={{ width: '100%', height: '100%' }}
-            scrollWheelZoom
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <ClickHandler onPick={handleMapClick} />
-            {selectedLocation && (
-              <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={pinIcon} />
-            )}
-          </MapContainer>
+        <div style={{ marginBottom: '0.5rem' }}>
+          <LocationPicker
+            draftLocation={selectedLocation}
+            onLocationChange={handleLocationChange}
+            label="New Car Location"
+            placeholder="Search for an address..."
+          />
         </div>
 
-        {resolving && (
-          <p className="finish-modal__resolving">Resolving address...</p>
-        )}
+        <div className="finish-modal__map-container" style={{ position: 'relative' }}>
+          <MapComponent
+            pickingMode={true}
+            pickingPurpose="vehicle"
+            draftLocation={selectedLocation}
+            onLocationPick={handleMapClick}
+            vehicles={[]}
+            parkingSpots={[]}
+          />
+        </div>
 
-        {selectedLocation && !resolving && (
-          <div className="finish-modal__selected">
-            <span className="finish-modal__selected-label">Selected:</span> {selectedLocation.address}
-          </div>
-        )}
-
-        {showConfirm && selectedLocation && (
-          <div className="finish-modal__confirm-box">
-            <p className="finish-modal__confirm-text">
-              Are you sure you want to set this as the new car location?
-            </p>
-            <div className="finish-modal__confirm-actions">
+        <div className="finish-modal__actions" style={{ marginTop: '0.5rem', minHeight: '42px', display: 'flex', alignItems: 'center', width: '100%' }}>
+          {resolving ? (
+            <span className="finish-modal__resolving">Resolving address...</span>
+          ) : showConfirm && selectedLocation ? (
+            <>
+              <span style={{ flex: 1, fontSize: '0.9rem', color: '#ddd', fontWeight: 500 }}>
+                Are you sure you want to set this as the new car location?
+              </span>
               <button
                 className="finish-modal__btn finish-modal__btn--confirm"
                 onClick={handleFinalConfirm}
                 disabled={submitting}
+                style={{ flex: '0 0 auto', padding: '0.6rem 1.5rem' }}
               >
-                {submitting ? 'Finishing...' : 'Yes, Finish Reservation'}
+                {submitting ? 'Finishing...' : 'Yes'}
               </button>
               <button
                 className="finish-modal__btn finish-modal__btn--cancel"
                 onClick={() => setShowConfirm(false)}
                 disabled={submitting}
+                style={{ flex: '0 0 auto', padding: '0.6rem 1.5rem' }}
               >
                 Go Back
               </button>
-            </div>
-          </div>
-        )}
-
-        <div className="finish-modal__actions">
-          {!showConfirm && (
+            </>
+          ) : (
             <>
               <button
                 className="finish-modal__btn finish-modal__btn--primary"
                 onClick={handleConfirmClick}
-                disabled={!selectedLocation || resolving || submitting}
+                disabled={!selectedLocation || submitting}
               >
                 Set Location & Finish
               </button>
