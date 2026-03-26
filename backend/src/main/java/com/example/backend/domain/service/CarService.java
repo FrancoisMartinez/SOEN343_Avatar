@@ -80,6 +80,60 @@ public class CarService {
     }
 
     /**
+     * Search cars based on filters.
+     */
+    public List<CarDto> searchCars(String transmissionType, Double minPrice, Double maxPrice, Boolean isAvailable, Double lat, Double lng, Double radius, String dayOfWeek, Integer startMinute, Integer endMinute) {
+        List<Car> allCars = carRepository.findAll();
+
+        return allCars.stream()
+                .filter(car -> transmissionType == null || transmissionType.isEmpty() || transmissionType.equalsIgnoreCase(car.getTransmissionType()))
+                .filter(car -> minPrice == null || car.getHourlyRate() >= minPrice)
+                .filter(car -> maxPrice == null || car.getHourlyRate() <= maxPrice)
+                .filter(car -> isAvailable == null || car.isAvailable() == isAvailable)
+                .filter(car -> {
+                    if (lat == null || lng == null || radius == null) return true;
+                    if (car.getLatitude() == null || car.getLongitude() == null) return false;
+                    double distance = calculateDistance(lat, lng, car.getLatitude(), car.getLongitude());
+                    return distance <= radius;
+                })
+                .filter(car -> {
+                    if (dayOfWeek == null || startMinute == null || endMinute == null) return true;
+                    if (car.getAvailabilitySlots() == null) return false;
+                    
+                    try {
+                        java.time.DayOfWeek requestedDay = java.time.DayOfWeek.valueOf(dayOfWeek.toUpperCase());
+                        return car.getAvailabilitySlots().stream().anyMatch(slot -> 
+                            slot.getDayOfWeek() == requestedDay &&
+                            slot.isAvailable() &&
+                            slot.getStartMinute() <= startMinute &&
+                            slot.getEndMinute() >= endMinute
+                        );
+                    } catch (IllegalArgumentException e) {
+                        return true; // ignore invalid dayOfWeek
+                    }
+                })
+                .map(this::toDto)
+                .toList();
+    }
+
+    /**
+     * Calculate distance between two coordinates using Haversine formula.
+     * Returns distance in kilometers.
+     */
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Earth radius in km
+
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
+    /**
      * Maps a Car entity to a CarDto.
      */
     private CarDto toDto(Car car) {

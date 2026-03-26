@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L, { type Marker as LeafletMarker } from 'leaflet';
 import type { CarData } from '../services/vehicleService';
-import { CAR_SVG, carIcon, carIconHighlighted } from './carMarkerIcon';
+import { CAR_SVG, carIcon, carIconHighlighted, userLocationIcon, reticleIcon } from './carMarkerIcon';
 
 const LOCATE_ZOOM_LEVEL = 17;
 const CLUSTER_FIT_PADDING: [number, number] = [48, 48];
@@ -11,6 +11,9 @@ const CLUSTER_FIT_PADDING: [number, number] = [48, 48];
 interface MapComponentProps {
   vehicles?: CarData[];
   selectedCarId?: number | null;
+  userLocation?: { lat: number; lng: number } | null;
+  searchCenter?: { lat: number; lng: number; address?: string } | null;
+  searchRadius?: number;
   carFocusEvent?: {
     id: number;
     carId: number | null;
@@ -19,14 +22,17 @@ interface MapComponentProps {
   };
   onSelectCar?: (carId: number | null) => void;
   pickingMode?: boolean;
-  draftLocation?: { lat: number; lng: number } | null;
+  pickingPurpose?: 'search' | 'vehicle';
+  draftLocation?: { lat: number; lng: number; address?: string } | null;
   onLocationPick?: (lat: number, lng: number) => void;
+  onRecenter?: () => void;
   routePolyline?: [number, number][] | null;
 }
 
 function FlyToSelected({
   vehicles,
   focusEvent,
+  userLocation,
 }: {
   vehicles: CarData[];
   focusEvent: {
@@ -34,6 +40,7 @@ function FlyToSelected({
     carId: number | null;
     forceRecenter: boolean;
   };
+  userLocation: { lat: number; lng: number } | null;
 }) {
   const map = useMap();
   const lastTargetRef = useRef<string | null>(null);
@@ -54,14 +61,25 @@ function FlyToSelected({
       return;
     }
 
-    const car = vehicles.find((v) => v.id === selectedCarId);
-    if (car?.latitude != null && car?.longitude != null) {
-      const targetKey = `${selectedCarId}:${car.latitude.toFixed(6)}:${car.longitude.toFixed(6)}`;
+    let target: [number, number] | null = null;
+    let targetKey = '';
+
+    if (selectedCarId === 999999 && userLocation) {
+      target = [userLocation.lat, userLocation.lng];
+      targetKey = `user:${userLocation.lat.toFixed(6)}:${userLocation.lng.toFixed(6)}`;
+    } else {
+      const car = vehicles.find((v) => v.id === selectedCarId);
+      if (car?.latitude != null && car?.longitude != null) {
+        target = [car.latitude, car.longitude];
+        targetKey = `${selectedCarId}:${car.latitude.toFixed(6)}:${car.longitude.toFixed(6)}`;
+      }
+    }
+
+    if (target) {
       if (!focusEvent.forceRecenter && lastTargetRef.current === targetKey) {
         return;
       }
 
-      const target: [number, number] = [car.latitude, car.longitude];
       const currentCenter = map.getCenter();
       const distanceToTargetMeters = map.distance(currentCenter, target);
       const isAlreadyFocused = distanceToTargetMeters < 1;
@@ -76,7 +94,7 @@ function FlyToSelected({
       map.stop();
       map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 1 });
     }
-  }, [focusEvent, vehicles, map]);
+  }, [focusEvent, vehicles, map, userLocation]);
 
   return null;
 }
@@ -103,6 +121,63 @@ function FlyToDraft({ draftLocation }: { draftLocation: { lat: number; lng: numb
 
     map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 0.8 });
   }, [draftLocation.lat, draftLocation.lng, map]);
+
+  return null;
+}
+
+function FlyToSearchCenter({ searchCenter, searchRadius }: { searchCenter: { lat: number; lng: number }; searchRadius: number }) {
+  const map = useMap();
+  const lastCenterRef = useRef<string | null>(null);
+  const lastRadiusRef = useRef<number>(searchRadius);
+
+  useEffect(() => {
+    const target: [number, number] = [searchCenter.lat, searchCenter.lng];
+    const centerKey = `${searchCenter.lat.toFixed(6)},${searchCenter.lng.toFixed(6)}`;
+    
+    const centerChanged = lastCenterRef.current !== centerKey;
+    const radiusChanged = lastRadiusRef.current !== searchRadius;
+    
+    lastCenterRef.current = centerKey;
+    lastRadiusRef.current = searchRadius;
+
+    let targetZoom: number;
+
+    if (centerChanged) {
+      // Selecting a location should always focus in (Priority 1)
+      targetZoom = 17;
+    } else if (radiusChanged) {
+      // Adjusting slider should zoom out/in to fit radius (Priority 2)
+      // Z = 15.2 - log2(R)
+      // 0.5km -> 16.2 -> 16
+      // 1km   -> 15.2 -> 15
+      // 5km   -> 15.2 - 2.3 = 12.9 -> 12
+      // 35km  -> 15.2 - 5.1 = 10.1 -> 10
+      // 50km  -> 15.2 - 5.6 = 9.6  -> 9 -> (min 10)
+      targetZoom = Math.max(10, Math.min(18, Math.floor(15.2 - Math.log2(searchRadius))));
+      
+      // Special case: if radius is very small, we might want 15
+      if (searchRadius <= 0.5) targetZoom = 15;
+    } else {
+      return;
+    }
+
+    const currentCenter = map.getCenter();
+    const distanceToTargetMeters = map.distance(currentCenter, target);
+    const currentZoom = map.getZoom();
+
+    if (distanceToTargetMeters < 1 && currentZoom === targetZoom) {
+      return;
+    }
+
+    map.stop();
+    
+    // Smooth transition if we're already at the center
+    if (distanceToTargetMeters < 10) {
+      map.setZoom(targetZoom, { animate: true });
+    } else {
+      map.flyTo(target, targetZoom, { duration: 0.8 });
+    }
+  }, [searchCenter.lat, searchCenter.lng, searchRadius, map]);
 
   return null;
 }
@@ -347,11 +422,16 @@ function FitRouteBounds({ polyline }: { polyline: [number, number][] }) {
 export default function MapComponent({
   vehicles = [],
   selectedCarId = null,
+  userLocation = null,
+  searchCenter = null,
+  searchRadius = 20,
   carFocusEvent = { id: 0, carId: null, openPopup: false, forceRecenter: false },
   onSelectCar,
   pickingMode = false,
+  pickingPurpose = 'vehicle',
   draftLocation = null,
   onLocationPick,
+  onRecenter,
   routePolyline = null,
 }: MapComponentProps) {
   const center: [number, number] = [45.4947, -73.5779];
@@ -422,8 +502,54 @@ export default function MapComponent({
     >
       {pickingMode && (
         <div className="map-picking-banner">
-          Click on the map to set the vehicle location
+          {pickingPurpose === 'vehicle'
+            ? 'Click on the map to set the vehicle location'
+            : 'Click on the map to set your search center'}
         </div>
+      )}
+
+      {onRecenter && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRecenter();
+          }}
+          className="map-recenter-btn"
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 1000,
+            width: '48px',
+            height: '48px',
+            borderRadius: '10px',
+            background: '#1a1a1a',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+          }}
+          title="Recenter to my location"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#222';
+            e.currentTarget.style.borderColor = 'rgba(100, 108, 255, 0.8)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(100, 108, 255, 0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#1a1a1a';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+          }}
+        >
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#646cff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" fill="#646cff" fillOpacity="0.3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+            <circle cx="12" cy="12" r="9" strokeOpacity="0.5"/>
+          </svg>
+        </button>
       )}
 
       <MapContainer
@@ -435,6 +561,14 @@ export default function MapComponent({
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer key={tileUrl} url={tileUrl} />
+
+        {userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon} zIndexOffset={1000}>
+            <Popup>
+              <div style={{ fontSize: '13px', fontWeight: 'bold' }}>You are here</div>
+            </Popup>
+          </Marker>
+        )}
 
         {routePolyline && routePolyline.length >= 2 && (
           <>
@@ -448,14 +582,38 @@ export default function MapComponent({
             vehicles={carsWithCoords}
             focusEvent={{
               id: carFocusEvent.id,
-              carId: selectedCarId,
+              carId: carFocusEvent.carId,
               forceRecenter: carFocusEvent.forceRecenter,
             }}
+            userLocation={userLocation}
           />
         )}
 
         {!pickingMode && onSelectCar && (
           <DeselectOnMapClick onDeselect={() => onSelectCar(null)} />
+        )}
+
+        {!pickingMode && searchCenter && (
+          <>
+            <Marker position={[searchCenter.lat, searchCenter.lng]} icon={reticleIcon}>
+              <Popup>
+                <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Search Center</div>
+                <div style={{ fontSize: '12px' }}>{searchCenter.address}</div>
+              </Popup>
+            </Marker>
+            <Circle
+              center={[searchCenter.lat, searchCenter.lng]}
+              radius={searchRadius * 1000}
+              pathOptions={{
+                color: '#646cff',
+                fillColor: '#646cff',
+                fillOpacity: 0.1,
+                weight: 2,
+                dashArray: '5, 10',
+              }}
+            />
+            <FlyToSearchCenter searchCenter={searchCenter} searchRadius={searchRadius} />
+          </>
         )}
 
         {pickingMode && onLocationPick && (
@@ -469,25 +627,53 @@ export default function MapComponent({
           <>
             <Marker
               position={[draftLocation.lat, draftLocation.lng]}
-              icon={carIconHighlighted}
+              icon={
+                pickingPurpose === 'search'
+                  ? reticleIcon
+                  : (selectedCarId != null || selectedCar ? carIconHighlighted : carIcon)
+              }
               ref={(ref) => {
                 draftMarkerRef.current = ref;
               }}
             >
               <Popup autoPan={false}>
                 <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
-                  <strong>{selectedCar?.makeModel ?? 'Selected Vehicle'}</strong>
+                  <strong>
+                    {pickingPurpose === 'vehicle'
+                      ? (selectedCar?.makeModel ?? 'New Vehicle')
+                      : 'Search Center'}
+                  </strong>
                   <br />
-                  <span style={{ fontSize: '0.85em', opacity: 0.8 }}>{selectedCar?.location ?? 'Adjusting location'}</span>
+                  <span style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                    {pickingPurpose === 'vehicle'
+                      ? (selectedCar?.location ?? 'Set vehicle location')
+                      : draftLocation.address}
+                  </span>
                   <br />
-                  {selectedCar ? (
+                  {pickingPurpose === 'vehicle' && selectedCar ? (
                     <span style={{ fontSize: '0.85em' }}>${selectedCar.hourlyRate.toFixed(2)}/hr</span>
-                  ) : (
+                  ) : pickingPurpose === 'search' ? (
                     <span style={{ fontSize: '0.85em' }}>{draftLocation.lat.toFixed(5)}, {draftLocation.lng.toFixed(5)}</span>
-                  )}
+                  ) : null}
                 </div>
               </Popup>
             </Marker>
+            {pickingPurpose === 'search' && (
+              <>
+                <Circle
+                  center={[draftLocation.lat, draftLocation.lng]}
+                  radius={searchRadius * 1000}
+                  pathOptions={{
+                    color: '#646cff',
+                    fillColor: '#646cff',
+                    fillOpacity: 0.1,
+                    weight: 2,
+                    dashArray: '5, 10',
+                  }}
+                />
+                <FlyToSearchCenter searchCenter={draftLocation} searchRadius={searchRadius} />
+              </>
+            )}
             <FlyToDraft draftLocation={draftLocation} />
           </>
         )}
