@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { geocodeAddress, reverseGeocode } from '../services/geocodingService';
 import type { GeocodingResult } from '../services/geocodingService';
 import type { DraftLocation } from './VehicleFormModal';
+import AddressSearchField from './AddressSearchField';
 
 interface LocationPickerProps {
   initialAddress?: string;
@@ -91,13 +92,6 @@ export default function LocationPicker({
     }
   }, [addressQuery]);
 
-  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddressSearch();
-    }
-  };
-
   const selectSuggestion = (result: GeocodingResult) => {
     const loc: DraftLocation = { lat: result.lat, lng: result.lon, address: result.displayName };
     setAddressQuery(result.displayName);
@@ -117,85 +111,43 @@ export default function LocationPicker({
 
   return (
     <div className="vehicle-form__group">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        {label && <label>{label}</label>}
-      </div>
-      <div className="vehicle-form__address-row">
-        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-          <input
-            type="text"
-            value={addressQuery}
-            onChange={(e) => setAddressQuery(e.target.value)}
-            onKeyDown={handleAddressKeyDown}
-            placeholder={placeholder}
-            style={{ paddingRight: addressQuery ? '2rem' : '0.5rem', width: '100%' }}
-          />
-          {addressQuery && (
-            <button
-              type="button"
-              onClick={handleClear}
-              style={{
-                position: 'absolute',
-                right: '0.5rem',
-                background: 'none',
-                border: 'none',
-                color: '#888',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-                lineHeight: 1,
-                padding: '0.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              title="Clear location"
-            >
-              &times;
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          className="vehicle-form__btn vehicle-form__btn--search"
-          onClick={handleAddressSearch}
-          disabled={searching}
-        >
-          {searching ? '...' : 'Search'}
-        </button>
-      </div>
+      <AddressSearchField
+        label={label}
+        value={addressQuery}
+        placeholder={placeholder}
+        searching={searching}
+        suggestions={suggestions}
+        suggestionsAriaLabel="Location suggestions"
+        onChange={setAddressQuery}
+        onSearch={() => {
+          void handleAddressSearch();
+        }}
+        onSelectSuggestion={selectSuggestion}
+        onClear={handleClear}
+        clearAriaLabel="Clear location"
+      />
 
       {geocodeError && (
         <div className="vehicle-form__geo-error">{geocodeError}</div>
       )}
 
-      {suggestions.length > 0 && (
-        <ul className="vehicle-form__suggestions">
-          {suggestions.map((s, i) => (
-            <li key={i} onClick={() => selectSuggestion(s)}>
-              {s.displayName}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-        <div className="vehicle-form__map-hint" style={{ marginTop: 0 }}>
+      <div className="vehicle-form__location-row">
+        <div className="vehicle-form__map-hint vehicle-form__map-hint--compact">
           Or click on the map or use your location
         </div>
         <button
           type="button"
-          className={`vehicle-sidebar__location-btn ${locating ? 'vehicle-sidebar__location-btn--active' : ''}`}
+          className={`vehicle-sidebar__location-btn vehicle-sidebar__location-btn--compact ${locating ? 'vehicle-sidebar__location-btn--active' : ''}`}
           onClick={handleUseMyLocation}
           disabled={locating}
           title="Use My Location"
-          style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', borderRadius: '4px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}
         >
           {locating ? '⏳' : '📍'}
         </button>
       </div>
 
       {draftLocation && (
-        <div className="vehicle-form__selected-location" style={{ marginTop: '0.5rem' }}>
+        <div className="vehicle-form__selected-location vehicle-form__selected-location--spaced">
           <span className="vehicle-form__selected-label">Selected:</span> {draftLocation.address}
         </div>
       )}

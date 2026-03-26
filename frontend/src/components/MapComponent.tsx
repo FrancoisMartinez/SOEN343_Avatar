@@ -558,6 +558,7 @@ export default function MapComponent({
         minZoom={10}
         maxZoom={18}
         attributionControl={false}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer key={tileUrl} url={tileUrl} />
@@ -572,7 +573,7 @@ export default function MapComponent({
 
         {routePolyline && routePolyline.length >= 2 && (
           <>
-            <Polyline positions={routePolyline} color="#4a90d9" weight={5} opacity={0.85} />
+            <Polyline positions={routePolyline} color="#646cff" weight={5} opacity={0.85} />
             <FitRouteBounds polyline={routePolyline} />
           </>
         )}
