@@ -5,9 +5,13 @@ import com.example.backend.application.dto.TransportMode;
 import com.example.backend.infrastructure.adapter.HereTransitAdapter;
 import com.example.backend.infrastructure.adapter.OSRMAdapter;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class RouteService {
+
+    private static final Logger log = LoggerFactory.getLogger(RouteService.class);
 
     private final OSRMAdapter osrmAdapter;
     private final HereTransitAdapter hereTransitAdapter;
@@ -19,7 +23,8 @@ public class RouteService {
 
     /**
      * Get directions between two geographic coordinates for the given transport mode.
-     * BUS mode uses the HERE Transit API; all other modes use OSRM.
+     * BUS mode uses the HERE Transit API.
+     * If HERE fails, the request fails (no OSRM fallback).
      *
      * @throws IllegalArgumentException if any coordinate is out of valid geographic range
      */

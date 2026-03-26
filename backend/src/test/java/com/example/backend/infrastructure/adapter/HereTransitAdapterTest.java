@@ -46,6 +46,40 @@ class HereTransitAdapterTest {
             }
             """.formatted(POLYLINE_2PT, POLYLINE_2PT);
 
+    private static final String VALID_RESPONSE_NO_TRAVEL_SUMMARY = """
+            {
+              "routes": [{
+                "sections": [
+                  {
+                    "type": "pedestrian",
+                    "departure": {
+                      "time": "2020-01-01T00:00:00-04:00",
+                      "place": { "name": "Origin" }
+                    },
+                    "arrival": {
+                      "time": "2020-01-01T00:05:00-04:00",
+                      "place": { "name": "Bus Stop Guy" }
+                    },
+                    "polyline": "%s"
+                  },
+                  {
+                    "type": "transit",
+                    "departure": {
+                      "time": "2020-01-01T00:05:00-04:00",
+                      "place": { "name": "Bus Stop Guy" }
+                    },
+                    "arrival": {
+                      "time": "2020-01-01T00:17:00-04:00",
+                      "place": { "name": "Berri-UQAM" }
+                    },
+                    "transport": { "mode": "bus", "name": "24" },
+                    "polyline": "%s"
+                  }
+                ]
+              }]
+            }
+            """.formatted(POLYLINE_2PT, POLYLINE_2PT);
+
     private final RestTemplate restTemplate = mock(RestTemplate.class);
     private final HereTransitAdapter adapter = new HereTransitAdapter(restTemplate, "test-key");
 
@@ -104,6 +138,22 @@ class HereTransitAdapterTest {
 
         assertThrows(RoutingUnavailableException.class,
                 () -> adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59));
+    }
+
+    @Test
+    void getTransitDirections_whenTravelSummaryMissing_usesDepartureArrivalTimes() {
+        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(VALID_RESPONSE_NO_TRAVEL_SUMMARY);
+
+        RouteResult result = adapter.getTransitDirections(45.5, -73.6, 45.51, -73.59);
+
+        assertNotNull(result);
+        assertEquals(TransportMode.BUS, result.mode());
+        assertEquals(2, result.legs().size());
+
+        // 5 minutes and 12 minutes computed from timestamps.
+        assertEquals(5, result.legs().get(0).durationMin());
+        assertEquals(12, result.legs().get(1).durationMin());
+        assertEquals(17, result.durationMin());
     }
 
     @Test

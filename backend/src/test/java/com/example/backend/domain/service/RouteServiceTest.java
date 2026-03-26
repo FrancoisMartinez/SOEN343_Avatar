@@ -15,6 +15,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class RouteServiceTest {
@@ -58,6 +59,17 @@ class RouteServiceTest {
 
         assertEquals(expected, result);
         verify(hereTransitAdapter).getTransitDirections(45.5, -73.6, 45.51, -73.59);
+    }
+
+    @Test
+    void getDirections_busMode_whenHereTransitUnavailable_propagatesError() {
+        when(hereTransitAdapter.getTransitDirections(45.5, -73.6, 45.51, -73.59))
+                .thenThrow(new RoutingUnavailableException("Transit service unavailable"));
+        assertThrows(RoutingUnavailableException.class,
+                () -> routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS));
+
+        verify(hereTransitAdapter).getTransitDirections(45.5, -73.6, 45.51, -73.59);
+        verify(osrmAdapter, never()).getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS);
     }
 
     @Test

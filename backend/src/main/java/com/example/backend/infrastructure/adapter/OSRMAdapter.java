@@ -21,7 +21,7 @@ public class OSRMAdapter {
     private static final String OSRM_BICYCLE_BASE = "https://routing.openstreetmap.de/routed-bike/route/v1/bicycle";
     private static final String OSRM_FOOT_BASE    = "https://routing.openstreetmap.de/routed-foot/route/v1/foot";
     private static final int CONNECT_TIMEOUT_MS = 5_000;
-    private static final int READ_TIMEOUT_MS = 10_000;
+    private static final int READ_TIMEOUT_MS = 20_000;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
