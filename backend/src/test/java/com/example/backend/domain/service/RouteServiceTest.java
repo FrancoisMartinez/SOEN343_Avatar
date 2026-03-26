@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class RouteServiceTest {
@@ -41,9 +42,8 @@ class RouteServiceTest {
     @Test
     void getDirections_drivingMode_delegatesToOsrmAdapter() {
         RouteResult expected = new RouteResult(
-                List.of(new double[]{45.5, -73.6}, new double[]{45.51, -73.59}),
-                1.2, 3, TransportMode.DRIVING, List.of()
-        );
+                List.of(new double[] { 45.5, -73.6 }, new double[] { 45.51, -73.59 }),
+                1.2, 3, TransportMode.DRIVING, List.of());
         when(osrmAdapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING)).thenReturn(expected);
 
         RouteResult result = routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.DRIVING);
@@ -55,9 +55,8 @@ class RouteServiceTest {
     @Test
     void getDirections_busMode_delegatesToHereTransitAdapter() {
         RouteResult expected = new RouteResult(
-                List.of(new double[]{45.5, -73.6}),
-                1.0, 17, TransportMode.BUS, List.of()
-        );
+                List.of(new double[] { 45.5, -73.6 }),
+                1.0, 17, TransportMode.BUS, List.of());
         when(hereTransitAdapter.getTransitDirections(45.5, -73.6, 45.51, -73.59)).thenReturn(expected);
 
         RouteResult result = routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS);
@@ -67,11 +66,21 @@ class RouteServiceTest {
     }
 
     @Test
+    void getDirections_busMode_whenHereTransitUnavailable_propagatesError() {
+        when(hereTransitAdapter.getTransitDirections(45.5, -73.6, 45.51, -73.59))
+                .thenThrow(new RoutingUnavailableException("Transit service unavailable"));
+        assertThrows(RoutingUnavailableException.class,
+                () -> routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS));
+
+        verify(hereTransitAdapter).getTransitDirections(45.5, -73.6, 45.51, -73.59);
+        verify(osrmAdapter, never()).getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BUS);
+    }
+
+    @Test
     void getDirections_bicycleMode_delegatesToOsrmAdapter() {
         RouteResult expected = new RouteResult(
-                List.of(new double[]{45.5, -73.6}),
-                1.2, 5, TransportMode.BICYCLE, List.of()
-        );
+                List.of(new double[] { 45.5, -73.6 }),
+                1.2, 5, TransportMode.BICYCLE, List.of());
         when(osrmAdapter.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BICYCLE)).thenReturn(expected);
 
         RouteResult result = routeService.getDirections(45.5, -73.6, 45.51, -73.59, TransportMode.BICYCLE);
@@ -127,8 +136,7 @@ class RouteServiceTest {
     @Test
     void getDirections_boundaryCoordinates_valid() {
         RouteResult expected = new RouteResult(
-                List.of(new double[]{90.0, 180.0}), 0.0, 0, TransportMode.DRIVING, List.of()
-        );
+                List.of(new double[] { 90.0, 180.0 }), 0.0, 0, TransportMode.DRIVING, List.of());
         when(osrmAdapter.getDirections(90.0, 180.0, -90.0, -180.0, TransportMode.DRIVING)).thenReturn(expected);
 
         RouteResult result = routeService.getDirections(90.0, 180.0, -90.0, -180.0, TransportMode.DRIVING);

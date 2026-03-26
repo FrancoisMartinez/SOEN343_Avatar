@@ -4,8 +4,8 @@ import VehicleSidebar from '../components/VehicleSidebar';
 import NavigationPanel from '../components/NavigationPanel';
 import ParkingPanel from '../components/ParkingPanel';
 import { useAuth } from '../contexts/AuthContext';
-import type { CarData } from '../services/vehicleService';
-import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicleService';
+import type { CarData, SearchFilters } from '../services/vehicleService';
+import { fetchVehicles, createVehicle, updateVehicle, deleteVehicle, searchVehicles } from '../services/vehicleService';
 import { updateWeeklyAvailability } from '../services/availabilityService';
 import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
@@ -20,6 +20,7 @@ type CarFocusOptions = {
 export default function MapPage() {
   const { isAuthenticated, role, userId } = useAuth();
   const isCarProvider = isAuthenticated && role === 'CAR_PROVIDER';
+  const isLearner = isAuthenticated && role === 'LEARNER';
 
   const [vehicles, setVehicles] = useState<CarData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,12 +34,38 @@ export default function MapPage() {
   });
 
   const [pickingMode, setPickingMode] = useState(false);
+  const [pickingPurpose, setPickingPurpose] = useState<'search' | 'vehicle'>('vehicle');
   const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
+  const [searchCenter, setSearchCenter] = useState<DraftLocation | null>(null);
+  const [searchRadius, setSearchRadius] = useState(5);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [routePolyline, setRoutePolyline] = useState<[number, number][] | null>(null);
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
   const [parkingActive, setParkingActive] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lon: number }>({ lat: 45.4947, lon: -73.5779 });
   const [navigateToDestination, setNavigateToDestination] = useState<{ lat: number; lon: number; name: string } | null>(null);
+
+  const handleSearchVehicles = useCallback(async (filters: SearchFilters = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const finalFilters = { ...filters };
+      // Only include radius if we have a center, otherwise radius is meaningless for a broad search
+      if (!finalFilters.lat || !finalFilters.lng) {
+        finalFilters.radius = undefined;
+        finalFilters.lat = undefined;
+        finalFilters.lng = undefined;
+      }
+
+      const data = await searchVehicles(finalFilters);
+      setVehicles(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const loadVehicles = useCallback(async () => {
     if (!userId) return;
@@ -53,6 +80,37 @@ export default function MapPage() {
       setLoading(false);
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+      },
+      (err) => {
+        console.warn('Location watcher error:', err);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  const [hasInitialSearchPerformed, setHasInitialSearchPerformed] = useState(false);
+
+  useEffect(() => {
+    if (isLearner && !hasInitialSearchPerformed) {
+      setHasInitialSearchPerformed(true);
+      // Default initial search is broad (anywhere)
+      handleSearchVehicles({});
+    }
+  }, [isLearner, hasInitialSearchPerformed, handleSearchVehicles]);
 
   useEffect(() => {
     if (isCarProvider) {
@@ -106,10 +164,40 @@ export default function MapPage() {
     }));
   }, []);
 
-  const handleFormOpen = (car: CarData | null) => {
-    setPickingMode(true);
+  const handleRecenter = () => {
+    if (userLocation) {
+      setCarFocusEvent((prev) => ({
+        id: prev.id + 1,
+        carId: 999999,
+        openPopup: false,
+        forceRecenter: true,
+      }));
+      return;
+    }
 
-    // When editing an existing car, reuse locate behavior so focus/selection stays consistent.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setCarFocusEvent((prev) => ({
+          id: prev.id + 1,
+          carId: 999999,
+          openPopup: false,
+          forceRecenter: true,
+        }));
+      }, (err) => {
+        console.warn('Recenter geolocation error:', err);
+        alert('Could not get your location. Please check your browser permissions.');
+      });
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  };
+
+  const handleFormOpen = useCallback((car: CarData | null, purpose: 'search' | 'vehicle' = 'vehicle') => {
+    setPickingMode(true);
+    setPickingPurpose(purpose);
+
     if (car?.id != null) {
       handleCarFocus(car.id, { openPopup: true, forceRecenter: true });
     } else {
@@ -121,25 +209,48 @@ export default function MapPage() {
     } else {
       setDraftLocation(null);
     }
-  };
+  }, [handleCarFocus]);
 
-  const handleFormClose = () => {
+  const handleSearchFormOpen = useCallback((car: CarData | null) => {
+    handleFormOpen(car, 'search');
+  }, [handleFormOpen]);
+
+  const handleVehicleFormOpen = useCallback((car: CarData | null) => {
+    handleFormOpen(car, 'vehicle');
+  }, [handleFormOpen]);
+
+  const handleFormClose = useCallback(() => {
     setPickingMode(false);
     setDraftLocation(null);
 
-    // If a vehicle remains selected, re-open its popup once we return to normal map mode.
     if (selectedCarId != null) {
       handleCarFocus(selectedCarId, { openPopup: true, forceRecenter: false });
     }
-  };
+  }, [selectedCarId, handleCarFocus]);
 
   const handleLocationChange = (loc: DraftLocation) => {
-    setDraftLocation(loc);
+    if (!loc.address) {
+      setDraftLocation(null);
+      if (isLearner || pickingPurpose === 'search') {
+        setSearchCenter(null);
+      }
+    } else {
+      setDraftLocation(loc);
+      if (isLearner || pickingPurpose === 'search') {
+        setSearchCenter(loc);
+      }
+    }
   };
 
   const handleLocateCar = (carId: number) => {
     handleCarFocus(carId, { openPopup: true, forceRecenter: true });
   };
+
+  const handleClearSearch = useCallback(() => {
+    setSearchCenter(null);
+    setSearchRadius(5);
+    handleSearchVehicles({}); // Broad search
+  }, [handleSearchVehicles]);
 
   useEffect(() => {
     if (selectedCarId == null) {
@@ -168,19 +279,28 @@ export default function MapPage() {
   }, [selectedCarId, handleCarFocus]);
 
   const handleMapLocationPick = useCallback(async (lat: number, lng: number) => {
-    setDraftLocation({ lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+    const loc = { lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
+    setDraftLocation(loc);
+    if (pickingPurpose === 'search') {
+      setSearchCenter(loc);
+    }
+
     try {
       const address = await reverseGeocode(lat, lng);
-      setDraftLocation({ lat, lng, address });
+      const updatedLoc = { lat, lng, address };
+      setDraftLocation(updatedLoc);
+      if (pickingPurpose === 'search') {
+        setSearchCenter(updatedLoc);
+      }
     } catch {
-      // keep the coordinate-based fallback already set above
     }
-  }, []);
+  }, [pickingPurpose]);
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       {isCarProvider && (
         <VehicleSidebar
+          mode="manage"
           vehicles={vehicles}
           loading={loading}
           error={error}
@@ -192,7 +312,29 @@ export default function MapPage() {
           onDeleteVehicle={handleDeleteVehicle}
           onLocateCar={handleLocateCar}
           onRetry={loadVehicles}
-          onFormOpen={handleFormOpen}
+          onFormOpen={handleVehicleFormOpen}
+          onFormClose={handleFormClose}
+          onLocationChange={handleLocationChange}
+        />
+      )}
+      {isLearner && (
+        <VehicleSidebar
+          mode="search"
+          vehicles={vehicles}
+          loading={loading}
+          error={error}
+          selectedCarId={selectedCarId}
+          draftLocation={draftLocation}
+          searchCenter={searchCenter}
+          searchRadius={searchRadius}
+          onSearchRadiusChange={setSearchRadius}
+          onSearch={(filters) => {
+            handleSearchVehicles(filters);
+          }}
+          onClearSearch={handleClearSearch}
+          onLocateCar={handleLocateCar}
+          onRetry={() => handleSearchVehicles()}
+          onFormOpen={handleSearchFormOpen}
           onFormClose={handleFormClose}
           onLocationChange={handleLocationChange}
         />
@@ -200,13 +342,18 @@ export default function MapPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem', boxSizing: 'border-box', position: 'relative' }}>
         <main style={{ flex: 1, width: '100%', position: 'relative' }}>
           <MapComponent
-            vehicles={isCarProvider ? vehicles : []}
+            vehicles={isCarProvider || isLearner ? vehicles : []}
             selectedCarId={selectedCarId}
+            userLocation={userLocation}
+            searchCenter={searchCenter}
+            searchRadius={searchRadius}
             carFocusEvent={carFocusEvent}
             onSelectCar={(carId) => handleCarFocus(carId)}
             pickingMode={pickingMode}
+            pickingPurpose={pickingPurpose}
             draftLocation={draftLocation}
             onLocationPick={handleMapLocationPick}
+            onRecenter={handleRecenter}
             routePolyline={routePolyline}
             parkingSpots={parkingSpots}
             onCenterChange={(lat, lon) => setMapCenter({ lat, lon })}

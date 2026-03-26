@@ -27,6 +27,39 @@ export async function fetchVehicles(providerId: number): Promise<CarData[]> {
   return res.json();
 }
 
+export interface SearchFilters {
+  transmissionType?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  isAvailable?: boolean;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  dayOfWeek?: string;
+  startMinute?: number;
+  endMinute?: number;
+}
+
+export async function searchVehicles(filters: SearchFilters): Promise<CarData[]> {
+  const queryParams = new URLSearchParams();
+  if (filters.transmissionType) queryParams.append('transmissionType', filters.transmissionType);
+  if (filters.minPrice !== undefined) queryParams.append('minPrice', filters.minPrice.toString());
+  if (filters.maxPrice !== undefined) queryParams.append('maxPrice', filters.maxPrice.toString());
+  if (filters.isAvailable !== undefined) queryParams.append('isAvailable', filters.isAvailable.toString());
+  if (filters.lat !== undefined) queryParams.append('lat', filters.lat.toString());
+  if (filters.lng !== undefined) queryParams.append('lng', filters.lng.toString());
+  if (filters.radius !== undefined) queryParams.append('radius', filters.radius.toString());
+  if (filters.dayOfWeek) queryParams.append('dayOfWeek', filters.dayOfWeek);
+  if (filters.startMinute !== undefined) queryParams.append('startMinute', filters.startMinute.toString());
+  if (filters.endMinute !== undefined) queryParams.append('endMinute', filters.endMinute.toString());
+
+  const res = await fetch(`/api/cars/search?${queryParams.toString()}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to search vehicles');
+  return res.json();
+}
+
 export async function createVehicle(providerId: number, data: Omit<CarData, 'id'>): Promise<CarData> {
   const res = await fetch(`${API_BASE}/${providerId}/cars`, {
     method: 'POST',
@@ -52,5 +85,8 @@ export async function deleteVehicle(providerId: number, carId: number): Promise<
     method: 'DELETE',
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to delete vehicle');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? 'Failed to delete vehicle');
+  }
 }

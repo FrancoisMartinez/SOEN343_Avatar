@@ -1,28 +1,36 @@
 import { useState } from 'react';
 import type { CarData } from '../services/vehicleService';
+import BookingPanel from './BookingPanel';
 
 interface VehicleCardProps {
   car: CarData;
   isSelected?: boolean;
-  onEdit: (car: CarData) => void;
-  onDelete: (carId: number) => Promise<void>;
-  onOpenAvailability: (carId: number) => void;
+  mode?: 'manage' | 'search';
+  onEdit?: (car: CarData) => void;
+  onDelete?: (carId: number) => Promise<void>;
+  onOpenAvailability?: (carId: number) => void;
   onLocate?: (carId: number) => void;
   cardRef?: (element: HTMLDivElement | null) => void;
 }
 
-export default function VehicleCard({ car, isSelected, onEdit, onDelete, onOpenAvailability, onLocate, cardRef }: VehicleCardProps) {
+export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, onDelete, onOpenAvailability, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showBooking, setShowBooking] = useState(false);
 
   const hasCoords = car.latitude != null && car.longitude != null;
 
   const handleConfirmDelete = async () => {
-    if (deleting) return;
+    if (deleting || !onDelete) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await onDelete(car.id!);
       setConfirmDelete(false);
+    } catch (err: any) {
+      console.error(`[VehicleCard] Failed to delete car ${car.id}:`, err);
+      setDeleteError(err.message || 'Delete failed');
     } finally {
       setDeleting(false);
     }
@@ -37,17 +45,23 @@ export default function VehicleCard({ car, isSelected, onEdit, onDelete, onOpenA
     >
       <div className="vehicle-card__header">
         <h3 className="vehicle-card__title">{car.makeModel}</h3>
-        <button
-          type="button"
-          className={`vehicle-card__badge vehicle-card__badge-btn ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenAvailability(car.id!);
-          }}
-          disabled={deleting}
-        >
-          {car.available ? 'Available' : 'Unavailable'}
-        </button>
+        {mode === 'manage' ? (
+          <button
+            type="button"
+            className={`vehicle-card__badge vehicle-card__badge-btn ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenAvailability?.(car.id!);
+            }}
+            disabled={deleting}
+          >
+            {car.available ? 'Available' : 'Unavailable'}
+          </button>
+        ) : (
+          <span className={`vehicle-card__badge ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}>
+             {car.available ? 'Available' : 'Unavailable'}
+          </span>
+        )}
       </div>
 
       <div className="vehicle-card__details">
@@ -75,24 +89,52 @@ export default function VehicleCard({ car, isSelected, onEdit, onDelete, onOpenA
             Locate
           </button>
         )}
-        <button className="vehicle-card__btn vehicle-card__btn--edit" onClick={() => onEdit(car)} disabled={deleting}>
-          Edit
-        </button>
-        {confirmDelete ? (
-          <div className="vehicle-card__confirm-group">
-            <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={handleConfirmDelete} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Confirm'}
+
+        {mode === 'manage' && (
+          <>
+            <button className="vehicle-card__btn vehicle-card__btn--edit" onClick={() => onEdit?.(car)} disabled={deleting}>
+              Edit
             </button>
-            <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button className="vehicle-card__btn vehicle-card__btn--delete" onClick={() => setConfirmDelete(true)} disabled={deleting}>
-            Delete
+            {confirmDelete ? (
+              <div className="vehicle-card__confirm-group">
+                <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={handleConfirmDelete} disabled={deleting}>
+                  {deleting ? 'Deleting...' : 'Confirm'}
+                </button>
+                <button className="vehicle-card__btn vehicle-card__btn--cancel" onClick={() => { setConfirmDelete(false); setDeleteError(null); }} disabled={deleting}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button className="vehicle-card__btn vehicle-card__btn--delete" onClick={() => setConfirmDelete(true)} disabled={deleting}>
+                Delete
+              </button>
+            )}
+            {deleteError && (
+              <div className="vehicle-card__error">{deleteError}</div>
+            )}
+          </>
+        )}
+
+        {mode === 'search' && car.available && (
+          <button
+            className="vehicle-card__btn vehicle-card__btn--confirm"
+            onClick={() => setShowBooking(true)}
+          >
+            Book
           </button>
         )}
       </div>
+
+      {/* Booking panel slides in when learner clicks Book */}
+      {showBooking && (
+        <div className="vehicle-card__booking-overlay" onClick={(e) => e.stopPropagation()}>
+          <BookingPanel
+            car={car}
+            onClose={() => setShowBooking(false)}
+            onBooked={() => setShowBooking(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ export interface UserProfile {
   licenseIssueDate: string | null;
   licenseRegion: string | null;
   role: string;
+  balance: number | null;
 }
 
 export interface UpdateProfilePayload {
@@ -53,6 +54,23 @@ export async function updateUserProfile(
   if (!res.ok) {
     const message = await extractErrorMessage(res, 'Failed to update profile');
     console.error(`[User] PUT /me failed (${res.status}):`, message);
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+/** Add funds to the learner's balance */
+export async function addBalance(token: string, amount: number): Promise<UserProfile> {
+  const res = await fetch('/api/users/me/balance', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) {
+    const message = await extractErrorMessage(res, 'Failed to add balance');
     throw new Error(message);
   }
   return res.json();

@@ -156,3 +156,55 @@
   margin-bottom: 0.5rem;
   text-align: center;
 }
+
+/* ===== Balance Section ===== */
+.profile-balance {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #333;
+}
+
+.profile-balance__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.profile-balance__amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.profile-balance__topup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.profile-balance__input {
+  flex: 1;
+}
+
+.profile-balance__add-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: none;
+  background: #4ade80;
+  color: #000;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+.profile-balance__add-btn:hover:not(:disabled) {
+  background: #22c55e;
+}
+.profile-balance__add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

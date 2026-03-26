@@ -1,0 +1,144 @@
+/* ===== Finish Reservation Modal ===== */
+.finish-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.finish-modal {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+
+.finish-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.finish-modal__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.finish-modal__close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.finish-modal__close:hover {
+  color: #fff;
+}
+
+.finish-modal__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.finish-modal__map-container {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.finish-modal__resolving {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #888;
+}
+
+.finish-modal__selected {
+  font-size: 0.85rem;
+  color: #ddd;
+  padding: 0.5rem 0.75rem;
+  background: #2a2a2a;
+  border-radius: 6px;
+}
+
+.finish-modal__selected-label {
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.finish-modal__confirm-box {
+  border: 1px solid #646cff;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: rgba(100, 108, 255, 0.08);
+}
+
+.finish-modal__confirm-text {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #ddd;
+  font-weight: 500;
+}
+
+.finish-modal__confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.finish-modal__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.finish-modal__btn {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.finish-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.finish-modal__btn--primary,
+.finish-modal__btn--confirm {
+  background: #4ade80;
+  color: #000;
+}
+.finish-modal__btn--primary:hover:not(:disabled),
+.finish-modal__btn--confirm:hover:not(:disabled) {
+  background: #22c55e;
+}
+
+.finish-modal__btn--secondary,
+.finish-modal__btn--cancel {
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #444;
+}
+.finish-modal__btn--secondary:hover:not(:disabled),
+.finish-modal__btn--cancel:hover:not(:disabled) {
+  border-color: #646cff;
+  color: #fff;
+}

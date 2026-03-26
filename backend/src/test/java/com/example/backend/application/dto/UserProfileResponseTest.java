@@ -18,7 +18,8 @@ class UserProfileResponseTest {
                 "ON999",
                 issueDate,
                 "ON",
-                "LEARNER");
+                "LEARNER",
+                150.0);
 
         assertEquals(4L, response.getId());
         assertEquals("Jane Smith", response.getFullName());
@@ -27,5 +28,6 @@ class UserProfileResponseTest {
         assertEquals(issueDate, response.getLicenseIssueDate());
         assertEquals("ON", response.getLicenseRegion());
         assertEquals("LEARNER", response.getRole());
+        assertEquals(150.0, response.getBalance());
     }
 }
