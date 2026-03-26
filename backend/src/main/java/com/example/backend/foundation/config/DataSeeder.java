@@ -1,5 +1,14 @@
 package com.example.backend.foundation.config;
 
+import java.time.DayOfWeek;
+import java.util.List;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.example.backend.domain.model.Admin;
 import com.example.backend.domain.model.AvailabilitySlot;
 import com.example.backend.domain.model.Car;
 import com.example.backend.domain.model.CarProvider;
@@ -8,13 +17,6 @@ import com.example.backend.domain.model.Learner;
 import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.time.DayOfWeek;
-import java.util.List;
 
 @Configuration
 public class DataSeeder {
@@ -43,8 +45,14 @@ public class DataSeeder {
                 carProvider.setPassword(passwordEncoder.encode("password123"));
                 userRepository.save(carProvider);
 
+                Admin admin = new Admin();
+                admin.setFullName("Admin User");
+                admin.setEmail("admin@test.com");
+                admin.setPassword(passwordEncoder.encode("password123"));
+                userRepository.save(admin);
+
                 System.out.println(
-                        ">>> Seeded 3 test users (learner@test.com, instructor@test.com, carprovider@test.com / password123)");
+                        ">>> Seeded 4 test users (learner@test.com, instructor@test.com, carprovider@test.com password123, admin@test.com 123)");
 
                 // Seed Cars
                 Car car1 = new Car();

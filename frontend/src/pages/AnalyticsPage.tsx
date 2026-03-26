@@ -10,8 +10,8 @@ import {
 import './AnalyticsPage.css';
 
 export default function AnalyticsPage() {
-  const { isAuthenticated, role, userId } = useAuth();
-  const isCarProvider = isAuthenticated && role === 'CAR_PROVIDER';
+  const { isAuthenticated, role } = useAuth();
+  const isAdmin = isAuthenticated && role === 'ADMIN';
 
   const [analytics, setAnalytics] = useState<CarUtilization[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,6 @@ export default function AnalyticsPage() {
   const maxServiceLatency = slowestEndpoints.length > 0 ? slowestEndpoints[0].avgLatencyMs : 0;
 
   const loadAnalytics = useCallback(async () => {
-    if (!userId) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -48,7 +46,6 @@ export default function AnalyticsPage() {
       const endDate = endDateInput ? `${endDateInput}T23:59:59` : undefined;
 
       const response = await fetchCarUtilizationAnalytics({
-        providerId: userId,
         startDate,
         endDate,
       });
@@ -59,7 +56,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [userId, startDateInput, endDateInput]);
+  }, [startDateInput, endDateInput]);
 
   const loadServiceHealth = useCallback(async () => {
     try {
@@ -75,21 +72,21 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (isCarProvider) {
+    if (isAdmin) {
       loadAnalytics();
       loadServiceHealth();
     }
-  }, [isCarProvider, loadAnalytics, loadServiceHealth]);
+  }, [isAdmin, loadAnalytics, loadServiceHealth]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isCarProvider) {
+  if (!isAdmin) {
     return (
       <div className="analytics-page">
         <h2 className="analytics-title">Analytics</h2>
-        <p>This dashboard is available for car providers only.</p>
+        <p>This dashboard is available for admins only.</p>
       </div>
     );
   }
