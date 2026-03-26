@@ -26,6 +26,8 @@ describe('routeService', () => {
       polyline: [[45.5, -73.6], [45.51, -73.59]] as [number, number][],
       distanceKm: 1.2,
       durationMin: 3,
+      mode: 'DRIVING' as const,
+      legs: [],
     };
 
     getItemMock.mockReturnValue('token-nav');
@@ -41,13 +43,13 @@ describe('routeService', () => {
 
     expect(result).toEqual(mockResult);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/routes/directions?fromLat=45.5&fromLon=-73.6&toLat=45.51&toLon=-73.59',
+      '/api/routes/directions?fromLat=45.5&fromLon=-73.6&toLat=45.51&toLon=-73.59&mode=DRIVING',
       { headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token-nav' } }
     );
   });
 
   it('getDirections sends no auth header when no token in sessionStorage', async () => {
-    const mockResult = { polyline: [], distanceKm: 0, durationMin: 0 };
+    const mockResult = { polyline: [], distanceKm: 0, durationMin: 0, mode: 'DRIVING' as const, legs: [] };
 
     getItemMock.mockReturnValue(null);
     const fetchMock = vi.fn().mockResolvedValue({
@@ -62,6 +64,24 @@ describe('routeService', () => {
 
     const [, options] = fetchMock.mock.calls[0];
     expect(options.headers).not.toHaveProperty('Authorization');
+  });
+
+  it('getDirections includes mode param in URL', async () => {
+    const mockResult = { polyline: [], distanceKm: 0, durationMin: 0, mode: 'BUS' as const, legs: [] };
+
+    getItemMock.mockReturnValue(null);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(mockResult),
+    });
+
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
+    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
+
+    await getDirections(45.5, -73.6, 45.51, -73.59, 'BUS');
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain('mode=BUS');
   });
 
   it('getDirections throws with server error message when response is not ok', async () => {

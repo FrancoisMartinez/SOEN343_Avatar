@@ -1,0 +1,100 @@
+.address-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.address-search__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--address-muted, #6b7280);
+}
+
+.address-search__row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.address-search__input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.address-search__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  border: 1px solid var(--address-border, #d6dbe3);
+  background: var(--address-input-bg, #ffffff);
+  color: var(--address-text, #1f2937);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.address-search__input:focus {
+  border-color: var(--address-focus, #646cff);
+}
+
+.address-search__clear {
+  position: absolute;
+  right: 0.45rem;
+  background: none;
+  border: none;
+  color: var(--address-muted, #6b7280);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.address-search__btn {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--address-button-bg, linear-gradient(135deg, #646cff, #7c5cfc));
+  color: var(--address-button-text, #fff);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.address-search__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.address-search__suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--address-border, #d6dbe3);
+  border-radius: 8px;
+  background: var(--address-suggestions-bg, #ffffff);
+}
+
+.address-search__suggestions li {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--address-border, #d6dbe3);
+  color: var(--address-text, #1f2937);
+  transition: background 0.15s;
+}
+
+.address-search__suggestions li:last-child {
+  border-bottom: none;
+}
+
+.address-search__suggestions li:hover {
+  background: var(--address-suggestion-hover, rgba(100, 108, 255, 0.15));
+}

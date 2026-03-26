@@ -1,5 +1,15 @@
 /* ===== Vehicle Sidebar ===== */
 .vehicle-sidebar {
+  --address-text: #fff;
+  --address-muted: #888;
+  --address-border: rgba(255, 255, 255, 0.1);
+  --address-input-bg: rgba(255, 255, 255, 0.04);
+  --address-focus: #646cff;
+  --address-button-bg: linear-gradient(135deg, #646cff, #7c5cfc);
+  --address-button-text: #fff;
+  --address-suggestions-bg: rgba(30, 30, 40, 0.95);
+  --address-suggestion-hover: rgba(100, 108, 255, 0.15);
+
   width: 340px;
   min-width: 340px;
   height: 100%;
@@ -684,6 +694,18 @@
   padding: 1.25rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+.vehicle-form-panel {
+  --address-text: #fff;
+  --address-muted: #888;
+  --address-border: rgba(255, 255, 255, 0.1);
+  --address-input-bg: rgba(255, 255, 255, 0.04);
+  --address-focus: #646cff;
+  --address-button-bg: linear-gradient(135deg, #646cff, #7c5cfc);
+  --address-button-text: #fff;
+  --address-suggestions-bg: rgba(30, 30, 40, 0.95);
+  --address-suggestion-hover: rgba(100, 108, 255, 0.15);
+}
 .vehicle-form-panel__header h2 {
   margin: 0;
   font-size: 1.15rem;
@@ -766,6 +788,29 @@
   color: rgba(255, 255, 255, 0.45);
   margin-top: 0.25rem;
   font-style: italic;
+}
+
+.vehicle-form__map-hint--compact {
+  margin-top: 0;
+}
+
+.vehicle-form__location-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.vehicle-sidebar__location-btn--compact {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vehicle-form__selected-location--spaced {
+  margin-top: 0.5rem;
 }
 
 /* ===== Map picking banner ===== */

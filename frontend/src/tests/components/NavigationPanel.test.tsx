@@ -20,6 +20,25 @@ const mockGetDirections = vi.mocked(getDirections);
 const PLACE_A = { lat: 45.5, lon: -73.6, displayName: 'Montreal, QC' };
 const PLACE_B = { lat: 45.51, lon: -73.59, displayName: 'Laval, QC' };
 
+const DRIVING_RESULT = {
+  polyline: [[45.5, -73.6], [45.51, -73.59]] as [number, number][],
+  distanceKm: 1.2,
+  durationMin: 3,
+  mode: 'DRIVING' as const,
+  legs: [],
+};
+
+const BUS_RESULT = {
+  polyline: [[45.5, -73.6], [45.51, -73.59]] as [number, number][],
+  distanceKm: 1.5,
+  durationMin: 17,
+  mode: 'BUS' as const,
+  legs: [
+    { type: 'WALK' as const, lineLabel: null, transportMode: null, fromStop: null, toStop: null, durationMin: 5, polyline: [] },
+    { type: 'TRANSIT' as const, lineLabel: '24', transportMode: 'bus', fromStop: 'Bus Stop Guy', toStop: 'Berri-UQAM', durationMin: 12, polyline: [] },
+  ],
+};
+
 describe('NavigationPanel', () => {
   const onRoute = vi.fn();
   const onClear = vi.fn();
@@ -44,6 +63,34 @@ describe('NavigationPanel', () => {
     expect(screen.getByLabelText('To')).toBeTruthy();
     const btn = screen.getByRole('button', { name: /get directions/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('renders mode selector with all four transport modes', () => {
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+
+    expect(screen.getByTitle('Drive')).toBeTruthy();
+    expect(screen.getByTitle('Bus')).toBeTruthy();
+    expect(screen.getByTitle('Bike')).toBeTruthy();
+    expect(screen.getByTitle('Walk')).toBeTruthy();
+  });
+
+  it('Drive mode is active by default', () => {
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+
+    const driveBtn = screen.getByTitle('Drive');
+    expect(driveBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(driveBtn.classList.contains('nav-panel__mode-btn--active')).toBe(true);
+  });
+
+  it('clicking Bus mode makes it active', () => {
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+
+    fireEvent.click(screen.getByTitle('Bus'));
+
+    const busBtn = screen.getByTitle('Bus');
+    expect(busBtn.getAttribute('aria-pressed')).toBe('true');
+    const driveBtn = screen.getByTitle('Drive');
+    expect(driveBtn.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('shows error when geocoding returns no results', async () => {
@@ -74,11 +121,7 @@ describe('NavigationPanel', () => {
 
   it('enables button and calls onRoute when directions succeed', async () => {
     mockGeocode.mockResolvedValueOnce([PLACE_A]).mockResolvedValueOnce([PLACE_B]);
-    mockGetDirections.mockResolvedValueOnce({
-      polyline: [[45.5, -73.6], [45.51, -73.59]],
-      distanceKm: 1.2,
-      durationMin: 3,
-    });
+    mockGetDirections.mockResolvedValueOnce(DRIVING_RESULT);
 
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
 
@@ -97,6 +140,57 @@ describe('NavigationPanel', () => {
     await waitFor(() => {
       expect(onRoute).toHaveBeenCalledWith([[45.5, -73.6], [45.51, -73.59]], 1.2, 3);
     });
+  });
+
+  it('passes selected mode to getDirections', async () => {
+    mockGeocode.mockResolvedValueOnce([PLACE_A]).mockResolvedValueOnce([PLACE_B]);
+    mockGetDirections.mockResolvedValueOnce(BUS_RESULT);
+
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+
+    fireEvent.click(screen.getByTitle('Bus'));
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
+    fireEvent.blur(screen.getByLabelText('From'));
+    await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
+    fireEvent.blur(screen.getByLabelText('To'));
+    await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
+
+    await waitFor(() => {
+      expect(mockGetDirections).toHaveBeenCalledWith(
+        PLACE_A.lat, PLACE_A.lon, PLACE_B.lat, PLACE_B.lon, 'BUS'
+      );
+    });
+  });
+
+  it('shows journey legs for bus route', async () => {
+    mockGeocode.mockResolvedValueOnce([PLACE_A]).mockResolvedValueOnce([PLACE_B]);
+    mockGetDirections.mockResolvedValueOnce(BUS_RESULT);
+
+    render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
+
+    fireEvent.click(screen.getByTitle('Bus'));
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
+    fireEvent.blur(screen.getByLabelText('From'));
+    await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
+    fireEvent.blur(screen.getByLabelText('To'));
+    await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Journey steps')).toBeTruthy();
+    });
+
+    expect(screen.getByText(/Walk 5 min/)).toBeTruthy();
+    expect(screen.getByText(/Bus Stop Guy.*Berri-UQAM/)).toBeTruthy();
   });
 
   it('shows error when getDirections fails', async () => {
@@ -126,6 +220,8 @@ describe('NavigationPanel', () => {
       polyline: [[45.5, -73.6]],
       distanceKm: 0.5,
       durationMin: 1,
+      mode: 'DRIVING' as const,
+      legs: [],
     });
 
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
