@@ -6,6 +6,7 @@ import MapPage from './pages/MapPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ReservationsPage from './pages/ReservationsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/login" element={<AuthPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/reservations" element={<ReservationsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

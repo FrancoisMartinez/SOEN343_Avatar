@@ -1033,6 +1033,13 @@
   letter-spacing: 0.01em;
 }
 
+/* ===== Booking Overlay within Vehicle Card ===== */
+.vehicle-card__booking-overlay {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #3a3a3a;
+}
+
 /* ===== Light mode ===== */
 @media (prefers-color-scheme: light) {
   .vehicle-sidebar {

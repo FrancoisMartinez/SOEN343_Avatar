@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CarData } from '../services/vehicleService';
+import BookingPanel from './BookingPanel';
 
 interface VehicleCardProps {
   car: CarData;
@@ -15,6 +16,7 @@ interface VehicleCardProps {
 export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, onDelete, onOpenAvailability, onLocate, cardRef }: VehicleCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   const hasCoords = car.latitude != null && car.longitude != null;
 
@@ -82,7 +84,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
             Locate
           </button>
         )}
-        
+
         {mode === 'manage' && (
           <>
             <button className="vehicle-card__btn vehicle-card__btn--edit" onClick={() => onEdit?.(car)} disabled={deleting}>
@@ -106,11 +108,25 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
         )}
 
         {mode === 'search' && car.available && (
-          <button className="vehicle-card__btn vehicle-card__btn--confirm" onClick={() => alert('Booking flow to be implemented')}>
+          <button
+            className="vehicle-card__btn vehicle-card__btn--confirm"
+            onClick={() => setShowBooking(true)}
+          >
             Book
           </button>
         )}
       </div>
+
+      {/* Booking panel slides in when learner clicks Book */}
+      {showBooking && (
+        <div className="vehicle-card__booking-overlay" onClick={(e) => e.stopPropagation()}>
+          <BookingPanel
+            car={car}
+            onClose={() => setShowBooking(false)}
+            onBooked={() => setShowBooking(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

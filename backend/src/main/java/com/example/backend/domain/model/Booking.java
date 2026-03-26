@@ -1,6 +1,8 @@
 package com.example.backend.domain.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 public class Booking {
@@ -8,89 +10,72 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private java.time.LocalDateTime startTime;
-    private java.time.LocalDateTime endTime;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "car_id", nullable = false)
+    private Car car;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "learner_id", nullable = false)
+    private Learner learner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Instructor instructor;
+
+    @Column(nullable = false)
+    private LocalDate date;
+
+    @Column(nullable = false)
+    private LocalTime startTime;
+
+    /** Duration in hours (1-12) */
+    @Column(nullable = false)
+    private int duration;
+
+    /** Calculated as duration * car.hourlyRate at booking time */
+    @Column(nullable = false)
+    private double totalCost;
+
+    /** CONFIRMED, FINISHED, CANCELLED */
+    @Column(nullable = false)
     private String status;
+
     private String pickupLocation;
 
-    @ManyToOne
-    private Learner learner;
-    @ManyToOne
-    private Instructor instructor;
-    @ManyToOne
-    private Car car;
     @OneToOne
     private DrivingRoute drivingRoute;
 
-    public Long getId() {
-        return id;
-    }
+    // --- Getters & Setters ---
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public java.time.LocalDateTime getStartTime() {
-        return startTime;
-    }
+    public Car getCar() { return car; }
+    public void setCar(Car car) { this.car = car; }
 
-    public void setStartTime(java.time.LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
+    public Learner getLearner() { return learner; }
+    public void setLearner(Learner learner) { this.learner = learner; }
 
-    public java.time.LocalDateTime getEndTime() {
-        return endTime;
-    }
+    public Instructor getInstructor() { return instructor; }
+    public void setInstructor(Instructor instructor) { this.instructor = instructor; }
 
-    public void setEndTime(java.time.LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
+    public LocalDate getDate() { return date; }
+    public void setDate(LocalDate date) { this.date = date; }
 
-    public String getStatus() {
-        return status;
-    }
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public int getDuration() { return duration; }
+    public void setDuration(int duration) { this.duration = duration; }
 
-    public String getPickupLocation() {
-        return pickupLocation;
-    }
+    public double getTotalCost() { return totalCost; }
+    public void setTotalCost(double totalCost) { this.totalCost = totalCost; }
 
-    public void setPickupLocation(String pickupLocation) {
-        this.pickupLocation = pickupLocation;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public Learner getLearner() {
-        return learner;
-    }
+    public String getPickupLocation() { return pickupLocation; }
+    public void setPickupLocation(String pickupLocation) { this.pickupLocation = pickupLocation; }
 
-    public void setLearner(Learner learner) {
-        this.learner = learner;
-    }
-
-    public Instructor getInstructor() {
-        return instructor;
-    }
-
-    public void setInstructor(Instructor instructor) {
-        this.instructor = instructor;
-    }
-
-    public Car getCar() {
-        return car;
-    }
-
-    public void setCar(Car car) {
-        this.car = car;
-    }
-
-    public DrivingRoute getDrivingRoute() {
-        return drivingRoute;
-    }
-
-    public void setDrivingRoute(DrivingRoute drivingRoute) {
-        this.drivingRoute = drivingRoute;
-    }
+    public DrivingRoute getDrivingRoute() { return drivingRoute; }
+    public void setDrivingRoute(DrivingRoute drivingRoute) { this.drivingRoute = drivingRoute; }
 }
