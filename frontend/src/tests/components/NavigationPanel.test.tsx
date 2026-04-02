@@ -99,7 +99,8 @@ describe('NavigationPanel', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
     const toInput = screen.getByLabelText('To');
     fireEvent.change(toInput, { target: { value: 'Nowhere' } });
-    fireEvent.blur(toInput);
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[1]);
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeTruthy();
@@ -112,7 +113,8 @@ describe('NavigationPanel', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
     const toInput = screen.getByLabelText('To');
     fireEvent.change(toInput, { target: { value: 'Bad Place' } });
-    fireEvent.blur(toInput);
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[1]);
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeTruthy();
@@ -126,15 +128,18 @@ describe('NavigationPanel', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
-    fireEvent.blur(screen.getByLabelText('From'));
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[0]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+    fireEvent.click(screen.getByText('Montreal, QC'));
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
-    fireEvent.blur(screen.getByLabelText('To'));
+    fireEvent.click(searchBtns[1]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByText('Laval, QC'));
 
     const btn = screen.getByRole('button', { name: /get directions/i });
-    expect((btn as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(() => expect((btn as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(btn);
 
     await waitFor(() => {
@@ -151,12 +156,15 @@ describe('NavigationPanel', () => {
     fireEvent.click(screen.getByTitle('Bus'));
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
-    fireEvent.blur(screen.getByLabelText('From'));
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[0]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+    fireEvent.click(screen.getByText('Montreal, QC'));
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
-    fireEvent.blur(screen.getByLabelText('To'));
+    fireEvent.click(searchBtns[1]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByText('Laval, QC'));
 
     fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
 
@@ -176,12 +184,15 @@ describe('NavigationPanel', () => {
     fireEvent.click(screen.getByTitle('Bus'));
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
-    fireEvent.blur(screen.getByLabelText('From'));
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[0]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+    fireEvent.click(screen.getByText('Montreal, QC'));
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
-    fireEvent.blur(screen.getByLabelText('To'));
+    fireEvent.click(searchBtns[1]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByText('Laval, QC'));
 
     fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
 
@@ -200,12 +211,15 @@ describe('NavigationPanel', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: 'Montreal' } });
-    fireEvent.blur(screen.getByLabelText('From'));
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[0]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledWith('Montreal'));
+    fireEvent.click(screen.getByText('Montreal, QC'));
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'Laval' } });
-    fireEvent.blur(screen.getByLabelText('To'));
+    fireEvent.click(searchBtns[1]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByText('Laval, QC'));
 
     fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
 
@@ -227,12 +241,15 @@ describe('NavigationPanel', () => {
     render(<NavigationPanel onRoute={onRoute} onClear={onClear} />);
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: 'A' } });
-    fireEvent.blur(screen.getByLabelText('From'));
+    const searchBtns = screen.getAllByRole('button', { name: /search/i });
+    fireEvent.click(searchBtns[0]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalled());
+    fireEvent.click(screen.getByText('Montreal, QC'));
 
     fireEvent.change(screen.getByLabelText('To'), { target: { value: 'B' } });
-    fireEvent.blur(screen.getByLabelText('To'));
+    fireEvent.click(searchBtns[1]);
     await waitFor(() => expect(mockGeocode).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getAllByText('Montreal, QC')[0]);
 
     fireEvent.click(screen.getByRole('button', { name: /get directions/i }));
     await waitFor(() => {

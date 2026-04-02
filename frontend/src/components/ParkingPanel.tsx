@@ -50,6 +50,7 @@ export default function ParkingPanel({
         onClick={handleToggle}
         disabled={loading}
         aria-label={active ? 'Hide parking spots' : 'Show nearby parking spots'}
+        aria-pressed={active}
       >
         {loading ? 'Loading...' : (active ? 'Hide Parking' : 'Show Parking')}
       </button>
