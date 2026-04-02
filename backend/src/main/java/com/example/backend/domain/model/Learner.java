@@ -19,4 +19,7 @@ public class Learner extends User {
 
     public double getBalance() { return balance; }
     public void setBalance(double balance) { this.balance = balance; }
+
+    public String getExperienceLevel() { return experienceLevel; }
+    public void setExperienceLevel(String experienceLevel) { this.experienceLevel = experienceLevel; }
 }

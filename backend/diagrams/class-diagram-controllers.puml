@@ -1,0 +1,77 @@
+@startuml "Controllers — Partial Design Model"
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam classFontSize 11
+skinparam nodesep 10
+skinparam ranksep 20
+
+title Application Controllers (Partial Design Model)
+
+' === ROW 1 ===
+class AuthController <<RestController>> {
+    + login(LoginRequest) : AuthResponse
+    + register(RegisterRequest) : AuthResponse
+}
+
+class UserController <<RestController>> {
+    + getProfile(String) : UserProfileResponse
+    + updateProfile(String, UpdateProfileRequest) : UserProfileResponse
+    + addBalance(String, Map) : UserProfileResponse
+}
+
+class BookingController <<RestController>> {
+    + createBooking(BookingRequest) : BookingResponse
+    + getBookingsForLearner(Long) : List<BookingResponse>
+    + getBookingsForProvider(Long) : List<BookingResponse>
+    + finishBooking(Long, FinishBookingRequest) : BookingResponse
+}
+
+class CarController <<RestController>> {
+    + getCars(Long) : List<CarDto>
+    + createCar(Long, CarRequest) : CarDto
+    + updateCar(Long, Long, CarRequest) : CarDto
+    + deleteCar(Long, Long) : void
+}
+
+' === ROW 2 ===
+class CarSearchController <<RestController>> {
+    + searchCars(...) : List<CarDto>
+    + getCarAvailability(Long) : List<AvailabilitySlotDto>
+}
+
+class AvailabilityController <<RestController>> {
+    + getWeeklyAvailability(Long, Long) : WeeklyAvailabilityResponse
+    + replaceWeeklyAvailability(Long, Long, WeeklyAvailabilityRequest) : WeeklyAvailabilityResponse
+}
+
+class RouteController <<RestController>> {
+    + getDirections(...) : RouteResult
+    + getParkingNearby(...) : List<ParkingSpot>
+}
+
+class AnalyticsController <<RestController>> {
+    + getCarUtilization(...) : AnalyticsResponseDTO
+    + getProviderCarUtilization(Long) : AnalyticsResponseDTO
+    + getServiceHealth() : List<EndpointMetricsSummary>
+}
+
+' Force 2-row layout
+AuthController -[hidden]down-> CarSearchController
+UserController -[hidden]down-> AvailabilityController
+BookingController -[hidden]down-> RouteController
+CarController -[hidden]down-> AnalyticsController
+
+' Dependencies
+AuthController ..> "UserService"
+UserController ..> "UserService"
+BookingController ..> "BookingService"
+CarController ..> "CarService"
+CarSearchController ..> "CarService"
+AvailabilityController ..> "AvailabilityService"
+RouteController ..> "RouteService"
+AnalyticsController ..> "AnalyticsService"
+
+@enduml
