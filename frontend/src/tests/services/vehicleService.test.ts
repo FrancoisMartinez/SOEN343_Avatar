@@ -136,7 +136,10 @@ describe('vehicleService', () => {
 
   it('deleteVehicle throws when response is not ok', async () => {
     getItemMock.mockReturnValue('token-del');
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: 'Failed to delete vehicle' }),
+    });
 
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,

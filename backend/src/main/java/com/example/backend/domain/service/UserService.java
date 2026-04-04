@@ -5,6 +5,7 @@ import com.example.backend.application.dto.RegisterRequest;
 import com.example.backend.application.dto.UpdateProfileRequest;
 import com.example.backend.application.dto.UserProfileResponse;
 import com.example.backend.domain.model.*;
+import com.example.backend.domain.service.factory.UserFactoryRegistry;
 import com.example.backend.infrastructure.repository.LearnerRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
 import com.example.backend.infrastructure.security.JwtUtil;
@@ -18,13 +19,16 @@ public class UserService {
     private final LearnerRepository learnerRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final UserFactoryRegistry userFactoryRegistry;
 
     public UserService(UserRepository userRepository, LearnerRepository learnerRepository,
-                       JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+                       JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
+                       UserFactoryRegistry userFactoryRegistry) {
         this.userRepository = userRepository;
         this.learnerRepository = learnerRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
+        this.userFactoryRegistry = userFactoryRegistry;
     }
 
     public AuthResponse authenticate(String email, String password) {
@@ -44,8 +48,9 @@ public class UserService {
             throw new RuntimeException("Email already registered");
         }
 
+        // Factory Method Pattern: delegate user creation to the appropriate factory
         String primaryRole = request.getRoles().get(0);
-        User user = createUserByRole(primaryRole);
+        User user = userFactoryRegistry.createUser(primaryRole);
 
         user.setFullName(request.getFirstName() + " " + request.getLastName());
         user.setEmail(request.getEmail());
@@ -108,11 +113,4 @@ public class UserService {
         );
     }
 
-    private User createUserByRole(String role) {
-        return switch (role) {
-            case "INSTRUCTOR" -> new Instructor();
-            case "CAR_PROVIDER" -> new CarProvider();
-            default -> new Learner();
-        };
-    }
 }

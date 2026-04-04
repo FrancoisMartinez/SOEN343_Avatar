@@ -44,6 +44,8 @@ describe('userService', () => {
   it('updateUserProfile throws API error message', async () => {
     const payload = { fullName: 'Jane Doe' };
 
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
       status: 400,
@@ -65,5 +67,7 @@ describe('userService', () => {
       },
       body: JSON.stringify(payload),
     });
+    expect(consoleSpy).toHaveBeenCalledWith('[User] PUT /me failed (400):', 'Invalid profile data');
+    consoleSpy.mockRestore();
   });
 });

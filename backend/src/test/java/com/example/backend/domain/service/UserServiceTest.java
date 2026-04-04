@@ -5,6 +5,8 @@ import com.example.backend.application.dto.RegisterRequest;
 import com.example.backend.domain.model.Instructor;
 import com.example.backend.domain.model.Learner;
 import com.example.backend.domain.model.User;
+import com.example.backend.domain.service.factory.UserFactoryRegistry;
+import com.example.backend.infrastructure.repository.LearnerRepository;
 import com.example.backend.infrastructure.repository.UserRepository;
 import com.example.backend.infrastructure.security.JwtUtil;
 import org.junit.jupiter.api.Test;
@@ -34,10 +36,16 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private LearnerRepository learnerRepository;
+
+    @Mock
     private JwtUtil jwtUtil;
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private UserFactoryRegistry userFactoryRegistry;
 
     @InjectMocks
     private UserService userService;
@@ -69,6 +77,7 @@ class UserServiceTest {
         request.setRoles(List.of("INSTRUCTOR"));
 
         when(userRepository.existsByEmail("jane@example.com")).thenReturn(false);
+        when(userFactoryRegistry.createUser("INSTRUCTOR")).thenReturn(new Instructor());
         when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);

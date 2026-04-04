@@ -245,6 +245,7 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
                 className={`nav-panel__mode-btn${selectedMode === value ? ' nav-panel__mode-btn--active' : ''}`}
                 onClick={() => handleModeChange(value)}
                 title={label}
+                aria-pressed={selectedMode === value}
               >
                 <span aria-hidden="true">{icon}</span>
                 <span className="nav-panel__mode-label">{label}</span>

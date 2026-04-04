@@ -11,6 +11,7 @@ public class BookingRequest {
     private String date;       // ISO date: "2026-04-01"
     private String startTime;  // "HH:mm" format: "09:00"
     private int duration;      // Hours (1-12)
+    private String pricingStrategy; // Optional: "STANDARD", "WEEKEND", "PEAK_HOUR"
 
     public Long getCarId() { return carId; }
     public void setCarId(Long carId) { this.carId = carId; }
@@ -26,4 +27,7 @@ public class BookingRequest {
 
     public int getDuration() { return duration; }
     public void setDuration(int duration) { this.duration = duration; }
+
+    public String getPricingStrategy() { return pricingStrategy; }
+    public void setPricingStrategy(String pricingStrategy) { this.pricingStrategy = pricingStrategy; }
 }
