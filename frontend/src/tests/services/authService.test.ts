@@ -45,8 +45,11 @@ describe('authService', () => {
       roles: ['LEARNER'],
     };
 
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
+      status: 400,
       text: vi.fn().mockResolvedValue('{"error":"Email already registered"}'),
     });
 
@@ -62,5 +65,7 @@ describe('authService', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    expect(consoleSpy).toHaveBeenCalledWith('[Auth] Registration failed (400):', 'Email already registered');
+    consoleSpy.mockRestore();
   });
 });
