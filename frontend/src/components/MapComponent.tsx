@@ -39,6 +39,7 @@ interface MapComponentProps {
   parkingSpots?: ParkingSpot[];
   onCenterChange?: (lat: number, lon: number) => void;
   onNavigateToParking?: (lat: number, lon: number, name: string) => void;
+  onNavigateToCar?: (lat: number, lon: number, name: string) => void;
 }
 
 function FlyToSelected({
@@ -262,11 +263,13 @@ function ClusteredCarMarkers({
   selectedCarId,
   markerRefs,
   onSelectCar,
+  onNavigateToCar,
 }: {
   cars: CarData[];
   selectedCarId: number | null;
   markerRefs: MutableRefObject<Record<number, LeafletMarker | null>>;
   onSelectCar?: (carId: number | null) => void;
+  onNavigateToCar?: (lat: number, lon: number, name: string) => void;
 }) {
   const map = useMapEvents({
     zoomend: () => setZoom(map.getZoom()),
@@ -390,6 +393,17 @@ function ClusteredCarMarkers({
                   <span style={{ fontSize: '0.85em', opacity: 0.8 }}>{car.location}</span>
                   <br />
                   <span style={{ fontSize: '0.85em' }}>${car.hourlyRate.toFixed(2)}/hr</span>
+                  {onNavigateToCar && (
+                    <>
+                      <br />
+                      <button
+                        style={{ marginTop: 6, fontSize: '0.82em', cursor: 'pointer' }}
+                        onClick={() => onNavigateToCar(car.latitude!, car.longitude!, car.makeModel)}
+                      >
+                        Directions here
+                      </button>
+                    </>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -458,6 +472,7 @@ export default function MapComponent({
   parkingSpots = [],
   onCenterChange,
   onNavigateToParking,
+  onNavigateToCar,
 }: MapComponentProps) {
   const center: [number, number] = [45.4947, -73.5779];
   const tileUrl = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png';
@@ -739,6 +754,7 @@ export default function MapComponent({
             selectedCarId={selectedCarId}
             markerRefs={markerRefs}
             onSelectCar={onSelectCar}
+            onNavigateToCar={onNavigateToCar}
           />
         )}
 

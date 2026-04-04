@@ -87,6 +87,7 @@ public abstract class User {
         if (this instanceof Learner) return "LEARNER";
         if (this instanceof Instructor) return "INSTRUCTOR";
         if (this instanceof CarProvider) return "CAR_PROVIDER";
+        if (this instanceof Admin) return "ADMIN";
         return "UNKNOWN";
     }
 }

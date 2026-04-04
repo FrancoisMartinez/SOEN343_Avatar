@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 function AccountIcon() {
@@ -16,13 +16,7 @@ function AccountIcon() {
 }
 
 export default function Header() {
-  const { isAuthenticated, role, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { isAuthenticated, role } = useAuth();
 
   return (
     <header className={'app-header'} style={{ padding: '1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #333' }}>
@@ -43,9 +37,11 @@ export default function Header() {
                 Car Reservations
               </Link>
             )}
-            <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
-              Analytics
-            </Link>
+            {role === 'ADMIN' && (
+              <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                Analytics
+              </Link>
+            )}
             <Link
               to="/profile"
               title="My Account"
@@ -68,9 +64,6 @@ export default function Header() {
             >
               <AccountIcon />
             </Link>
-            <button onClick={handleLogout} style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>
-              Logout
-            </button>
           </div>
         ) : (
           <Link to="/login">

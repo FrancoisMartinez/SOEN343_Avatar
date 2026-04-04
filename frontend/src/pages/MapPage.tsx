@@ -359,6 +359,7 @@ export default function MapPage() {
             parkingSpots={parkingSpots}
             onCenterChange={(lat, lon) => setMapCenter({ lat, lon })}
             onNavigateToParking={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
+            onNavigateToCar={(lat, lon, name) => setNavigateToDestination({ lat, lon, name })}
           />
           {isAuthenticated && (
             <div className="map-controls-overlay">
