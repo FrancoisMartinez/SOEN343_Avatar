@@ -242,9 +242,14 @@ export default function NavigationPanel({ onRoute, navigateTo }: Readonly<Naviga
       {!isCollapsed && (
         <>
           <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem 1rem', flexWrap: 'wrap', borderBottom: '1px solid #333' }}>
+            {role && (
+              <Link to="/analytics" className="nav-panel__link" style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                Analytics
+              </Link>
+            )}
             {role === 'INSTRUCTOR' && (
               <Link to="/instructor-reservations" className="nav-panel__link" style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                Instructor Dashboard
+                Instructor Reservations
               </Link>
             )}
           </div>
