@@ -279,8 +279,8 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
     return { valid: true, message: '' };
   }, [selectedDate, selectedTime, duration, slots]);
 
-  const entityName = instructor ? instructor.fullName : car?.name;
-  const entityRate = instructor ? instructor.hourlyRate : (car?.pricePerHour || 0);
+  const entityName = instructor ? instructor.fullName : car?.makeModel;
+  const entityRate = instructor ? instructor.hourlyRate : (car?.hourlyRate || 0);
   const totalCost = duration * entityRate;
 
   const handleBook = async () => {
@@ -344,7 +344,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
             </div>
             <div className="booking-panel__info-row">
               <span className="booking-panel__label">Transmission</span>
-              <span>{car?.type}</span>
+              <span>{car?.transmissionType}</span>
             </div>
           </>
         )}
@@ -483,4 +483,3 @@ async function fetchCarAvailability(carId: number): Promise<AvailabilitySlot[]> 
     throw new Error(`Failed to fetch availability: ${err.message}`);
   }
 }
-

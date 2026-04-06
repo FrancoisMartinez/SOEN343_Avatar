@@ -44,22 +44,22 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
       onClick={() => hasCoords && onLocate?.(car.id!)}
     >
       <div className="vehicle-card__header">
-        <h3 className="vehicle-card__title">{car.name}</h3>
+        <h3 className="vehicle-card__title">{car.makeModel}</h3>
         {mode === 'manage' ? (
           <button
             type="button"
-            className={`vehicle-card__badge vehicle-card__badge-btn ${car.status === 'AVAILABLE' ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}
+            className={`vehicle-card__badge vehicle-card__badge-btn ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}
             onClick={(e) => {
               e.stopPropagation();
               onOpenAvailability?.(car.id!);
             }}
             disabled={deleting}
           >
-            {car.status === 'AVAILABLE' ? 'Available' : 'Unavailable'}
+            {car.available ? 'Available' : 'Unavailable'}
           </button>
         ) : (
-          <span className={`vehicle-card__badge ${car.status === 'AVAILABLE' ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}>
-             {car.status === 'AVAILABLE' ? 'Available' : 'Unavailable'}
+          <span className={`vehicle-card__badge ${car.available ? 'vehicle-card__badge--available' : 'vehicle-card__badge--unavailable'}`}>
+             {car.available ? 'Available' : 'Unavailable'}
           </span>
         )}
       </div>
@@ -67,7 +67,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
       <div className="vehicle-card__details">
         <div className="vehicle-card__detail">
           <span className="vehicle-card__label">Transmission</span>
-          <span className="vehicle-card__value">{car.type}</span>
+          <span className="vehicle-card__value">{car.transmissionType}</span>
         </div>
         <div className="vehicle-card__detail">
           <span className="vehicle-card__label">Location</span>
@@ -75,7 +75,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
         </div>
         <div className="vehicle-card__detail">
           <span className="vehicle-card__label">Rate</span>
-          <span className="vehicle-card__value">${car.pricePerHour.toFixed(2)}/hr</span>
+          <span className="vehicle-card__value">${car.hourlyRate?.toFixed(2) ?? '0.00'}/hr</span>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
           </>
         )}
 
-        {mode === 'search' && car.status === 'AVAILABLE' && (
+        {mode === 'search' && car.available && (
           <button
             className="vehicle-card__btn vehicle-card__btn--confirm"
             onClick={() => setShowBooking(true)}

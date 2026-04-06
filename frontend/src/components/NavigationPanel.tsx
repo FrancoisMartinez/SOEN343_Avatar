@@ -209,6 +209,12 @@ export default function NavigationPanel({ onRoute, navigateTo }: Readonly<Naviga
     setLegs([]);
   };
 
+  const handleClear = () => {
+    setRouteInfo(null);
+    setLegs([]);
+    onRoute([], 0, 0);
+  };
+
   const canGetDirections = !!fromCoords && !!toCoords && !loading;
   const { role } = useAuth();
 

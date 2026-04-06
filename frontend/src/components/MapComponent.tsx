@@ -277,7 +277,7 @@ function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onN
                 <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
                   <strong>{car.makeModel}</strong><br />
                   <span style={{ fontSize: '0.85em', opacity: 0.8 }}>{car.location}</span><br />
-                  <span style={{ fontSize: '0.85em' }}>${car.hourlyRate.toFixed(2)}/hr</span>
+                  <span style={{ fontSize: '0.85em' }}>${car.hourlyRate?.toFixed(2) ?? '0.00'}/hr</span>
                   {onNavigateToCar && (
                     <><br /><button style={{ marginTop: 6, fontSize: '0.82em', cursor: 'pointer' }} onClick={() => onNavigateToCar(car.latitude!, car.longitude!, car.makeModel)}>Directions here</button></>
                   )}
@@ -466,7 +466,7 @@ export default function MapComponent({
         )}
         {pickingMode && onLocationPick && <><PickingClickHandler onPick={onLocationPick} /><PickingCursor /></>}
         {pickingMode && draftLocation && (
-          <><Marker position={[draftLocation.lat, draftLocation.lng]} icon={draftIcon} ref={(ref) => { draftMarkerRef.current = ref; }}><Popup autoPan={false}><strong>{pickingPurpose === 'vehicle' ? (selectedCar?.name ?? 'New Vehicle') : pickingPurpose === 'instructor' ? 'Instructor Location' : 'Search Center'}</strong></Popup></Marker>
+          <><Marker position={[draftLocation.lat, draftLocation.lng]} icon={draftIcon} ref={(ref) => { draftMarkerRef.current = ref; }}><Popup autoPan={false}><strong>{pickingPurpose === 'vehicle' ? (selectedCar?.makeModel ?? 'New Vehicle') : pickingPurpose === 'instructor' ? 'Instructor Location' : 'Search Center'}</strong></Popup></Marker>
           {pickingPurpose === 'search' && (
             <>
               {serviceType !== 'class' && <Circle center={[draftLocation.lat, draftLocation.lng]} radius={searchRadius * 1000} pathOptions={{ color: '#646cff', fillColor: '#646cff', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} />}

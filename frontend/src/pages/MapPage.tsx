@@ -175,7 +175,7 @@ export default function MapPage() {
 
   const handleUpdateVehicle = async (carId: number, data: Omit<CarData, 'id' | 'providerId'>) => {
     if (!userId) return;
-    const updated = await updateVehicle(carId, data);
+    const updated = await updateVehicle(userId, carId, data);
     setVehicles((prev) => prev.map((c) => (c.id === carId ? updated : c)));
   };
 
@@ -187,7 +187,7 @@ export default function MapPage() {
 
   const handleDeleteVehicle = async (carId: number) => {
     if (!userId) return;
-    await deleteVehicle(carId);
+    await deleteVehicle(userId, carId);
     setVehicles((prev) => prev.filter((c) => c.id !== carId));
     if (selectedCarId === carId) setSelectedCarId(null);
   };

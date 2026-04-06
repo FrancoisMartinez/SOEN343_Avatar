@@ -106,7 +106,7 @@ export default function VehicleSidebar({
   const [addDraftAvailability, setAddDraftAvailability] = useState<AvailabilitySlot[]>([]);
   
   // Search filters state
-  const [type, setType] = useState('');
+  const [transmissionType, setTransmissionType] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(50);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
@@ -258,7 +258,7 @@ export default function VehicleSidebar({
   };
 
   const handleClearAll = () => {
-    setType('');
+    setTransmissionType('');
     setMinPrice(0);
     setMaxPrice(50);
     setSearchDate('');
@@ -301,7 +301,7 @@ export default function VehicleSidebar({
     }
 
     onSearch?.({
-      type: type || undefined,
+      transmissionType: transmissionType || undefined,
       minPrice: minPrice || undefined,
       maxPrice: maxPrice === 50 ? undefined : maxPrice,
       isAvailable: true,
@@ -377,8 +377,8 @@ export default function VehicleSidebar({
             <span className="vehicle-sidebar__filter-label">Transmission</span>
             <select
               className="vehicle-search-filters__select"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
+              value={transmissionType}
+              onChange={(e) => setTransmissionType(e.target.value)}
             >
               <option value="">Any Transmission</option>
               <option value="Automatic">Automatic</option>

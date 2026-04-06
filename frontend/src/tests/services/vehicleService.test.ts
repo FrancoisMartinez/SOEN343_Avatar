@@ -33,13 +33,12 @@ describe('vehicleService', () => {
     const cars = [
       {
         id: 1,
-        name: 'Toyota Corolla',
-        type: 'SEDAN',
+        makeModel: 'Toyota Corolla',
+        transmissionType: 'AUTOMATIC',
         latitude: 45,
         longitude: -73,
-        pricePerHour: 20,
-        providerId: 7,
-        status: 'AVAILABLE'
+        hourlyRate: 20,
+        available: true,
       },
     ];
 
@@ -57,19 +56,20 @@ describe('vehicleService', () => {
     });
 
     const result = await fetchProviderVehicles(7);
-    expect(result).toEqual(cars);
+    expect(result).toEqual([{ ...cars[0], providerId: 7 }]);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/cars/provider/7');
+    expect(url).toBe('/api/providers/7/cars');
     expect(options.headers.get('Authorization')).toBe('Bearer token-123');
   });
 
   it('createVehicle throws when backend fails', async () => {
     const payload = {
-      name: 'Honda Civic',
-      type: 'SEDAN',
+      makeModel: 'Honda Civic',
+      transmissionType: 'MANUAL',
       latitude: 45,
       longitude: -73,
-      pricePerHour: 22,
+      hourlyRate: 22,
+      available: true,
       providerId: 3
     };
 
@@ -90,11 +90,11 @@ describe('vehicleService', () => {
 
   it('updateVehicle sends PUT and returns updated car', async () => {
     const payload = {
-      name: 'Tesla Model 3',
-      pricePerHour: 40,
+      makeModel: 'Tesla Model 3',
+      hourlyRate: 40,
     };
 
-    const updated = { id: 9, ...payload };
+    const updated = { id: 9, ...payload, providerId: 5 };
 
     sessionStorage.setItem('token', 'token-xyz');
     const fetchMock = vi.fn().mockResolvedValue({
@@ -109,10 +109,10 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    const result = await updateVehicle(9, payload);
+    const result = await updateVehicle(5, 9, payload);
     expect(result).toEqual(updated);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/cars/9');
+    expect(url).toBe('/api/providers/5/cars/9');
     expect(options.method).toBe('PUT');
   });
 
@@ -130,6 +130,6 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    await expect(deleteVehicle(8)).rejects.toThrow('Internal Server Error');
+    await expect(deleteVehicle(5, 8)).rejects.toThrow('Internal Server Error');
   });
 });
