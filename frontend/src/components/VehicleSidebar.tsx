@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState,  } from 'react';
 import VehicleCard from './VehicleCard';
 import VehicleFormModal from './VehicleFormModal';
 import AvailabilityPanel from './AvailabilityPanel';
@@ -20,13 +20,13 @@ interface VehicleSidebarProps {
   searchCenter?: DraftLocation | null;
   searchRadius?: number;
   onSearchRadiusChange?: (radius: number) => void;
-  onAddVehicle?: (data: Omit<CarData, 'id'>) => Promise<CarData>;
+  onAddVehicle?: (data: Omit<CarData, 'id' | 'providerId'>) => Promise<CarData>;
   onSetVehicleAvailability?: (carId: number, slots: AvailabilitySlot[]) => Promise<void>;
-  onUpdateVehicle?: (carId: number, data: Omit<CarData, 'id'>) => Promise<void>;
+  onUpdateVehicle?: (carId: number, data: Omit<CarData, 'id' | 'providerId'>) => Promise<void>;
   onDeleteVehicle?: (carId: number) => Promise<void>;
   onLocateCar?: (carId: number) => void;
   onRetry: () => void;
-  onFormOpen?: (car: CarData | null) => void;
+  onFormOpen?: (car: CarData | null, purpose?: 'search' | 'vehicle' | 'instructor') => void;
   onFormClose?: () => void;
   onLocationChange?: (loc: DraftLocation) => void;
 }
@@ -106,7 +106,7 @@ export default function VehicleSidebar({
   const [addDraftAvailability, setAddDraftAvailability] = useState<AvailabilitySlot[]>([]);
   
   // Search filters state
-  const [transmissionType, setTransmissionType] = useState('');
+  const [type, setType] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(50);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
@@ -131,7 +131,7 @@ export default function VehicleSidebar({
   useEffect(() => {
     if (mode === 'search' && showFilters !== lastShowFilters.current) {
       if (showFilters) {
-        onFormOpen?.(null);
+        onFormOpen?.(null, 'search');
       } else {
         onFormClose?.();
       }
@@ -226,7 +226,7 @@ export default function VehicleSidebar({
     handleClose();
   };
 
-  const handleSubmit = async (data: Omit<CarData, 'id'>, editAvailabilityAfterSave = false) => {
+  const handleSubmit = async (data: Omit<CarData, 'id' | 'providerId'>, editAvailabilityAfterSave = false) => {
     if (editingCar) {
       await onUpdateVehicle?.(editingCar.id!, data);
       handleClose();
@@ -258,7 +258,7 @@ export default function VehicleSidebar({
   };
 
   const handleClearAll = () => {
-    setTransmissionType('');
+    setType('');
     setMinPrice(0);
     setMaxPrice(50);
     setSearchDate('');
@@ -301,7 +301,7 @@ export default function VehicleSidebar({
     }
 
     onSearch?.({
-      transmissionType: transmissionType || undefined,
+      type: type || undefined,
       minPrice: minPrice || undefined,
       maxPrice: maxPrice === 50 ? undefined : maxPrice,
       isAvailable: true,
@@ -316,8 +316,6 @@ export default function VehicleSidebar({
     setShowFilters(false);
   };
 
-  const handleLocationPickerModeChange = useCallback(() => {}, []);
-
   if (formOpen && mode === 'manage') {
     return (
       <aside className="vehicle-sidebar">
@@ -330,8 +328,8 @@ export default function VehicleSidebar({
           onSubmit={handleSubmit}
           onLocationChange={onLocationChange!}
           onEditAvailability={(carId) => handleOpenAvailability(carId, 'form')}
-          onFormOpen={onFormOpen}
-          onFormClose={onFormClose}
+
+
         />
       </aside>
     );
@@ -340,7 +338,8 @@ export default function VehicleSidebar({
   if (availabilityOpen) {
     return (
       <AvailabilityPanel
-        carId={availabilityCarId ?? undefined}
+        entityId={availabilityCarId ?? undefined}
+        entityType="car"
         initialSlots={availabilityCarId == null ? addDraftAvailability : undefined}
         onSaveDraft={availabilityCarId == null ? setAddDraftAvailability : undefined}
         onClose={handleCloseAvailability}
@@ -377,9 +376,9 @@ export default function VehicleSidebar({
           <div className="vehicle-sidebar__filter-group">
             <span className="vehicle-sidebar__filter-label">Transmission</span>
             <select
-              className="vehicle-sidebar__filter-select"
-              value={transmissionType}
-              onChange={(e) => setTransmissionType(e.target.value)}
+              className="vehicle-search-filters__select"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
             >
               <option value="">Any Transmission</option>
               <option value="Automatic">Automatic</option>
@@ -484,7 +483,6 @@ export default function VehicleSidebar({
               setUserLocation(null);
               onClearSearch?.();
             }}
-            onPickingModeChange={handleLocationPickerModeChange}
             label="Search Center"
             placeholder="Search address to center..."
           />

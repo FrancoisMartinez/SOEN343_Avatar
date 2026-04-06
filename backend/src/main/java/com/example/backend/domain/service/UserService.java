@@ -78,6 +78,13 @@ public class UserService {
         if (req.getLicenseIssueDate() != null) user.setLicenseIssueDate(req.getLicenseIssueDate());
         if (req.getLicenseRegion() != null) user.setLicenseRegion(req.getLicenseRegion());
 
+        if (user instanceof Instructor instructor) {
+            if (req.getTravelRadius() != null) instructor.setTravelRadius(req.getTravelRadius());
+            if (req.getHourlyRate() != null) instructor.setHourlyRate(req.getHourlyRate());
+            if (req.getLatitude() != null) instructor.setLatitude(req.getLatitude());
+            if (req.getLongitude() != null) instructor.setLongitude(req.getLongitude());
+        }
+
         User saved = userRepository.save(user);
         return toProfileResponse(saved);
     }
@@ -98,9 +105,20 @@ public class UserService {
 
     private UserProfileResponse toProfileResponse(User user) {
         Double balance = null;
+        Double travelRadius = null;
+        Double hourlyRate = null;
+        Double latitude = null;
+        Double longitude = null;
+
         if (user instanceof Learner learner) {
             balance = learner.getBalance();
+        } else if (user instanceof Instructor instructor) {
+            travelRadius = instructor.getTravelRadius();
+            hourlyRate = instructor.getHourlyRate();
+            latitude = instructor.getLatitude();
+            longitude = instructor.getLongitude();
         }
+
         return new UserProfileResponse(
                 user.getId(),
                 user.getFullName(),
@@ -109,7 +127,11 @@ public class UserService {
                 user.getLicenseIssueDate(),
                 user.getLicenseRegion(),
                 user.getRole(),
-                balance
+                balance,
+                travelRadius,
+                hourlyRate,
+                latitude,
+                longitude
         );
     }
 

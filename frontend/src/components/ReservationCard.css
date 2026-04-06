@@ -40,6 +40,10 @@
   background: rgba(74, 222, 128, 0.15);
   color: #4ade80;
 }
+.reservation-card__status--pending {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
 .reservation-card__status--finished {
   background: rgba(148, 163, 184, 0.15);
   color: #94a3b8;

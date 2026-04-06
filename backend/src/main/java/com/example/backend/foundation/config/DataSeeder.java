@@ -33,11 +33,38 @@ public class DataSeeder {
                 learner.setBalance(200.0);
                 userRepository.save(learner);
 
-                Instructor instructor = new Instructor();
-                instructor.setFullName("Test Instructor");
-                instructor.setEmail("instructor@test.com");
-                instructor.setPassword(passwordEncoder.encode("password123"));
-                userRepository.save(instructor);
+                Instructor instructor1 = new Instructor();
+                instructor1.setFullName("John Doe");
+                instructor1.setEmail("instructor1@test.com");
+                instructor1.setPassword(passwordEncoder.encode("password123"));
+                instructor1.setLatitude(45.5017);
+                instructor1.setLongitude(-73.5673);
+                instructor1.setTravelRadius(10.0);
+                instructor1.setHourlyRate(25.0);
+                instructor1.setRating(4.8);
+                userRepository.save(instructor1);
+
+                Instructor instructor2 = new Instructor();
+                instructor2.setFullName("Jane Smith");
+                instructor2.setEmail("instructor2@test.com");
+                instructor2.setPassword(passwordEncoder.encode("password123"));
+                instructor2.setLatitude(45.5088);
+                instructor2.setLongitude(-73.5540);
+                instructor2.setTravelRadius(5.0);
+                instructor2.setHourlyRate(20.0);
+                instructor2.setRating(4.5);
+                userRepository.save(instructor2);
+
+                Instructor instructor3 = new Instructor();
+                instructor3.setFullName("Bob Wilson");
+                instructor3.setEmail("bob@test.com");
+                instructor3.setPassword(passwordEncoder.encode("password123"));
+                instructor3.setLatitude(45.4500);
+                instructor3.setLongitude(-73.6500);
+                instructor3.setTravelRadius(25.0);
+                instructor3.setHourlyRate(30.0);
+                instructor3.setRating(4.9);
+                userRepository.save(instructor3);
 
                 CarProvider carProvider = new CarProvider();
                 carProvider.setFullName("Test Car Provider");
@@ -52,7 +79,12 @@ public class DataSeeder {
                 userRepository.save(admin);
 
                 System.out.println(
-                        ">>> Seeded 4 test users (learner@test.com, instructor@test.com, carprovider@test.com password123, admin@test.com 123)");
+                        ">>> Seeded test users (learner@test.com, instructor1@test.com, bob@test.com, carprovider@test.com, etc. password123)");
+
+                // Seed instructor availability
+                seedInstructorAvailability(availabilitySlotRepository, instructor1);
+                seedInstructorAvailability(availabilitySlotRepository, instructor2);
+                seedInstructorAvailability(availabilitySlotRepository, instructor3);
 
                 // Seed Cars
                 Car car1 = new Car();
@@ -132,5 +164,18 @@ public class DataSeeder {
         satSlot.setEndMinute(14 * 60);    // 14:00
         satSlot.setAvailable(true);
         repo.save(satSlot);
+    }
+
+    private void seedInstructorAvailability(AvailabilitySlotRepository repo, Instructor instructor) {
+        for (DayOfWeek day : List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)) {
+            AvailabilitySlot slot = new AvailabilitySlot();
+            slot.setInstructor(instructor);
+            slot.setDayOfWeek(day);
+            slot.setStartMinute(9 * 60);   // 09:00
+            slot.setEndMinute(17 * 60);    // 17:00
+            slot.setAvailable(true);
+            repo.save(slot);
+        }
     }
 }

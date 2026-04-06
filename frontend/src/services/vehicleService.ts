@@ -1,92 +1,84 @@
-const API_BASE = '/api/providers';
+import { api } from './apiClient';
 
-export interface CarData {
-  id?: number;
-  makeModel: string;
-  transmissionType: string;
-  location: string;
-  latitude?: number;
-  longitude?: number;
-  available: boolean;
-  hourlyRate: number;
+const API_BASE = '/api/cars';
+
+export interface Vehicle {
+  id: number;
+  name: string;
+  type: string;
+  pricePerHour: number;
+  latitude: number;
+  longitude: number;
+  providerId: number;
+  status: string;
+  location?: string; // Optional human-readable address
 }
 
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+export interface VehiclePayload {
+  name: string;
+  type: string;
+  pricePerHour: number;
+  latitude: number;
+  longitude: number;
+  providerId: number;
+  status?: string;
 }
 
-export async function fetchVehicles(providerId: number): Promise<CarData[]> {
-  const res = await fetch(`${API_BASE}/${providerId}/cars`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch vehicles');
-  return res.json();
-}
+export type CarData = Vehicle;
+export type CarPayload = VehiclePayload;
 
 export interface SearchFilters {
-  transmissionType?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  isAvailable?: boolean;
   lat?: number;
   lng?: number;
   radius?: number;
+  type?: string;
+  minPrice?: number;
+  maxPrice?: number;
   dayOfWeek?: string;
   startMinute?: number;
   endMinute?: number;
+  isAvailable?: boolean;
 }
 
-export async function searchVehicles(filters: SearchFilters): Promise<CarData[]> {
-  const queryParams = new URLSearchParams();
-  if (filters.transmissionType) queryParams.append('transmissionType', filters.transmissionType);
-  if (filters.minPrice !== undefined) queryParams.append('minPrice', filters.minPrice.toString());
-  if (filters.maxPrice !== undefined) queryParams.append('maxPrice', filters.maxPrice.toString());
-  if (filters.isAvailable !== undefined) queryParams.append('isAvailable', filters.isAvailable.toString());
-  if (filters.lat !== undefined) queryParams.append('lat', filters.lat.toString());
-  if (filters.lng !== undefined) queryParams.append('lng', filters.lng.toString());
-  if (filters.radius !== undefined) queryParams.append('radius', filters.radius.toString());
-  if (filters.dayOfWeek) queryParams.append('dayOfWeek', filters.dayOfWeek);
-  if (filters.startMinute !== undefined) queryParams.append('startMinute', filters.startMinute.toString());
-  if (filters.endMinute !== undefined) queryParams.append('endMinute', filters.endMinute.toString());
-
-  const res = await fetch(`/api/cars/search?${queryParams.toString()}`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to search vehicles');
-  return res.json();
+/** Get all vehicles (for map/search) */
+export async function fetchAllVehicles(): Promise<Vehicle[]> {
+  return api.get<Vehicle[]>(API_BASE);
 }
 
-export async function createVehicle(providerId: number, data: Omit<CarData, 'id'>): Promise<CarData> {
-  const res = await fetch(`${API_BASE}/${providerId}/cars`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to create vehicle');
-  return res.json();
+/** Get vehicles belonging to a specific provider */
+export async function fetchProviderVehicles(providerId: number): Promise<Vehicle[]> {
+  return api.get<Vehicle[]>(`${API_BASE}/provider/${providerId}`);
 }
 
-export async function updateVehicle(providerId: number, carId: number, data: Omit<CarData, 'id'>): Promise<CarData> {
-  const res = await fetch(`${API_BASE}/${providerId}/cars/${carId}`, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to update vehicle');
-  return res.json();
+/** Search vehicles by criteria */
+export async function searchVehicles(params: {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  type?: string;
+  maxPrice?: number;
+}): Promise<Vehicle[]> {
+  const query = new URLSearchParams();
+  if (params.lat) query.append('lat', params.lat.toString());
+  if (params.lng) query.append('lng', params.lng.toString());
+  if (params.radius) query.append('radius', params.radius.toString());
+  if (params.type) query.append('type', params.type);
+  if (params.maxPrice) query.append('maxPrice', params.maxPrice.toString());
+
+  return api.get<Vehicle[]>(`/api/cars/search?${query.toString()}`);
 }
 
-export async function deleteVehicle(providerId: number, carId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/${providerId}/cars/${carId}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Failed to delete vehicle');
-  }
+/** Create a new vehicle */
+export async function createVehicle(payload: VehiclePayload): Promise<Vehicle> {
+  return api.post<Vehicle>(API_BASE, payload);
+}
+
+/** Update an existing vehicle */
+export async function updateVehicle(id: number, payload: Partial<VehiclePayload>): Promise<Vehicle> {
+  return api.put<Vehicle>(`${API_BASE}/${id}`, payload);
+}
+
+/** Delete a vehicle */
+export async function deleteVehicle(id: number): Promise<void> {
+  return api.delete(`${API_BASE}/${id}`);
 }

@@ -19,23 +19,21 @@ interface VehicleFormProps {
   draftForm: VehicleFormDraft | null;
   onDraftChange: (draft: VehicleFormDraft) => void;
   onClose: () => void;
-  onSubmit: (data: Omit<CarData, 'id'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
+  onSubmit: (data: Omit<CarData, 'id' | 'providerId'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
   onLocationChange: (loc: DraftLocation) => void;
   onEditAvailability: (carId?: number) => void;
-  onFormOpen?: (car: CarData | null) => void;
-  onFormClose?: () => void;
 }
 
-type VehicleFormData = Omit<CarData, 'id' | 'hourlyRate'> & { hourlyRate: number | '' };
+type VehicleFormData = Omit<CarData, 'id' | 'providerId' | 'pricePerHour'> & { pricePerHour: number | '' };
 
 const emptyForm: VehicleFormData = {
-  makeModel: '',
-  transmissionType: 'AUTOMATIC',
+  name: '',
+  type: 'AUTOMATIC',
   location: '',
-  latitude: undefined,
-  longitude: undefined,
-  available: true,
-  hourlyRate: '',
+  latitude: undefined as any,
+  longitude: undefined as any,
+  status: 'AVAILABLE',
+  pricePerHour: '',
 };
 
 export default function VehicleFormModal({
@@ -46,24 +44,24 @@ export default function VehicleFormModal({
   onClose,
   onSubmit,
   onLocationChange,
-  onEditAvailability,
-  onFormOpen,
-  onFormClose,
+  onEditAvailability
 }: VehicleFormProps) {
   const [form, setForm] = useState<VehicleFormData>(() => {
+    if (draftForm) return draftForm.form;
     if (car) {
       return {
-        makeModel: car.makeModel,
-        transmissionType: car.transmissionType,
+        name: car.name,
+        type: car.type,
         location: car.location,
         latitude: car.latitude,
         longitude: car.longitude,
-        available: car.available,
-        hourlyRate: car.hourlyRate,
+        status: car.status,
+        pricePerHour: car.pricePerHour,
       };
     }
-    return draftForm?.form ?? emptyForm;
+    return emptyForm;
   });
+  
   const [addressQuery, setAddressQuery] = useState(() => (car ? car.location : draftForm?.addressQuery ?? ''));
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -72,25 +70,25 @@ export default function VehicleFormModal({
   useEffect(() => {
     if (car) {
       setForm({
-        makeModel: car.makeModel,
-        transmissionType: car.transmissionType,
+        name: car.name,
+        type: car.type,
         location: car.location,
         latitude: car.latitude,
         longitude: car.longitude,
-        available: car.available,
-        hourlyRate: car.hourlyRate,
+        status: car.status,
+        pricePerHour: car.pricePerHour,
       });
-      setAddressQuery(car.location);
+      setAddressQuery(car.location ?? '');
     } else {
       setForm(draftForm?.form ?? emptyForm);
       setAddressQuery(draftForm?.addressQuery ?? '');
     }
     setGeocodeError(null);
-  }, [car]);
+  }, [car, draftForm]);
 
   useEffect(() => {
     if (!car) {
-      onDraftChange({ form, addressQuery });
+      onDraftChange({ form, addressQuery: addressQuery ?? '' });
     }
   }, [car, form, addressQuery, onDraftChange]);
 
@@ -109,18 +107,20 @@ export default function VehicleFormModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked
-             : type === 'number' ? (value === '' ? '' : Number(value))
-             : value,
-    }));
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm((prev) => ({ ...prev, [name]: checked ? 'AVAILABLE' : 'UNAVAILABLE' }));
+    } else if (type === 'number') {
+      setForm((prev) => ({ ...prev, [name]: value === '' ? '' : Number(value) }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    if (form.hourlyRate === '') return;
+    if (form.pricePerHour === '') return;
     if (!form.latitude || !form.longitude) {
       setGeocodeError('Please select a location by searching an address or clicking the map.');
       return;
@@ -129,13 +129,13 @@ export default function VehicleFormModal({
     setSubmitting(true);
     try {
       await onSubmit({
-        makeModel: form.makeModel,
-        transmissionType: form.transmissionType,
+        name: form.name,
+        type: form.type,
         location: form.location,
         latitude: form.latitude,
         longitude: form.longitude,
-        available: form.available,
-        hourlyRate: form.hourlyRate,
+        status: form.status,
+        pricePerHour: form.pricePerHour,
       }, editAvailabilityAfterSave);
     } finally {
       setSubmitting(false);
@@ -158,12 +158,12 @@ export default function VehicleFormModal({
         )}
 
         <div className="vehicle-form__group">
-          <label htmlFor="makeModel">Make &amp; Model</label>
+          <label htmlFor="name">Make &amp; Model</label>
           <input
-            id="makeModel"
-            name="makeModel"
+            id="name"
+            name="name"
             type="text"
-            value={form.makeModel}
+            value={form.name}
             onChange={handleChange}
             placeholder="e.g. Toyota Corolla 2024"
             required
@@ -171,11 +171,11 @@ export default function VehicleFormModal({
         </div>
 
         <div className="vehicle-form__group">
-          <label htmlFor="transmissionType">Transmission</label>
+          <label htmlFor="type">Transmission / Type</label>
           <select
-            id="transmissionType"
-            name="transmissionType"
-            value={form.transmissionType}
+            id="type"
+            name="type"
+            value={form.type}
             onChange={handleChange}
           >
             <option value="AUTOMATIC">Automatic</option>
@@ -184,26 +184,26 @@ export default function VehicleFormModal({
         </div>
 
         <div className="vehicle-form__group">
-          <label htmlFor="hourlyRate">Hourly Rate ($)</label>
+          <label htmlFor="pricePerHour">Hourly Rate ($)</label>
           <input
-            id="hourlyRate"
-            name="hourlyRate"
+            id="pricePerHour"
+            name="pricePerHour"
             type="number"
             step="0.01"
             min="0"
-            value={form.hourlyRate}
+            value={form.pricePerHour}
             onChange={handleChange}
             required
           />
         </div>
 
         <div className="vehicle-form__group vehicle-form__group--checkbox">
-          <label htmlFor="available">
+          <label htmlFor="status">
             <input
-              id="available"
-              name="available"
+              id="status"
+              name="status"
               type="checkbox"
-              checked={form.available}
+              checked={form.status === 'AVAILABLE'}
               onChange={handleChange}
             />
             Available for booking
@@ -231,18 +231,11 @@ export default function VehicleFormModal({
         </div>
 
         <LocationPicker
-          initialAddress={car ? car.location : draftForm?.addressQuery ?? ''}
+          initialAddress={car ? (car.location ?? '') : draftForm?.addressQuery ?? ''}
           draftLocation={draftLocation}
           onLocationChange={(loc) => {
             onLocationChange(loc);
             setAddressQuery(loc.address);
-          }}
-          onPickingModeChange={(active) => {
-            if (active) {
-              onFormOpen?.(car);
-            } else {
-              onFormClose?.();
-            }
           }}
           label="Location"
         />

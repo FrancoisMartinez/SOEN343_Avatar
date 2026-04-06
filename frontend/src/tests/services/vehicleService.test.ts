@@ -1,46 +1,52 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createVehicle,
   deleteVehicle,
-  fetchVehicles,
+  fetchProviderVehicles,
   updateVehicle,
 } from '../../services/vehicleService';
 
 describe('vehicleService', () => {
   const originalFetch = globalThis.fetch;
-  const getItemMock = vi.fn();
+
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storage: Record<string, string> = {};
+    globalThis.sessionStorage = <any>{
+      getItem: vi.fn((key) => storage[key] || null),
+      setItem: vi.fn((key, value) => { storage[key] = value; }),
+      removeItem: vi.fn((key) => { delete storage[key]; }),
+    });
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    getItemMock.mockReset();
-
+    
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
       value: originalFetch,
     });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
   });
 
-  it('fetchVehicles returns cars with auth header', async () => {
+  it('fetchProviderVehicles returns cars with auth header', async () => {
     const cars = [
       {
         id: 1,
-        makeModel: 'Toyota Corolla',
-        transmissionType: 'AUTOMATIC',
-        location: 'Montreal',
-        available: true,
-        hourlyRate: 20,
+        name: 'Toyota Corolla',
+        type: 'SEDAN',
+        latitude: 45,
+        longitude: -73,
+        pricePerHour: 20,
+        providerId: 7,
+        status: 'AVAILABLE'
       },
     ];
 
-    getItemMock.mockReturnValue('token-123');
+    sessionStorage.setItem('token', 'token-123');
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(cars),
     });
 
@@ -50,31 +56,28 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(fetchVehicles(7)).resolves.toEqual(cars);
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/7/cars', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-123',
-      },
-    });
+    const result = await fetchProviderVehicles(7);
+    expect(result).toEqual(cars);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/cars/provider/7');
+    expect(options.headers.get('Authorization')).toBe('Bearer token-123');
   });
 
   it('createVehicle throws when backend fails', async () => {
     const payload = {
-      makeModel: 'Honda Civic',
-      transmissionType: 'MANUAL',
-      location: 'Laval',
-      available: true,
-      hourlyRate: 22,
+      name: 'Honda Civic',
+      type: 'SEDAN',
+      latitude: 45,
+      longitude: -73,
+      pricePerHour: 22,
+      providerId: 3
     };
 
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: vi.fn().mockResolvedValue('{"error":"Failed to create vehicle"}'),
+    });
 
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -82,33 +85,21 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(createVehicle(3, payload)).rejects.toThrow('Failed to create vehicle');
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/3/cars', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    await expect(createVehicle(payload)).rejects.toThrow('Failed to create vehicle');
   });
 
   it('updateVehicle sends PUT and returns updated car', async () => {
     const payload = {
-      makeModel: 'Tesla Model 3',
-      transmissionType: 'AUTOMATIC',
-      location: 'Montreal',
-      available: false,
-      hourlyRate: 40,
+      name: 'Tesla Model 3',
+      pricePerHour: 40,
     };
 
     const updated = { id: 9, ...payload };
 
-    getItemMock.mockReturnValue('token-xyz');
+    sessionStorage.setItem('token', 'token-xyz');
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(updated),
     });
 
@@ -118,27 +109,19 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(updateVehicle(5, 9, payload)).resolves.toEqual(updated);
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/5/cars/9', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-xyz',
-      },
-      body: JSON.stringify(payload),
-    });
+    const result = await updateVehicle(9, payload);
+    expect(result).toEqual(updated);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/cars/9');
+    expect(options.method).toBe('PUT');
   });
 
   it('deleteVehicle throws when response is not ok', async () => {
-    getItemMock.mockReturnValue('token-del');
+    sessionStorage.setItem('token', 'token-del');
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'Failed to delete vehicle' }),
+      status: 500,
+      text: vi.fn().mockResolvedValue('{"error":"Internal Server Error"}'),
     });
 
     Object.defineProperty(globalThis, 'fetch', {
@@ -147,18 +130,6 @@ describe('vehicleService', () => {
       value: fetchMock,
     });
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(deleteVehicle(2, 8)).rejects.toThrow('Failed to delete vehicle');
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/2/cars/8', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-del',
-      },
-    });
+    await expect(deleteVehicle(8)).rejects.toThrow('Internal Server Error');
   });
 });

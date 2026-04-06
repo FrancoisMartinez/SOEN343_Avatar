@@ -6,25 +6,22 @@ import AddressSearchField from './AddressSearchField';
 
 interface LocationPickerProps {
   initialAddress?: string;
-  initialLat?: number;
-  initialLng?: number;
   draftLocation: DraftLocation | null;
   onLocationChange: (loc: DraftLocation) => void;
   onClear?: () => void;
-  onPickingModeChange?: (active: boolean) => void;
   placeholder?: string;
   label?: string;
+  mapAvailable?: boolean;
 }
 
 export default function LocationPicker({
   initialAddress = '',
-  initialLat,
-  initialLng,
   draftLocation,
   onLocationChange,
-  onPickingModeChange,
+  onClear,
   placeholder = 'Search an address...',
   label = 'Location',
+  mapAvailable = true,
 }: LocationPickerProps) {
   const [addressQuery, setAddressQuery] = useState(initialAddress);
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
@@ -132,9 +129,11 @@ export default function LocationPicker({
       )}
 
       <div className="vehicle-form__location-row">
-        <div className="vehicle-form__map-hint vehicle-form__map-hint--compact">
-          Or click on the map or use your location
-        </div>
+        {mapAvailable && (
+          <div className="vehicle-form__map-hint vehicle-form__map-hint--compact">
+            Or click on the map or use your location
+          </div>
+        )}
         <button
           type="button"
           className={`vehicle-sidebar__location-btn vehicle-sidebar__location-btn--compact ${locating ? 'vehicle-sidebar__location-btn--active' : ''}`}

@@ -45,6 +45,36 @@ public class BookingController {
         return ResponseEntity.ok(bookings);
     }
 
+    /** GET /api/bookings/instructor/{instructorId} - Get all bookings for an instructor */
+    @GetMapping("/instructor/{instructorId}")
+    public ResponseEntity<List<BookingResponse>> getInstructorBookings(@PathVariable Long instructorId) {
+        List<BookingResponse> bookings = bookingService.getBookingsForInstructor(instructorId);
+        return ResponseEntity.ok(bookings);
+    }
+
+    /** PUT /api/bookings/{bookingId}/confirm - Confirm a pending booking (Instructors only) */
+    @PutMapping("/{bookingId}/confirm")
+    public ResponseEntity<?> confirmBooking(@PathVariable Long bookingId,
+                                           @RequestParam(required = false) Long carId) {
+        try {
+            BookingResponse booking = bookingService.confirmBooking(bookingId, carId);
+            return ResponseEntity.ok(booking);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** PUT /api/bookings/{bookingId}/cancel - Cancel a booking */
+    @PutMapping("/{bookingId}/cancel")
+    public ResponseEntity<?> cancelBooking(@PathVariable Long bookingId) {
+        try {
+            BookingResponse booking = bookingService.cancelBooking(bookingId);
+            return ResponseEntity.ok(booking);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /** PUT /api/bookings/{bookingId}/finish - Finish booking with new car location */
     @PutMapping("/{bookingId}/finish")
     public ResponseEntity<?> finishBooking(@PathVariable Long bookingId,

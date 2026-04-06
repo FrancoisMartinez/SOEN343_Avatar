@@ -10,6 +10,11 @@ public class FinishedState implements BookingState {
     public String getStateName() { return "FINISHED"; }
 
     @Override
+    public void confirm(BookingContext context) {
+        throw new IllegalStateException("Cannot confirm a finished booking.");
+    }
+
+    @Override
     public void finish(BookingContext context) {
         throw new IllegalStateException("Booking is already finished");
     }

@@ -10,6 +10,11 @@ public class CancelledState implements BookingState {
     public String getStateName() { return "CANCELLED"; }
 
     @Override
+    public void confirm(BookingContext context) {
+        throw new IllegalStateException("Cannot confirm a cancelled booking.");
+    }
+
+    @Override
     public void finish(BookingContext context) {
         throw new IllegalStateException("Cannot finish a cancelled booking");
     }

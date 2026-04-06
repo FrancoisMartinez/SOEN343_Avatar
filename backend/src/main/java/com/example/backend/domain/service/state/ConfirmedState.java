@@ -10,6 +10,11 @@ public class ConfirmedState implements BookingState {
     public String getStateName() { return "CONFIRMED"; }
 
     @Override
+    public void confirm(BookingContext context) {
+        throw new IllegalStateException("Booking is already confirmed.");
+    }
+
+    @Override
     public void finish(BookingContext context) {
         context.setState(new FinishedState());
     }

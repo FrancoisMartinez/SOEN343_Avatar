@@ -1,33 +1,27 @@
-const API_BASE = '/api/routes';
+import { api } from './apiClient';
 
-export type TransportMode = 'DRIVING' | 'BICYCLE' | 'WALK' | 'BUS';
+export type TransportMode = 'DRIVING' | 'BUS' | 'BICYCLE' | 'WALK';
 
 export interface JourneyLeg {
   type: 'WALK' | 'TRANSIT';
-  lineLabel: string | null;
-  transportMode: string | null;
-  fromStop: string | null;
-  toStop: string | null;
+  transportMode?: string;
+  fromStop?: string;
+  toStop?: string;
+  lineLabel?: string;
   durationMin: number;
-  polyline: [number, number][];
 }
 
 export interface RouteResult {
   polyline: [number, number][];
   distanceKm: number;
   durationMin: number;
-  mode: TransportMode;
+  mode: string;
   legs: JourneyLeg[];
 }
 
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+const API_BASE = '/api/routes';
 
+/** Fetch a route between two points */
 export async function getDirections(
   fromLat: number,
   fromLon: number,
@@ -40,17 +34,17 @@ export async function getDirections(
     fromLon: fromLon.toString(),
     toLat: toLat.toString(),
     toLon: toLon.toString(),
-    mode,
+    mode: mode,
   });
+  return api.get<RouteResult>(`${API_BASE}/directions?${params.toString()}`);
+}
 
-  const res = await fetch(`${API_BASE}/directions?${params}`, {
-    headers: authHeaders(),
+/** Search for cars nearby with routing info */
+export async function searchCarsNearby(lat: number, lon: number, radius: number = 2000): Promise<any> {
+  const params = new URLSearchParams({
+    lat: lat.toString(),
+    lon: lon.toString(),
+    radius: radius.toString(),
   });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Failed to fetch directions');
-  }
-
-  return res.json();
+  return api.get<any>(`${API_BASE}/cars?${params.toString()}`);
 }

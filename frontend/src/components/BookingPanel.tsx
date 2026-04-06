@@ -3,10 +3,14 @@ import type { CarData } from '../services/vehicleService';
 import type { AvailabilitySlot } from '../types/availability';
 import { createBooking } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
+import type { InstructorData } from '../services/instructorService';
+import { fetchInstructorAvailability } from '../services/availabilityService';
+import { api } from '../services/apiClient';
 import './BookingPanel.css';
 
 interface BookingPanelProps {
-  car: CarData;
+  car?: CarData;
+  instructor?: InstructorData;
   onClose: () => void;
   onBooked: () => void;
 }
@@ -120,7 +124,7 @@ function convertLocalTimeToUtc(localTime: string): string {
  * Shows availability (converted to local time), lets user pick date/time/duration,
  * validates the selection, and submits.
  */
-export default function BookingPanel({ car, onClose, onBooked }: BookingPanelProps) {
+export default function BookingPanel({ car, instructor, onClose, onBooked }: BookingPanelProps) {
   const { userId } = useAuth();
 
   const [slots, setSlots] = useState<LocalAvailabilityWindow[]>([]);
@@ -135,48 +139,79 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Fetch the car's weekly availability and convert UTC → local
+  // Fetch the entity's weekly availability and convert UTC → local
   useEffect(() => {
     let cancelled = false;
     setLoadingSlots(true);
     setFetchError(null);
 
-    fetchCarAvailability(car.id!)
-      .then((utcSlots) => {
+    const loadSlots = async () => {
+      try {
+        let utcSlots: AvailabilitySlot[];
+        if (instructor) {
+          const res = await fetchInstructorAvailability(instructor.id);
+          utcSlots = res.slots.map(s => ({ ...s, dayOfWeek: s.dayOfWeek as any }));
+        } else if (car) {
+          utcSlots = await fetchCarAvailability(car.id!);
+        } else {
+          utcSlots = [];
+        }
+
         if (cancelled) return;
         const localWindows = convertUtcSlotsToLocal(utcSlots);
         setSlots(localWindows);
+        
+        const entityIdStr = instructor ? `Instructor ${instructor.id}` : `Car ${car?.id}`;
         if (localWindows.length === 0 && utcSlots.length > 0) {
-          console.warn(`[BookingPanel] Car ${car.id} has ${utcSlots.length} UTC slots but 0 local windows after conversion`);
+          console.warn(`[BookingPanel] ${entityIdStr} has ${utcSlots.length} UTC slots but 0 local windows after conversion`);
         }
         if (utcSlots.length === 0) {
-          console.warn(`[BookingPanel] Car ${car.id} has no availability slots in the database`);
+          console.warn(`[BookingPanel] ${entityIdStr} has no availability slots in the database`);
         }
-      })
-      .catch((err) => {
-        console.error(`[BookingPanel] Failed to fetch availability for car ${car.id}:`, err);
+      } catch (err) {
+        const entityIdStr = instructor ? `Instructor ${instructor.id}` : `Car ${car?.id}`;
+        console.error(`[BookingPanel] Failed to fetch availability for ${entityIdStr}:`, err);
         if (!cancelled) {
           setSlots([]);
           setFetchError('Could not load availability. Please try again.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingSlots(false);
-      });
+      }
+    };
+
+    void loadSlots();
 
     return () => { cancelled = true; };
-  }, [car.id]);
+  }, [car?.id, instructor?.id]);
 
   // Available dates: next 14 days, filtered to days that have local availability windows
   const availableDates = useMemo(() => {
     const availableDays = new Set(slots.map((s) => s.dayOfWeek));
     const dates: string[] = [];
     const today = new Date();
+    
+    // Determine the earliest possible local minute for today (now + 60 mins)
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const minMinuteToday = now.getHours() * 60 + now.getMinutes() + 60;
+
     for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       const dateStr = d.toISOString().split('T')[0];
-      if (availableDays.has(dateToDayName(dateStr))) {
+      const dayName = dateToDayName(dateStr);
+
+      if (availableDays.has(dayName)) {
+        // If today, check if there's at least one slot that starts after minMinuteToday
+        if (dateStr === todayStr) {
+          const daySlots = slots.filter(s => s.dayOfWeek === dayName);
+          const hasFutureSlot = daySlots.some(s => {
+            const slotEnd = parseTimeToMinutes(s.endTime);
+            return slotEnd > minMinuteToday;
+          });
+          if (!hasFutureSlot) continue;
+        }
         dates.push(dateStr);
       }
     }
@@ -189,11 +224,22 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
     const dayName = dateToDayName(selectedDate);
     const daySlots = slots.filter((s) => s.dayOfWeek === dayName);
 
+    const now = new Date();
+    const isToday = selectedDate === now.toISOString().split('T')[0];
+    const minMinute = isToday ? (now.getHours() * 60 + now.getMinutes() + 60) : -1;
+
     const times: string[] = [];
     for (const slot of daySlots) {
       const startMin = parseTimeToMinutes(slot.startTime);
       const endMin = parseTimeToMinutes(slot.endTime);
-      for (let m = startMin; m < endMin; m += 30) {
+      
+      // Start from the later of slot start or min lead time
+      const effectiveStart = Math.max(startMin, minMinute);
+      
+      // Rounds up to the next 30-minute interval from the effective start
+      const roundedStart = Math.ceil(effectiveStart / 30) * 30;
+
+      for (let m = roundedStart; m < endMin; m += 30) {
         times.push(minutesToTime(m));
       }
     }
@@ -211,6 +257,16 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
     const reqStart = parseTimeToMinutes(selectedTime);
     const reqEnd = reqStart + duration * 60;
 
+    // Minimum 1 hour lead time check
+    const now = new Date();
+    const isToday = selectedDate === now.toISOString().split('T')[0];
+    if (isToday) {
+      const minMinute = now.getHours() * 60 + now.getMinutes() + 60;
+      if (reqStart < minMinute) {
+        return { valid: false, message: 'Bookings must be at least 1 hour in advance' };
+      }
+    }
+
     const fits = daySlots.some((slot) => {
       const slotStart = parseTimeToMinutes(slot.startTime);
       const slotEnd = parseTimeToMinutes(slot.endTime);
@@ -218,12 +274,14 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
     });
 
     if (!fits) {
-      return { valid: false, message: 'Car is not available for this timeslot' };
+      return { valid: false, message: 'Not available for this timeslot' };
     }
     return { valid: true, message: '' };
   }, [selectedDate, selectedTime, duration, slots]);
 
-  const totalCost = duration * car.hourlyRate;
+  const entityName = instructor ? instructor.fullName : car?.name;
+  const entityRate = instructor ? instructor.hourlyRate : (car?.pricePerHour || 0);
+  const totalCost = duration * entityRate;
 
   const handleBook = async () => {
     if (!validation.valid || !userId) return;
@@ -234,15 +292,21 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
     try {
       // Convert the selected local time back to UTC for the backend
       const utcStartTime = convertLocalTimeToUtc(selectedTime);
-      await createBooking({
-        carId: car.id!,
+      const res = await createBooking({
+        carId: car?.id,
+        instructorId: instructor?.id,
         userId,
         date: selectedDate,
         startTime: utcStartTime,
         duration,
       });
-      setSuccessMessage('Booking successful');
-      setTimeout(() => onBooked(), 1200);
+      
+      if (res.status === 'PENDING') {
+        setSuccessMessage('Booking requested! Waiting for instructor confirmation.');
+      } else {
+        setSuccessMessage('Booking successful!');
+      }
+      setTimeout(() => onBooked(), 1500);
     } catch (err: any) {
       setErrorMessage(err.message || 'Booking failed');
     } finally {
@@ -253,23 +317,40 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
   return (
     <div className="booking-panel">
       <div className="booking-panel__header">
-        <h3 className="booking-panel__title">Book {car.makeModel}</h3>
+        <h3 className="booking-panel__title">Book {entityName}</h3>
         <button className="booking-panel__close-btn" onClick={onClose}>&times;</button>
       </div>
 
-      {/* Car info summary */}
+      {/* Info summary */}
       <div className="booking-panel__car-info">
-        <div className="booking-panel__info-row">
-          <span className="booking-panel__label">Location</span>
-          <span>{car.location}</span>
-        </div>
-        <div className="booking-panel__info-row">
-          <span className="booking-panel__label">Transmission</span>
-          <span>{car.transmissionType}</span>
-        </div>
+        {instructor ? (
+          <>
+            <div className="booking-panel__info-row">
+              <span className="booking-panel__label">Instructor</span>
+              <span>{instructor.fullName}</span>
+            </div>
+            {instructor.rating !== undefined && (
+              <div className="booking-panel__info-row">
+                <span className="booking-panel__label">Rating</span>
+                <span>{instructor.rating.toFixed(1)} / 5.0</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="booking-panel__info-row">
+              <span className="booking-panel__label">Location</span>
+              <span>{car?.location}</span>
+            </div>
+            <div className="booking-panel__info-row">
+              <span className="booking-panel__label">Transmission</span>
+              <span>{car?.type}</span>
+            </div>
+          </>
+        )}
         <div className="booking-panel__info-row">
           <span className="booking-panel__label">Hourly Rate</span>
-          <span className="booking-panel__rate">${car.hourlyRate.toFixed(2)}/hr</span>
+          <span className="booking-panel__rate">${entityRate.toFixed(2)}/hr</span>
         </div>
       </div>
 
@@ -281,7 +362,7 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
         ) : fetchError ? (
           <p className="booking-panel__error">{fetchError}</p>
         ) : slots.length === 0 ? (
-          <p className="booking-panel__no-slots">No availability set for this car.</p>
+          <p className="booking-panel__no-slots">No availability set.</p>
         ) : (
           <div className="booking-panel__slots">
             {DAY_ORDER.map((day) => {
@@ -358,7 +439,7 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
           <span className="booking-panel__label">Total Cost</span>
           <span className="booking-panel__cost-value">${totalCost.toFixed(2)}</span>
           <span className="booking-panel__cost-breakdown">
-            ({duration}h x ${car.hourlyRate.toFixed(2)}/hr)
+            ({duration}h x ${entityRate.toFixed(2)}/hr)
           </span>
         </div>
       </div>
@@ -395,13 +476,11 @@ export default function BookingPanel({ car, onClose, onBooked }: BookingPanelPro
  * Returns raw UTC slots from the backend.
  */
 async function fetchCarAvailability(carId: number): Promise<AvailabilitySlot[]> {
-  const token = sessionStorage.getItem('token');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-  const res = await fetch(`/api/cars/${carId}/availability`, { headers });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch availability`);
-  const data = await res.json();
-  return data.slots ?? [];
+  try {
+    const data = await api.get<{ slots: AvailabilitySlot[] }>(`/api/cars/${carId}/availability`);
+    return data.slots ?? [];
+  } catch (err: any) {
+    throw new Error(`Failed to fetch availability: ${err.message}`);
+  }
 }
+

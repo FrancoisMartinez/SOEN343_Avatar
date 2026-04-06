@@ -1,23 +1,29 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getParkingNearby } from '../../services/parkingService';
 
 describe('parkingService', () => {
   const originalFetch = globalThis.fetch;
-  const getItemMock = vi.fn();
+
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storage: Record<string, string> = {};
+    globalThis.sessionStorage = <any>{
+      getItem: vi.fn((key) => storage[key] || null),
+      setItem: vi.fn((key, value) => { storage[key] = value; }),
+      removeItem: vi.fn((key) => { delete storage[key]; }),
+      clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
+    });
+
+    globalThis.fetch = vi.fn() as any;
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    getItemMock.mockReset();
-
+    
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
       value: originalFetch,
-    });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
     });
   });
 
@@ -27,92 +33,75 @@ describe('parkingService', () => {
       { name: 'Public Parking', lat: 45.51, lon: -73.59 },
     ];
 
-    getItemMock.mockReturnValue('token-park');
-    const fetchMock = vi.fn().mockResolvedValue({
+    sessionStorage.setItem('token', 'token-park');
+    vi.mocked(fetch).mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(mockSpots),
-    });
-
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
+    } as any);
 
     const result = await getParkingNearby(45.5, -73.6, 800);
 
     expect(result).toEqual(mockSpots);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/routes/parking?lat=45.5&lon=-73.6&radius=800',
-      { headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token-park' } }
-    );
+    const lastCall = vi.mocked(fetch).mock.calls[0];
+    const headers = new Headers(lastCall[1]?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer token-park');
   });
 
   it('getParkingNearby uses default radius 800 when omitted', async () => {
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({
+    vi.mocked(fetch).mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue([]),
-    });
-
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
+    } as any);
 
     await getParkingNearby(45.5, -73.6);
 
-    const [url] = fetchMock.mock.calls[0];
+    const [url] = vi.mocked(fetch).mock.calls[0];
     expect(url).toContain('radius=800');
   });
 
   it('getParkingNearby sends no auth header when no token', async () => {
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({
+    vi.mocked(fetch).mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue([]),
-    });
-
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
+    } as any);
 
     await getParkingNearby(45.5, -73.6, 500);
 
-    const [, options] = fetchMock.mock.calls[0];
-    expect(options.headers).not.toHaveProperty('Authorization');
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const headers = new Headers(options?.headers);
+    expect(headers.get('Authorization')).toBeNull();
   });
 
   it('getParkingNearby throws with server error message when response is not ok', async () => {
-    getItemMock.mockReturnValue('token-park');
-    const fetchMock = vi.fn().mockResolvedValue({
+    vi.mocked(fetch).mockResolvedValue({
       ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'Parking service is temporarily unavailable' }),
-    });
-
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
+      status: 500,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Parking service is temporarily unavailable' })),
+    } as any);
 
     await expect(getParkingNearby(45.5, -73.6, 800)).rejects.toThrow('Parking service is temporarily unavailable');
   });
 
   it('getParkingNearby throws fallback message when error body has no error field', async () => {
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({
+    vi.mocked(fetch).mockResolvedValue({
       ok: false,
-      json: vi.fn().mockResolvedValue({}),
-    });
+      status: 500,
+      text: vi.fn().mockResolvedValue('{}'),
+    } as any);
 
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
-
-    await expect(getParkingNearby(45.5, -73.6, 800)).rejects.toThrow('Failed to fetch parking spots');
+    await expect(getParkingNearby(45.5, -73.6, 800)).rejects.toThrow('Request failed');
   });
 
   it('getParkingNearby throws fallback message when json parsing fails on error response', async () => {
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
       json: vi.fn().mockRejectedValue(new Error('not json')),
-    });
+    } as any);
 
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, writable: true, value: fetchMock });
-    Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: getItemMock } });
-
-    await expect(getParkingNearby(45.5, -73.6, 800)).rejects.toThrow('Failed to fetch parking spots');
+    await expect(getParkingNearby(45.5, -73.6, 800)).rejects.toThrow('Request failed');
   });
 });

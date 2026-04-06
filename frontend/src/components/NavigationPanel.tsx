@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { geocodeAddress, reverseGeocode, type GeocodingResult } from '../services/geocodingService';
 import { getDirections, type JourneyLeg, type RouteResult, type TransportMode } from '../services/routeService';
 import AddressSearchField from './AddressSearchField';
@@ -36,11 +38,10 @@ function requestCurrentPosition(options: PositionOptions): Promise<GeolocationPo
 
 interface NavigationPanelProps {
   onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
-  onClear: () => void;
   navigateTo?: { lat: number; lon: number; name: string } | null;
 }
 
-export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readonly<NavigationPanelProps>) {
+export default function NavigationPanel({ onRoute, navigateTo }: Readonly<NavigationPanelProps>) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -202,16 +203,6 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
     }
   };
 
-  const handleClear = () => {
-    setToAddress('');
-    setToCoords(null);
-    setToSuggestions([]);
-    setRouteInfo(null);
-    setLegs([]);
-    setError(null);
-    onClear();
-  };
-
   const handleModeChange = (mode: TransportMode) => {
     setSelectedMode(mode);
     setRouteInfo(null);
@@ -219,6 +210,7 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
   };
 
   const canGetDirections = !!fromCoords && !!toCoords && !loading;
+  const { role } = useAuth();
 
   return (
     <div className="nav-panel">
@@ -238,6 +230,14 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
 
       {!isCollapsed && (
         <>
+          <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem 1rem', flexWrap: 'wrap', borderBottom: '1px solid #333' }}>
+            {role === 'INSTRUCTOR' && (
+              <Link to="/instructor-reservations" className="nav-panel__link" style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                Instructor Dashboard
+              </Link>
+            )}
+          </div>
+
           <div className="nav-panel__modes" role="group" aria-label="Transport mode">
             {MODES.map(({ value, label, icon }) => (
               <button

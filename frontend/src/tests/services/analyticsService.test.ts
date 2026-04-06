@@ -1,148 +1,112 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchCarUtilizationAnalytics, fetchServiceHealthAnalytics } from '../../services/analyticsService';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getSystemAnalytics, getProviderRevenue, getCarUsage, calculateMetrics } from '../../services/analyticsService';
 
 describe('analyticsService', () => {
   const originalFetch = globalThis.fetch;
-  const getItemMock = vi.fn();
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storageMock = (() => {
+      let store: Record<string, string> = {};
+      return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => { store[key] = value.toString(); },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+      };
+    })();
+
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    getItemMock.mockReset();
-
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
       value: originalFetch,
     });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
   });
 
-  it('fetches global analytics without date filters', async () => {
-    const payload = { carUtilizations: [], timestamp: 12345 };
+  it('getSystemAnalytics fetches global analytics', async () => {
+    const payload = { 
+      activeUsers: 10, 
+      activeCars: 5, 
+      totalBookings: 100, 
+      totalRevenue: 5000,
+      usageByCarType: {},
+      topLearners: {}
+    };
 
-    getItemMock.mockReturnValue('token-abc');
-    const fetchMock = vi.fn().mockResolvedValue({
+    sessionStorage.setItem('token', 'token-abc');
+    fetchMock.mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(payload),
     });
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
+    const result = await getSystemAnalytics();
+    expect(result).toEqual(payload);
+    
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/system', expect.objectContaining({
+      method: 'GET',
+    }));
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(fetchCarUtilizationAnalytics()).resolves.toEqual(payload);
-    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/car-utilization', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-abc',
-      },
-    });
+    const lastCall = fetchMock.mock.calls[0];
+    const headers = lastCall[1].headers;
+    expect(headers.get('Authorization')).toBe('Bearer token-abc');
   });
 
-  it('fetches provider analytics with date range query params', async () => {
-    const payload = { carUtilizations: [], timestamp: 999 };
+  it('getProviderRevenue fetches revenue metrics', async () => {
+    const payload = [{ date: '2026-03-01', totalRevenue: 150 }];
 
-    getItemMock.mockReturnValue(null);
-    const fetchMock = vi.fn().mockResolvedValue({
+    sessionStorage.setItem('token', 'token-provider');
+    fetchMock.mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(payload),
     });
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
+    const result = await getProviderRevenue(7);
+    expect(result).toEqual(payload);
 
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(
-      fetchCarUtilizationAnalytics({
-        providerId: 7,
-        startDate: '2026-03-01T00:00:00',
-        endDate: '2026-03-31T23:59:59',
-      }),
-    ).resolves.toEqual(payload);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/analytics/providers/7/car-utilization?startDate=2026-03-01T00%3A00%3A00&endDate=2026-03-31T23%3A59%3A59',
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/provider/7/revenue', expect.objectContaining({
+      method: 'GET',
+    }));
   });
 
-  it('throws backend error message when request fails', async () => {
-    getItemMock.mockReturnValue('token-err');
-    const fetchMock = vi.fn().mockResolvedValue({
+  it('getCarUsage throws backend error message when request fails', async () => {
+    fetchMock.mockResolvedValue({
       ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'Invalid date range' }),
+      status: 400,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Car not found' })),
+      json: vi.fn().mockResolvedValue({ error: 'Car not found' }),
     });
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(fetchCarUtilizationAnalytics()).rejects.toThrow('Invalid date range');
+    await expect(getCarUsage(99)).rejects.toThrow('Car not found');
   });
 
-  it('fetches service health analytics', async () => {
-    const payload = [
-      {
-        method: 'GET',
-        path: '/api/analytics/car-utilization',
-        requestCount: 12,
-        errorCount: 1,
-        avgLatencyMs: 35.4,
-      },
-    ];
-
-    getItemMock.mockReturnValue('token-health');
-    const fetchMock = vi.fn().mockResolvedValue({
+  it('calculateMetrics sends POST request', async () => {
+    fetchMock.mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue(payload),
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
     });
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(fetchServiceHealthAnalytics()).resolves.toEqual(payload);
-    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/service-health', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-health',
-      },
-    });
+    await calculateMetrics();
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/calculate', expect.objectContaining({
+      method: 'POST',
+    }));
   });
 });

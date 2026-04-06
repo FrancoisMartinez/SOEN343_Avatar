@@ -1,8 +1,34 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loginUser, registerUser } from '../../services/authService';
 
 describe('authService', () => {
   const originalFetch = globalThis.fetch;
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storageMock = (() => {
+      let store: Record<string, string> = {};
+      return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => { store[key] = value.toString(); },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+      };
+    })();
+
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -17,23 +43,24 @@ describe('authService', () => {
     const payload = { email: 'john@example.com', password: 'password123' };
     const responseData = { token: 'jwt-token', userId: 1, role: 'LEARNER' };
 
-    const fetchMock = vi.fn().mockResolvedValue({
+    fetchMock.mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(responseData),
+      text: vi.fn().mockResolvedValue(JSON.stringify(responseData)),
     });
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    await expect(loginUser(payload)).resolves.toEqual(responseData);
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', {
+    const result = await loginUser(payload);
+    expect(result).toEqual(responseData);
+    
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    });
+    }));
+
+    const lastCall = fetchMock.mock.calls[0];
+    const headers = lastCall[1].headers;
+    expect(headers.get('Content-Type')).toBe('application/json');
   });
 
   it('registerUser throws backend error message on failure', async () => {
@@ -45,22 +72,18 @@ describe('authService', () => {
       roles: ['LEARNER'],
     };
 
-    const fetchMock = vi.fn().mockResolvedValue({
+    fetchMock.mockResolvedValue({
       ok: false,
-      text: vi.fn().mockResolvedValue('{"error":"Email already registered"}'),
-    });
-
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
+      status: 400,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Email already registered' })),
+      json: vi.fn().mockResolvedValue({ error: 'Email already registered' }),
     });
 
     await expect(registerUser(payload)).rejects.toThrow('Email already registered');
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/register', {
+    
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    });
+    }));
   });
 });

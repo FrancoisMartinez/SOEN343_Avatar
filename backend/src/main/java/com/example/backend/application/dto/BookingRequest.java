@@ -7,6 +7,7 @@ package com.example.backend.application.dto;
  */
 public class BookingRequest {
     private Long carId;
+    private Long instructorId;
     private Long userId;
     private String date;       // ISO date: "2026-04-01"
     private String startTime;  // "HH:mm" format: "09:00"
@@ -15,6 +16,9 @@ public class BookingRequest {
 
     public Long getCarId() { return carId; }
     public void setCarId(Long carId) { this.carId = carId; }
+
+    public Long getInstructorId() { return instructorId; }
+    public void setInstructorId(Long instructorId) { this.instructorId = instructorId; }
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

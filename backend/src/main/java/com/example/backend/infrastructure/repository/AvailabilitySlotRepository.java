@@ -9,6 +9,9 @@ import java.util.List;
 @Repository
 public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySlot, Long> {
     List<AvailabilitySlot> findByCarIdOrderByDayOfWeekAscStartMinuteAsc(Long carId);
-
     void deleteByCarId(Long carId);
+
+    List<AvailabilitySlot> findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(Long instructorId);
+    void deleteByInstructorId(Long instructorId);
 }
+

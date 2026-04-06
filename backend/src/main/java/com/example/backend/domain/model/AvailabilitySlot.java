@@ -9,8 +9,12 @@ public class AvailabilitySlot {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "car_id", nullable = false)
+    @JoinColumn(name = "car_id")
     private Car car;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "instructor_id")
+    private Instructor instructor;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -39,6 +43,14 @@ public class AvailabilitySlot {
 
     public void setCar(Car car) {
         this.car = car;
+    }
+
+    public Instructor getInstructor() {
+        return instructor;
+    }
+
+    public void setInstructor(Instructor instructor) {
+        this.instructor = instructor;
     }
 
     public java.time.DayOfWeek getDayOfWeek() {

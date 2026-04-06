@@ -1,17 +1,11 @@
+import { api } from './apiClient';
+
 const API_BASE = '/api/routes';
 
 export interface ParkingSpot {
   name: string;
   lat: number;
   lon: number;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
 }
 
 export async function getParkingNearby(
@@ -25,18 +19,5 @@ export async function getParkingNearby(
     radius: radius.toString(),
   });
 
-  const res = await fetch(`${API_BASE}/parking?${params}`, {
-    headers: authHeaders(),
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Failed to fetch parking spots');
-  }
-
-  const data = await res.json();
-  if (!Array.isArray(data)) {
-    throw new TypeError('Unexpected response format from parking service');
-  }
-  return data as ParkingSpot[];
+  return api.get<ParkingSpot[]>(`${API_BASE}/parking?${params}`);
 }

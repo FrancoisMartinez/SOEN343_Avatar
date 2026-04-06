@@ -21,6 +21,10 @@ public class BookingContext {
         this.booking.setStatus(state.getStateName());
     }
 
+    public void confirm() {
+        currentState.confirm(this);
+    }
+
     public void finish() {
         currentState.finish(this);
     }
@@ -34,6 +38,7 @@ public class BookingContext {
 
     private static BookingState resolveState(String status) {
         return switch (status) {
+            case "PENDING" -> new PendingState();
             case "CONFIRMED" -> new ConfirmedState();
             case "FINISHED" -> new FinishedState();
             case "CANCELLED" -> new CancelledState();

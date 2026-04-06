@@ -1,5 +1,6 @@
 package com.example.backend.domain.service.observer;
 
+import com.example.backend.domain.model.Booking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -15,16 +16,21 @@ public class AnalyticsObserver implements BookingObserver {
 
     @Override
     public void onBookingEvent(BookingEvent event) {
+        Booking booking = event.getBooking();
+        String entityType = booking.getCar() != null ? "CAR" : "INSTRUCTOR";
+        Long entityId = booking.getCar() != null ? booking.getCar().getId() : booking.getInstructor().getId();
+
         switch (event.getType()) {
-            case CREATED -> log.info("[ANALYTICS] Booking CREATED: carId={}, learnerId={}, cost={}",
-                    event.getBooking().getCar().getId(),
-                    event.getBooking().getLearner().getId(),
-                    event.getBooking().getTotalCost());
+            case CREATED -> log.info("[ANALYTICS] Booking CREATED: type={}, id={}, learnerId={}, cost={}",
+                    entityType,
+                    entityId,
+                    booking.getLearner().getId(),
+                    booking.getTotalCost());
             case FINISHED -> log.info("[ANALYTICS] Booking FINISHED: bookingId={}, revenue={}",
-                    event.getBooking().getId(),
-                    event.getBooking().getTotalCost());
+                    booking.getId(),
+                    booking.getTotalCost());
             case CANCELLED -> log.info("[ANALYTICS] Booking CANCELLED: bookingId={}",
-                    event.getBooking().getId());
+                    booking.getId());
         }
     }
 }

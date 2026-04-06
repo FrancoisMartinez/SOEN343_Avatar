@@ -4,22 +4,51 @@ import './ReservationCard.css';
 interface ReservationCardProps {
   booking: BookingData;
   onFinish?: (bookingId: number) => void;
+  onConfirm?: (bookingId: number) => void;
+  onCancel?: (bookingId: number) => void;
   finishing?: boolean;
+  confirming?: boolean;
+  cancelling?: boolean;
   readOnly?: boolean;
+  isInstructorView?: boolean;
 }
 
 /**
  * ReservationCard: Displays a single reservation with its details.
- * Supports both learner view (with finish action) and provider view (read-only).
+ * Supports learner view (finish), instructor view (confirm/cancel), and provider view (read-only).
  */
-export default function ReservationCard({ booking, onFinish, finishing, readOnly }: ReservationCardProps) {
+export default function ReservationCard({
+  booking,
+  onFinish,
+  onConfirm,
+  onCancel,
+  finishing,
+  confirming,
+  cancelling,
+  readOnly,
+  isInstructorView = false,
+}: ReservationCardProps) {
   const isFinished = booking.status === 'FINISHED';
-  const showFinishBtn = !readOnly && !isFinished && onFinish;
+  const isCancelled = booking.status === 'CANCELLED';
+  const isPending = booking.status === 'PENDING';
+  
+  const showFinishBtn = !readOnly && !isFinished && !isCancelled && !isPending && onFinish;
+  const showConfirmBtn = !readOnly && isPending && onConfirm;
+  const showCancelBtn = !readOnly && (isPending || booking.status === 'CONFIRMED') && onCancel;
+
+  const getTitle = () => {
+    if (booking.carName) return booking.carName;
+    if (isInstructorView && booking.learnerName) return `Class with ${booking.learnerName}`;
+    if (booking.instructorName) return `Class with ${booking.instructorName}`;
+    return 'Reservation';
+  };
 
   return (
-    <div className={`reservation-card ${isFinished ? 'reservation-card--finished' : ''}`}>
+    <div className={`reservation-card ${isFinished ? 'reservation-card--finished' : ''} ${isCancelled ? 'reservation-card--cancelled' : ''}`}>
       <div className="reservation-card__header">
-        <h3 className="reservation-card__title">{booking.carName}</h3>
+        <h3 className="reservation-card__title">
+          {getTitle()}
+        </h3>
         <span className={`reservation-card__status reservation-card__status--${booking.status.toLowerCase()}`}>
           {booking.status}
         </span>
@@ -54,15 +83,40 @@ export default function ReservationCard({ booking, onFinish, finishing, readOnly
         </div>
       </div>
 
-      {showFinishBtn && (
-        <button
-          className="reservation-card__finish-btn"
-          onClick={() => onFinish(booking.id!)}
-          disabled={finishing}
-        >
-          {finishing ? 'Finishing...' : 'Finish Reservation'}
-        </button>
-      )}
+      <div className="reservation-card__actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+        {showConfirmBtn && (
+          <button
+            className="reservation-card__finish-btn"
+            style={{ backgroundColor: '#28a745', flex: 1 }}
+            onClick={() => onConfirm(booking.id!)}
+            disabled={confirming}
+          >
+            {confirming ? 'Confirming...' : 'Confirm'}
+          </button>
+        )}
+
+        {showCancelBtn && (
+          <button
+            className="reservation-card__finish-btn"
+            style={{ backgroundColor: '#dc3545', flex: 1 }}
+            onClick={() => onCancel(booking.id!)}
+            disabled={cancelling}
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel'}
+          </button>
+        )}
+
+        {showFinishBtn && (
+          <button
+            className="reservation-card__finish-btn"
+            style={{ flex: 1 }}
+            onClick={() => onFinish(booking.id!)}
+            disabled={finishing}
+          >
+            {finishing ? 'Finishing...' : 'Finish Reservation'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

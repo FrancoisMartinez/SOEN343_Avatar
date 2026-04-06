@@ -1,9 +1,11 @@
+import { api } from './apiClient';
+
 const API_BASE = '/api/bookings';
 
 export interface BookingData {
   id?: number;
-  carId: number;
-  carName: string;
+  carId?: number;
+  carName?: string;
   userId: number;
   date: string;
   startTime: string;
@@ -11,10 +13,13 @@ export interface BookingData {
   totalCost: number;
   status: string;
   learnerName?: string;
+  instructorId?: number;
+  instructorName?: string;
 }
 
 export interface CreateBookingPayload {
-  carId: number;
+  carId?: number;
+  instructorId?: number;
   userId: number;
   date: string;       // "YYYY-MM-DD"
   startTime: string;  // "HH:mm"
@@ -22,61 +27,44 @@ export interface CreateBookingPayload {
 }
 
 export interface FinishBookingPayload {
-  latitude: number;
-  longitude: number;
-  location: string;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  latitude?: number;
+  longitude?: number;
+  location?: string;
+  rating?: number;
 }
 
 /** Create a new booking */
 export async function createBooking(payload: CreateBookingPayload): Promise<BookingData> {
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Failed to create booking');
-  }
-  return res.json();
+  return api.post<BookingData>(API_BASE, payload);
 }
 
 /** Get all bookings for a learner */
 export async function fetchLearnerBookings(learnerId: number): Promise<BookingData[]> {
-  const res = await fetch(`${API_BASE}/learner/${learnerId}`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch bookings');
-  return res.json();
+  return api.get<BookingData[]>(`${API_BASE}/learner/${learnerId}`);
 }
 
 /** Get all bookings for a provider's cars (read-only) */
 export async function fetchProviderBookings(providerId: number): Promise<BookingData[]> {
-  const res = await fetch(`${API_BASE}/provider/${providerId}`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error('Failed to fetch provider bookings');
-  return res.json();
+  return api.get<BookingData[]>(`${API_BASE}/provider/${providerId}`);
+}
+
+/** Get all bookings for an instructor */
+export async function fetchInstructorBookings(instructorId: number): Promise<BookingData[]> {
+  return api.get<BookingData[]>(`${API_BASE}/instructor/${instructorId}`);
+}
+
+/** Confirm a pending booking (Instructor action). Optionally assign a car. */
+export async function confirmBooking(bookingId: number, carId?: number): Promise<BookingData> {
+  const url = carId ? `${API_BASE}/${bookingId}/confirm?carId=${carId}` : `${API_BASE}/${bookingId}/confirm`;
+  return api.put<BookingData>(url);
+}
+
+/** Cancel a booking */
+export async function cancelBooking(bookingId: number): Promise<BookingData> {
+  return api.put<BookingData>(`${API_BASE}/${bookingId}/cancel`);
 }
 
 /** Finish a booking with a new car location */
 export async function finishBooking(bookingId: number, payload?: FinishBookingPayload): Promise<BookingData> {
-  const res = await fetch(`${API_BASE}/${bookingId}/finish`, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: payload ? JSON.stringify(payload) : undefined,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? 'Failed to finish booking');
-  }
-  return res.json();
+  return api.put<BookingData>(`${API_BASE}/${bookingId}/finish`, payload);
 }

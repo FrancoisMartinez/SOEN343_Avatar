@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { getParkingNearby } from '../services/parkingService';
-export type { ParkingSpot } from '../services/parkingService';
+import type { ParkingSpot } from '../services/parkingService';
 import './ParkingPanel.css';
 
 interface ParkingPanelProps {
   mapCenter: { lat: number; lon: number };
   onParkingSpots: (spots: ParkingSpot[]) => void;
-  onNavigateTo: (lat: number, lon: number, name: string) => void;
   active: boolean;
   onToggle: (active: boolean) => void;
 }
@@ -14,7 +13,6 @@ interface ParkingPanelProps {
 export default function ParkingPanel({
   mapCenter,
   onParkingSpots,
-  onNavigateTo,
   active,
   onToggle,
 }: Readonly<ParkingPanelProps>) {
