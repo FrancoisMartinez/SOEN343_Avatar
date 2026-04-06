@@ -58,7 +58,12 @@ export default function NavigationPanel({ onRoute, navigateTo }: Readonly<Naviga
   const [error, setError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedLegs, setExpandedLegs] = useState<Record<string, boolean>>({});
   const didAutoGps = useRef(false);
+
+  const toggleLegExpansion = (id: string) => {
+    setExpandedLegs((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const setFromToCurrentLocation = async () => {
     if (!navigator.geolocation) {
@@ -334,18 +339,58 @@ export default function NavigationPanel({ onRoute, navigateTo }: Readonly<Naviga
 
           {legs.length > 0 && (
             <ol className="nav-panel__legs" aria-label="Journey steps">
-              {legs.map((leg, i) => (
-                <li key={`${leg.type}-${leg.fromStop ?? 'walk'}-${i}`} className="nav-panel__leg">
-                  {leg.type === 'WALK' ? (
-                    <span><span aria-hidden="true">🚶</span> Walk {leg.durationMin} min</span>
-                  ) : (
-                    <span>
-                      <span aria-hidden="true">{leg.transportMode === 'subway' ? '🚇' : '🚌'}</span>
-                      {' '}{leg.lineLabel && `Line ${leg.lineLabel}: `}{leg.fromStop} → {leg.toStop} ({leg.durationMin} min)
-                    </span>
-                  )}
-                </li>
-              ))}
+              {legs.map((leg, i) => {
+                const legId = `${leg.type}-${i}`;
+                const isExpanded = !!expandedLegs[legId];
+                const hasSubSteps = leg.subSteps && leg.subSteps.length > 0;
+
+                return (
+                  <li key={legId} className="nav-panel__leg">
+                    {leg.type === 'WALK' ? (
+                      <span>
+                        <span aria-hidden="true">🚶</span>{' '}
+                        {leg.toStop ? `Walk to ${leg.toStop}` : 'Walk'}{' '}
+                        ({leg.durationMin} min)
+                      </span>
+                    ) : leg.type === 'STEP' ? (
+                      <span>
+                        <span aria-hidden="true">📍</span> {leg.instruction} ({leg.distanceKm} km, {leg.durationMin} min)
+                      </span>
+                    ) : (
+                      <span>
+                        <span aria-hidden="true">
+                          {leg.transportMode === 'subway' ? '🚇' : (leg.transportMode === 'bus' || leg.transportMode === 'privateBus') ? '🚌' : '🚆'}
+                        </span>
+                        {' '}
+                        {leg.lineLabel && (
+                          <>
+                            {(leg.transportMode === 'bus' || leg.transportMode === 'privateBus') ? 'Bus' : 'Line'} {leg.lineLabel}:{' '}
+                          </>
+                        )}
+                        {leg.fromStop} → {leg.toStop} ({leg.durationMin} min)
+                      </span>
+                    )}
+
+                    {hasSubSteps && (
+                      <button
+                        className="nav-panel__expand-btn"
+                        onClick={() => toggleLegExpansion(legId)}
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded ? 'Hide details' : 'Show details'}
+                      </button>
+                    )}
+
+                    {isExpanded && hasSubSteps && (
+                      <ul className="nav-panel__sub-steps">
+                        {leg.subSteps!.map((step, idx) => (
+                          <li key={idx} className="nav-panel__sub-step">{step}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           )}
 

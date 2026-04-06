@@ -3,12 +3,15 @@ import { api } from './apiClient';
 export type TransportMode = 'DRIVING' | 'BUS' | 'BICYCLE' | 'WALK';
 
 export interface JourneyLeg {
-  type: 'WALK' | 'TRANSIT';
+  type: 'WALK' | 'TRANSIT' | 'STEP';
   transportMode?: string;
   fromStop?: string;
   toStop?: string;
   lineLabel?: string;
   durationMin: number;
+  instruction?: string;
+  distanceKm?: number;
+  subSteps?: string[];
 }
 
 export interface RouteResult {

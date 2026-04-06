@@ -12,11 +12,11 @@ describe('vehicleService', () => {
   beforeEach(() => {
     // Mock sessionStorage
     const storage: Record<string, string> = {};
-    globalThis.sessionStorage = <any>{
+    globalThis.sessionStorage = {
       getItem: vi.fn((key) => storage[key] || null),
       setItem: vi.fn((key, value) => { storage[key] = value; }),
       removeItem: vi.fn((key) => { delete storage[key]; }),
-    };
+    } as any;
   });
 
   afterEach(() => {

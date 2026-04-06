@@ -115,8 +115,21 @@ public class HereTransitAdapter {
                             : List.of();
                     combinedPolyline.addAll(sectionPolyline);
 
+                    List<String> subSteps = new ArrayList<>();
+                    JsonNode actions = section.path("actions");
+                    if (actions.isArray()) {
+                        for (JsonNode action : actions) {
+                            String instruction = action.path("instruction").asText(null);
+                            if (instruction != null && !instruction.isBlank()) {
+                                subSteps.add(instruction);
+                            }
+                        }
+                    }
+
                     if ("pedestrian".equals(type) || "interchange".equals(type)) {
-                        legs.add(new JourneyLeg("WALK", null, null, null, null, durationMin, sectionPolyline));
+                        String fromStop = section.path("departure").path("place").path("name").asText(null);
+                        String toStop = section.path("arrival").path("place").path("name").asText(null);
+                        legs.add(new JourneyLeg("WALK", null, null, fromStop, toStop, durationMin, sectionPolyline, null, null, subSteps));
                     } else if ("transit".equals(type)) {
                         JsonNode transport = section.path("transport");
                         String lineLabel = transport.path("name").asText(null);
@@ -124,7 +137,7 @@ public class HereTransitAdapter {
                         String fromStop = section.path("departure").path("place").path("name").asText(null);
                         String toStop = section.path("arrival").path("place").path("name").asText(null);
                         legs.add(new JourneyLeg("TRANSIT", lineLabel, transportMode, fromStop, toStop, durationMin,
-                                sectionPolyline));
+                                sectionPolyline, null, null, subSteps));
                     }
                 }
 

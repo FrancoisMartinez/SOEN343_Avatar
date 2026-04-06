@@ -1,5 +1,6 @@
 package com.example.backend.infrastructure.adapter;
 
+import com.example.backend.application.dto.JourneyLeg;
 import com.example.backend.application.dto.RouteResult;
 import com.example.backend.application.dto.TransportMode;
 import com.example.backend.domain.service.NoRouteFoundException;
@@ -50,7 +51,7 @@ public class OSRMAdapter {
     public RouteResult getDirections(double fromLat, double fromLon, double toLat, double toLon, TransportMode mode) {
         // Use Locale.US to ensure decimal points in the URL regardless of JVM locale
         String url = String.format(Locale.US,
-                "%s/%f,%f;%f,%f?overview=full&geometries=geojson",
+                "%s/%f,%f;%f,%f?overview=full&geometries=geojson&steps=true",
                 osrmBase(mode), fromLon, fromLat, toLon, toLat);
 
         String response;
@@ -83,13 +84,73 @@ public class OSRMAdapter {
             double distanceKm = Math.round((distanceMeters / 1000.0) * 10.0) / 10.0;
             int durationMin = (int) Math.ceil(durationSeconds / 60.0);
 
-            return new RouteResult(polyline, distanceKm, durationMin, mode, List.of());
+            List<JourneyLeg> legs = new ArrayList<>();
+            List<String> subSteps = new ArrayList<>();
+            JsonNode osrmLegs = route.path("legs");
+            if (osrmLegs.isArray() && osrmLegs.size() > 0) {
+                JsonNode steps = osrmLegs.get(0).path("steps");
+                if (steps.isArray()) {
+                    for (JsonNode step : steps) {
+                        subSteps.add(generateInstruction(step));
+                    }
+                }
+            }
+            
+            // Create a single leg representing the entire route's steps
+            if (!subSteps.isEmpty()) {
+                legs.add(new JourneyLeg("STEP", null, null, null, null, durationMin, polyline, "Follow directions", distanceKm, subSteps));
+            }
+
+            return new RouteResult(polyline, distanceKm, durationMin, mode, legs);
 
         } catch (NoRouteFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new RoutingUnavailableException("Failed to parse routing response", e);
         }
+    }
+
+    private static String generateInstruction(JsonNode step) {
+        JsonNode maneuver = step.path("maneuver");
+        String type = maneuver.path("type").asText("");
+        String modifier = maneuver.path("modifier").asText("");
+        String name = step.path("name").asText("");
+
+        if ("depart".equalsIgnoreCase(type)) {
+            return "Depart" + (!name.isEmpty() ? " on " + name : "");
+        }
+        if ("arrive".equalsIgnoreCase(type)) {
+            return "Arrive at destination";
+        }
+
+        String action = "Continue";
+        if ("turn".equalsIgnoreCase(type)) {
+            action = "Turn " + modifier.replace("-", " ");
+        } else if ("new name".equalsIgnoreCase(type)) {
+            action = "Continue";
+        } else if ("merge".equalsIgnoreCase(type)) {
+            action = "Merge";
+        } else if ("on ramp".equalsIgnoreCase(type)) {
+            action = "Take the ramp";
+        } else if ("off ramp".equalsIgnoreCase(type)) {
+            action = "Take the exit";
+        } else if ("fork".equalsIgnoreCase(type)) {
+            action = "Keep " + modifier.replace("-", " ") + " at the fork";
+        } else if ("end of road".equalsIgnoreCase(type)) {
+            action = "Turn " + modifier.replace("-", " ") + " at the end of the road";
+        } else if ("roundabout".equalsIgnoreCase(type) || "rotary".equalsIgnoreCase(type)) {
+            action = "Enter the roundabout and take the " + modifier.replace("-", " ") + " exit";
+        }
+
+        if (!name.isEmpty()) {
+            action += " onto " + name;
+        }
+
+        if (action.length() > 0) {
+            action = action.substring(0, 1).toUpperCase() + action.substring(1);
+        }
+
+        return action;
     }
 
     private static String osrmBase(TransportMode mode) {

@@ -24,7 +24,33 @@ class OSRMAdapterTest {
                 "duration": 180.0,
                 "geometry": {
                   "coordinates": [[-73.6, 45.5], [-73.59, 45.51]]
-                }
+                },
+                "legs": [{
+                  "steps": [{
+                    "distance": 600.0,
+                    "duration": 90.0,
+                    "name": "Main St",
+                    "maneuver": {
+                      "type": "depart",
+                      "modifier": "right"
+                    },
+                    "geometry": {
+                      "coordinates": [[-73.6, 45.5]]
+                    }
+                  },
+                  {
+                    "distance": 600.5,
+                    "duration": 90.0,
+                    "name": "Second St",
+                    "maneuver": {
+                      "type": "turn",
+                      "modifier": "left"
+                    },
+                    "geometry": {
+                      "coordinates": [[-73.59, 45.51]]
+                    }
+                  }]
+                }]
               }]
             }
             """;
@@ -43,7 +69,17 @@ class OSRMAdapterTest {
         assertEquals(1.2, result.distanceKm());
         assertEquals(3, result.durationMin());
         assertEquals(TransportMode.DRIVING, result.mode());
-        assertTrue(result.legs().isEmpty());
+        
+        // Assert legs are parsed correctly (now grouped into one leg)
+        assertEquals(1, result.legs().size());
+        assertEquals("STEP", result.legs().get(0).type());
+        assertEquals(1.2, result.legs().get(0).distanceKm());
+        assertEquals(3, result.legs().get(0).durationMin());
+        assertEquals("Follow directions", result.legs().get(0).instruction());
+        assertEquals(2, result.legs().get(0).subSteps().size());
+        assertEquals("Depart on Main St", result.legs().get(0).subSteps().get(0));
+        assertEquals("Turn left onto Second St", result.legs().get(0).subSteps().get(1));
+        
         // OSRM returns [lon, lat]; adapter converts to [lat, lon]
         assertArrayEquals(new double[]{45.5, -73.6}, result.polyline().get(0), 0.001);
         assertArrayEquals(new double[]{45.51, -73.59}, result.polyline().get(1), 0.001);
@@ -95,6 +131,7 @@ class OSRMAdapterTest {
 
         verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
         assertTrue(urlCaptor.getValue().contains("/driving/"));
+        assertTrue(urlCaptor.getValue().contains("steps=true"));
     }
 
     @Test
@@ -106,6 +143,7 @@ class OSRMAdapterTest {
 
         verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
         assertTrue(urlCaptor.getValue().contains("/bicycle/"));
+        assertTrue(urlCaptor.getValue().contains("steps=true"));
     }
 
     @Test
@@ -117,6 +155,7 @@ class OSRMAdapterTest {
 
         verify(restTemplate).getForObject(urlCaptor.capture(), eq(String.class));
         assertTrue(urlCaptor.getValue().contains("/foot/"));
+        assertTrue(urlCaptor.getValue().contains("steps=true"));
     }
 
     @Test
