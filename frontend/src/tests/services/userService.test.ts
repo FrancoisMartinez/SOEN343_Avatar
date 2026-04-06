@@ -14,7 +14,7 @@ describe('userService', () => {
       setItem: vi.fn((key, value) => { storage[key] = value; }),
       removeItem: vi.fn((key) => { delete storage[key]; }),
       clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
-    });
+    };
   });
 
   afterEach(() => {

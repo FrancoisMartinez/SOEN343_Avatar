@@ -376,7 +376,7 @@ export default function VehicleSidebar({
           <div className="vehicle-sidebar__filter-group">
             <span className="vehicle-sidebar__filter-label">Transmission</span>
             <select
-              className="vehicle-search-filters__select"
+              className="vehicle-sidebar__filter-select"
               value={transmissionType}
               onChange={(e) => setTransmissionType(e.target.value)}
             >

@@ -12,7 +12,7 @@ describe('parkingService', () => {
       setItem: vi.fn((key, value) => { storage[key] = value; }),
       removeItem: vi.fn((key) => { delete storage[key]; }),
       clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
-    });
+    };
 
     globalThis.fetch = vi.fn() as any;
   });
@@ -34,7 +34,7 @@ describe('parkingService', () => {
     ];
 
     sessionStorage.setItem('token', 'token-park');
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue(mockSpots),
@@ -43,13 +43,13 @@ describe('parkingService', () => {
     const result = await getParkingNearby(45.5, -73.6, 800);
 
     expect(result).toEqual(mockSpots);
-    const lastCall = vi.mocked(fetch).mock.calls[0];
+    const lastCall = (fetch as any).mock.calls[0];
     const headers = new Headers(lastCall[1]?.headers);
     expect(headers.get('Authorization')).toBe('Bearer token-park');
   });
 
   it('getParkingNearby uses default radius 800 when omitted', async () => {
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue([]),
@@ -57,12 +57,12 @@ describe('parkingService', () => {
 
     await getParkingNearby(45.5, -73.6);
 
-    const [url] = vi.mocked(fetch).mock.calls[0];
+    const [url] = (fetch as any).mock.calls[0];
     expect(url).toContain('radius=800');
   });
 
   it('getParkingNearby sends no auth header when no token', async () => {
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue([]),
@@ -70,13 +70,13 @@ describe('parkingService', () => {
 
     await getParkingNearby(45.5, -73.6, 500);
 
-    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const [, options] = (fetch as any).mock.calls[0];
     const headers = new Headers(options?.headers);
     expect(headers.get('Authorization')).toBeNull();
   });
 
   it('getParkingNearby throws with server error message when response is not ok', async () => {
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: false,
       status: 500,
       text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Parking service is temporarily unavailable' })),
@@ -86,7 +86,7 @@ describe('parkingService', () => {
   });
 
   it('getParkingNearby throws fallback message when error body has no error field', async () => {
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: false,
       status: 500,
       text: vi.fn().mockResolvedValue('{}'),
@@ -96,7 +96,7 @@ describe('parkingService', () => {
   });
 
   it('getParkingNearby throws fallback message when json parsing fails on error response', async () => {
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockRejectedValue(new Error('not json')),

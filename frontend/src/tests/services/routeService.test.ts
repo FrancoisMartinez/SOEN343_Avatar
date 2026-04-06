@@ -11,7 +11,7 @@ describe('routeService', () => {
       getItem: vi.fn((key) => storage[key] || null),
       setItem: vi.fn((key, value) => { storage[key] = value; }),
       removeItem: vi.fn((key) => { delete storage[key]; }),
-    });
+    };
   });
 
   afterEach(() => {

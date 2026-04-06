@@ -17,7 +17,7 @@ describe('availabilityService', () => {
       setItem: vi.fn((key, value) => { storage[key] = value; }),
       removeItem: vi.fn((key) => { delete storage[key]; }),
       clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
-    });
+    };
 
     globalThis.fetch = vi.fn() as any;
   });
@@ -38,7 +38,7 @@ describe('availabilityService', () => {
     };
 
     sessionStorage.setItem('token', 'token-car');
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue(response),
@@ -57,7 +57,7 @@ describe('availabilityService', () => {
     };
 
     sessionStorage.setItem('token', 'token-car-update');
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue(payload),
@@ -76,7 +76,7 @@ describe('availabilityService', () => {
     };
 
     sessionStorage.setItem('token', 'token-instr');
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue(response),
@@ -88,7 +88,7 @@ describe('availabilityService', () => {
       method: 'GET',
     }));
     
-    const lastCall = vi.mocked(fetch).mock.calls[0];
+    const lastCall = (fetch as any).mock.calls[0];
     const headers = new Headers(lastCall[1]?.headers);
     expect(headers.get('Authorization')).toBe('Bearer token-instr');
   });
@@ -99,7 +99,7 @@ describe('availabilityService', () => {
     };
 
     sessionStorage.setItem('token', 'token-err');
-    vi.mocked(fetch).mockResolvedValue({
+    (fetch as any).mockResolvedValue({
       ok: false,
       status: 400,
       text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Overlapping slots' })),
