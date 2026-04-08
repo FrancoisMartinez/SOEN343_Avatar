@@ -5,6 +5,7 @@ import InstructorSidebar from '../components/InstructorSidebar';
 import InstructorSearchSidebar from '../components/InstructorSearchSidebar';
 import NavigationPanel from '../components/NavigationPanel';
 import ParkingPanel from '../components/ParkingPanel';
+import AutoMatchPanel from '../components/AutoMatchPanel';
 import { useAuth } from '../contexts/AuthContext';
 import type { CarData, SearchFilters } from '../services/vehicleService';
 import { fetchProviderVehicles, createVehicle, updateVehicle, deleteVehicle, searchVehicles } from '../services/vehicleService';
@@ -15,6 +16,7 @@ import { reverseGeocode } from '../services/geocodingService';
 import type { DraftLocation } from '../components/VehicleFormModal';
 import type { AvailabilitySlot } from '../types/availability';
 import type { ParkingSpot } from '../services/parkingService';
+import type { MatchResultData } from '../services/matchingService';
 import './MapPage.css';
 
 type FocusOptions = {
@@ -253,6 +255,62 @@ export default function MapPage() {
     }
   };
 
+  const handleLocateCar = (carId: number) => {
+    handleCarFocus(carId, { openPopup: true, forceRecenter: true });
+  };
+
+  const handleAutoMatchSelect = (result: MatchResultData) => {
+    const matchedCar = vehicles.find((v) => v.id === result.carId);
+    if (matchedCar) {
+      handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
+    } else {
+      // Car not in vehicles list, add it
+      const newCar: CarData = {
+        id: result.carId,
+        makeModel: result.makeModel,
+        transmissionType: result.transmissionType,
+        location: result.location,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        available: true,
+        hourlyRate: result.hourlyRate,
+      };
+      setVehicles([...vehicles, newCar]);
+      handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
+    }
+  };
+
+  const handleClearSearch = useCallback(() => {
+    setSearchCenter(null);
+    setSearchRadius(5);
+    handleSearchVehicles({}); // Broad search
+  }, [handleSearchVehicles]);
+
+  useEffect(() => {
+    if (selectedCarId == null) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      const clickedCarElement = target.closest(
+        '.vehicle-card, .leaflet-marker-icon, .leaflet-popup, .leaflet-popup-content, .leaflet-popup-content-wrapper'
+      );
+
+      if (clickedCarElement) {
+        return;
+      }
+
+      handleCarFocus(null);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [selectedCarId, handleCarFocus]);
   const handleMapLocationPick = useCallback(async (lat: number, lng: number) => {
     const loc = { lat, lng, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
     setDraftLocation(loc);
@@ -313,7 +371,7 @@ export default function MapPage() {
               </button>
             ))}
           </div>
-          
+
           <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
             {serviceType === 'car' && (
               <VehicleSidebar
@@ -327,12 +385,14 @@ export default function MapPage() {
                 searchRadius={searchRadius}
                 onSearchRadiusChange={setSearchRadius}
                 onSearch={handleSearchVehicles}
-                onClearSearch={() => handleSearchVehicles({})}
-                onLocateCar={handleCarFocus}
+                onClearSearch={handleClearSearch}
+                onLocateCar={handleLocateCar}
                 onRetry={() => handleSearchVehicles()}
                 onFormOpen={handleFormOpen}
                 onFormClose={handleFormClose}
                 onLocationChange={handleLocationChange}
+                userLocation={userLocation}
+                onAutoMatchSelect={handleAutoMatchSelect}
               />
             )}
             {serviceType === 'class' && (
@@ -353,12 +413,11 @@ export default function MapPage() {
               />
             )}
             {serviceType === 'package' && (
-              <div className="vehicle-sidebar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <h3>Coming Soon</h3>
-                  <p style={{ fontSize: '0.9rem' }}>AutoMatch features are in development.</p>
-                </div>
-              </div>
+              <AutoMatchPanel
+                vehicles={vehicles}
+                onAutoMatchSelect={handleAutoMatchSelect}
+                onClearSearch={handleClearSearch}
+              />
             )}
           </div>
         </div>
