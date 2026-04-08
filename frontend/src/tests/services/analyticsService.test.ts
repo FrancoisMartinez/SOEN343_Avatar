@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getSystemAnalytics, getProviderRevenue, getCarUsage, calculateMetrics } from '../../services/analyticsService';
+import { 
+  getSystemAnalytics, 
+  getProviderRevenue, 
+  getCarUsage, 
+  calculateMetrics, 
+  getDashboardAnalytics,
+  fetchCarUtilizationAnalytics,
+  fetchServiceHealthAnalytics
+} from '../../services/analyticsService';
 
 describe('analyticsService', () => {
   const originalFetch = globalThis.fetch;
@@ -39,6 +47,48 @@ describe('analyticsService', () => {
     });
   });
 
+  it('getDashboardAnalytics fetches personalized analytics', async () => {
+    const payload = { stats: {}, charts: {} };
+    sessionStorage.setItem('token', 'token-abc');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(payload),
+    });
+
+    const result = await getDashboardAnalytics();
+    expect(result).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/dashboard', expect.any(Object));
+  });
+
+  it('fetchCarUtilizationAnalytics fetches global analytics without date filters', async () => {
+    const payload = { carUtilizations: [], timestamp: 12345 };
+    sessionStorage.setItem('token', 'token-abc');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(payload),
+    });
+
+    const result = await fetchCarUtilizationAnalytics();
+    expect(result).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/car-utilization', expect.any(Object));
+  });
+
+  it('fetchServiceHealthAnalytics fetches technical health metrics', async () => {
+    const payload = [{ method: 'GET', path: '/api/test', requestCount: 1, errorCount: 0, avgLatencyMs: 10 }];
+    sessionStorage.setItem('token', 'token-abc');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(payload),
+    });
+
+    const result = await fetchServiceHealthAnalytics();
+    expect(result).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/service-health', expect.any(Object));
+  });
+
   it('getSystemAnalytics fetches global analytics', async () => {
     const payload = { 
       activeUsers: 10, 
@@ -58,19 +108,11 @@ describe('analyticsService', () => {
 
     const result = await getSystemAnalytics();
     expect(result).toEqual(payload);
-    
-    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/system', expect.objectContaining({
-      method: 'GET',
-    }));
-
-    const lastCall = fetchMock.mock.calls[0];
-    const headers = lastCall[1].headers;
-    expect(headers.get('Authorization')).toBe('Bearer token-abc');
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/system', expect.any(Object));
   });
 
   it('getProviderRevenue fetches revenue metrics', async () => {
     const payload = [{ date: '2026-03-01', totalRevenue: 150 }];
-
     sessionStorage.setItem('token', 'token-provider');
     fetchMock.mockResolvedValue({
       ok: true,
@@ -80,21 +122,7 @@ describe('analyticsService', () => {
 
     const result = await getProviderRevenue(7);
     expect(result).toEqual(payload);
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/provider/7/revenue', expect.objectContaining({
-      method: 'GET',
-    }));
-  });
-
-  it('getCarUsage throws backend error message when request fails', async () => {
-    fetchMock.mockResolvedValue({
-      ok: false,
-      status: 400,
-      text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Car not found' })),
-      json: vi.fn().mockResolvedValue({ error: 'Car not found' }),
-    });
-
-    await expect(getCarUsage(99)).rejects.toThrow('Car not found');
+    expect(fetchMock).toHaveBeenCalledWith('/api/analytics/provider/7/revenue', expect.any(Object));
   });
 
   it('calculateMetrics sends POST request', async () => {

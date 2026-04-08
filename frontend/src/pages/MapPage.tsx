@@ -69,6 +69,12 @@ export default function MapPage() {
         finalFilters.lat = undefined;
         finalFilters.lng = undefined;
       }
+      
+      // Default to only available cars unless explicitly requested otherwise
+      if (finalFilters.isAvailable === undefined) {
+        finalFilters.isAvailable = true;
+      }
+      
       const data = await searchVehicles(finalFilters);
       setVehicles(data);
     } catch (err: any) {
@@ -82,7 +88,15 @@ export default function MapPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchInstructorsNearby(filters.lat || 45.5, filters.lng || -73.6, filters.radius || 10);
+      
+      const instructorFilters = {
+        lat: filters.lat || 45.5,
+        lng: filters.lng || -73.6,
+        radius: filters.radius || 10,
+        ...filters
+      };
+      
+      const data = await fetchInstructorsNearby(instructorFilters);
       setInstructors(data);
     } catch (err: any) {
       setError(err.message);

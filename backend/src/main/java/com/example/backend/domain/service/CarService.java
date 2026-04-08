@@ -111,11 +111,14 @@ public class CarService {
     public List<CarDto> searchCars(String transmissionType, Double minPrice, Double maxPrice, Boolean isAvailable, Double lat, Double lng, Double radius, String dayOfWeek, Integer startMinute, Integer endMinute) {
         List<Car> allCars = carRepository.findAll();
 
+        // Default to only showing available cars if the filter is not explicitly provided
+        final boolean effectiveIsAvailable = (isAvailable != null) ? isAvailable : true;
+
         return allCars.stream()
                 .filter(car -> transmissionType == null || transmissionType.isEmpty() || transmissionType.equalsIgnoreCase(car.getTransmissionType()))
                 .filter(car -> minPrice == null || car.getHourlyRate() >= minPrice)
                 .filter(car -> maxPrice == null || car.getHourlyRate() <= maxPrice)
-                .filter(car -> isAvailable == null || car.isAvailable() == isAvailable)
+                .filter(car -> car.isAvailable() == effectiveIsAvailable)
                 .filter(car -> {
                     if (lat == null || lng == null || radius == null) return true;
                     if (car.getLatitude() == null || car.getLongitude() == null) return false;

@@ -38,10 +38,11 @@ function requestCurrentPosition(options: PositionOptions): Promise<GeolocationPo
 
 interface NavigationPanelProps {
   onRoute: (polyline: [number, number][], distanceKm: number, durationMin: number) => void;
+  onClear?: () => void;
   navigateTo?: { lat: number; lon: number; name: string } | null;
 }
 
-export default function NavigationPanel({ onRoute, navigateTo }: Readonly<NavigationPanelProps>) {
+export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readonly<NavigationPanelProps>) {
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
   const [fromCoords, setFromCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -215,9 +216,14 @@ export default function NavigationPanel({ onRoute, navigateTo }: Readonly<Naviga
   };
 
   const handleClear = () => {
+    setToAddress('');
+    setToCoords(null);
+    setToSuggestions([]);
     setRouteInfo(null);
     setLegs([]);
+    setError(null);
     onRoute([], 0, 0);
+    onClear?.();
   };
 
   const canGetDirections = !!fromCoords && !!toCoords && !loading;

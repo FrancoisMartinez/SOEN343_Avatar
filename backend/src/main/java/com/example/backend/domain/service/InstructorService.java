@@ -48,8 +48,13 @@ public class InstructorService {
                         } catch (IllegalArgumentException e) {
                             return true; // ignore invalid day
                         }
+                    } else {
+                        // If no specific time requested, only show instructors who HAVE at least one active available slot
+                        if (instructor.getAvailabilitySlots() == null || instructor.getAvailabilitySlots().isEmpty()) {
+                            return false;
+                        }
+                        return instructor.getAvailabilitySlots().stream().anyMatch(com.example.backend.domain.model.AvailabilitySlot::isAvailable);
                     }
-                    return true;
                 })
                 .map(this::toDto)
                 .collect(Collectors.toList());
