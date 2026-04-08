@@ -35,21 +35,28 @@ public class InstructorService {
                         return false;
                     }
                     // Filter by availability if provided
-                    if (dayOfWeek != null && startMinute != null && endMinute != null) {
+                    if (dayOfWeek != null) {
                         if (instructor.getAvailabilitySlots() == null) return false;
                         try {
                             java.time.DayOfWeek requestedDay = java.time.DayOfWeek.valueOf(dayOfWeek.toUpperCase());
-                            return instructor.getAvailabilitySlots().stream().anyMatch(slot ->
-                                    slot.getDayOfWeek() == requestedDay &&
-                                            slot.isAvailable() &&
-                                            slot.getStartMinute() <= startMinute &&
-                                            slot.getEndMinute() >= endMinute
-                            );
+                            if (startMinute != null && endMinute != null) {
+                                return instructor.getAvailabilitySlots().stream().anyMatch(slot ->
+                                        slot.getDayOfWeek() == requestedDay &&
+                                                slot.isAvailable() &&
+                                                slot.getStartMinute() <= startMinute &&
+                                                slot.getEndMinute() >= endMinute
+                                );
+                            } else {
+                                // If only day is provided, show instructors that have at least one available slot on that day
+                                return instructor.getAvailabilitySlots().stream().anyMatch(slot ->
+                                        slot.getDayOfWeek() == requestedDay && slot.isAvailable()
+                                );
+                            }
                         } catch (IllegalArgumentException e) {
                             return true; // ignore invalid day
                         }
                     } else {
-                        // If no specific time requested, only show instructors who HAVE at least one active available slot
+                        // If no specific time or day requested, only show instructors who HAVE at least one active available slot
                         if (instructor.getAvailabilitySlots() == null || instructor.getAvailabilitySlots().isEmpty()) {
                             return false;
                         }

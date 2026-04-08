@@ -126,17 +126,24 @@ public class CarService {
                     return distance <= radius;
                 })
                 .filter(car -> {
-                    if (dayOfWeek == null || startMinute == null || endMinute == null) return true;
+                    if (dayOfWeek == null) return true;
                     if (car.getAvailabilitySlots() == null) return false;
                     
                     try {
                         java.time.DayOfWeek requestedDay = java.time.DayOfWeek.valueOf(dayOfWeek.toUpperCase());
-                        return car.getAvailabilitySlots().stream().anyMatch(slot -> 
-                            slot.getDayOfWeek() == requestedDay &&
-                            slot.isAvailable() &&
-                            slot.getStartMinute() <= startMinute &&
-                            slot.getEndMinute() >= endMinute
-                        );
+                        if (startMinute != null && endMinute != null) {
+                            return car.getAvailabilitySlots().stream().anyMatch(slot -> 
+                                slot.getDayOfWeek() == requestedDay &&
+                                slot.isAvailable() &&
+                                slot.getStartMinute() <= startMinute &&
+                                slot.getEndMinute() >= endMinute
+                            );
+                        } else {
+                            // If only day is provided, show cars that have at least one available slot on that day
+                            return car.getAvailabilitySlots().stream().anyMatch(slot ->
+                                slot.getDayOfWeek() == requestedDay && slot.isAvailable()
+                            );
+                        }
                     } catch (IllegalArgumentException e) {
                         return true; // ignore invalid dayOfWeek
                     }

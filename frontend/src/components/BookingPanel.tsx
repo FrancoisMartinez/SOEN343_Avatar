@@ -42,6 +42,14 @@ function dateToDayName(dateStr: string): string {
   return DAY_ORDER[dateToDayIndex(dateStr)];
 }
 
+/** Get YYYY-MM-DD string in local time */
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Represents a local-time availability window after UTC→local conversion.
  * A single UTC slot may split across two local days at day boundaries.
@@ -104,7 +112,35 @@ function convertUtcSlotsToLocal(utcSlots: AvailabilitySlot[]): LocalAvailability
     }
   }
 
-  return result;
+  // Merge contiguous intervals in the same day
+  const merged: LocalAvailabilityWindow[] = [];
+  for (const day of DAY_ORDER) {
+    const dayIntervals = result
+      .filter((s) => s.dayOfWeek === day)
+      .sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
+
+    if (dayIntervals.length === 0) continue;
+
+    let current = { ...dayIntervals[0] };
+    for (let i = 1; i < dayIntervals.length; i++) {
+      const next = dayIntervals[i];
+      const currentEndMin = parseTimeToMinutes(current.endTime === '24:00' ? '24:00' : current.endTime);
+      const nextStartMin = parseTimeToMinutes(next.startTime);
+
+      if (nextStartMin <= currentEndMin) {
+        const nextEndMin = parseTimeToMinutes(next.endTime === '24:00' ? '24:00' : next.endTime);
+        if (nextEndMin > currentEndMin) {
+          current.endTime = next.endTime;
+        }
+      } else {
+        merged.push(current);
+        current = { ...next };
+      }
+    }
+    merged.push(current);
+  }
+
+  return merged;
 }
 
 /**
@@ -193,13 +229,13 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
     
     // Determine the earliest possible local minute for today (now + 60 mins)
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getLocalDateString(now);
     const minMinuteToday = now.getHours() * 60 + now.getMinutes() + 60;
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(d);
       const dayName = dateToDayName(dateStr);
 
       if (availableDays.has(dayName)) {
@@ -225,7 +261,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
     const daySlots = slots.filter((s) => s.dayOfWeek === dayName);
 
     const now = new Date();
-    const isToday = selectedDate === now.toISOString().split('T')[0];
+    const isToday = selectedDate === getLocalDateString(now);
     const minMinute = isToday ? (now.getHours() * 60 + now.getMinutes() + 60) : -1;
 
     const times: string[] = [];
@@ -259,7 +295,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
 
     // Minimum 1 hour lead time check
     const now = new Date();
-    const isToday = selectedDate === now.toISOString().split('T')[0];
+    const isToday = selectedDate === getLocalDateString(now);
     if (isToday) {
       const minMinute = now.getHours() * 60 + now.getMinutes() + 60;
       if (reqStart < minMinute) {

@@ -139,7 +139,36 @@ function convertUtcSlotsToLocal(utcSlots: AvailabilitySlot[]): LocalInterval[] {
     }
   }
 
-  return result;
+  // Merge contiguous intervals in the same day
+  const merged: LocalInterval[] = [];
+  for (const day of DAYS) {
+    const dayIntervals = result
+      .filter((idx) => idx.dayOfWeek === day)
+      .sort((a, b) => parseMinutes(a.startTime) - parseMinutes(b.startTime));
+
+    if (dayIntervals.length === 0) continue;
+
+    let current = { ...dayIntervals[0] };
+    for (let i = 1; i < dayIntervals.length; i++) {
+      const next = dayIntervals[i];
+      const currentEndMin = parseMinutes(current.endTime === '24:00' ? '24:00' : current.endTime);
+      const nextStartMin = parseMinutes(next.startTime);
+
+      if (nextStartMin <= currentEndMin) {
+        // Overlap or contiguous
+        const nextEndMin = parseMinutes(next.endTime === '24:00' ? '24:00' : next.endTime);
+        if (nextEndMin > currentEndMin) {
+          current.endTime = next.endTime;
+        }
+      } else {
+        merged.push(current);
+        current = { ...next };
+      }
+    }
+    merged.push(current);
+  }
+
+  return merged;
 }
 
 function convertLocalIntervalsToUtc(localIntervals: LocalInterval[]): AvailabilitySlot[] {
