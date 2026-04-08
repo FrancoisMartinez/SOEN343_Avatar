@@ -2,8 +2,10 @@ import { useEffect, useRef, useState,  } from 'react';
 import VehicleCard from './VehicleCard';
 import VehicleFormModal from './VehicleFormModal';
 import AvailabilityPanel from './AvailabilityPanel';
+import AutoMatchPanel from './AutoMatchPanel';
 import type { DraftLocation, VehicleFormDraft } from './VehicleFormModal';
 import type { CarData, SearchFilters } from '../services/vehicleService';
+import type { MatchResultData } from '../services/matchingService';
 import type { AvailabilitySlot, DayName } from '../types/availability';
 import LocationPicker from './LocationPicker';
 import './VehicleSidebar.css';
@@ -29,6 +31,8 @@ interface VehicleSidebarProps {
   onFormOpen?: (car: CarData | null, purpose?: 'search' | 'vehicle' | 'instructor') => void;
   onFormClose?: () => void;
   onLocationChange?: (loc: DraftLocation) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  onAutoMatchSelect?: (result: MatchResultData) => void;
 }
 
 const DAYS: DayName[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -97,6 +101,7 @@ export default function VehicleSidebar({
   const [formOpen, setFormOpen] = useState(false);
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [availabilityCarId, setAvailabilityCarId] = useState<number | null>(null);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [availabilityReturnState, setAvailabilityReturnState] = useState<AvailabilityReturnState>({
     view: 'list',
     car: null,
@@ -355,13 +360,22 @@ export default function VehicleSidebar({
         </h2>
         <div className="vehicle-sidebar__header-actions">
           {mode === 'search' && (
-            <button 
-              className="vehicle-sidebar__header-btn" 
-              onClick={() => setShowFilters(!showFilters)}
-              title={showFilters ? 'Show vehicles' : 'Edit filters'}
-            >
-              {showFilters ? 'Vehicles' : 'Filters'}
-            </button>
+            <>
+              <button
+                className="vehicle-sidebar__header-btn"
+                onClick={() => setAutoMatchOpen(true)}
+                title="Auto-match cars"
+              >
+                Auto-Match
+              </button>
+              <button
+                className="vehicle-sidebar__header-btn"
+                onClick={() => setShowFilters(!showFilters)}
+                title={showFilters ? 'Show vehicles' : 'Edit filters'}
+              >
+                {showFilters ? 'Vehicles' : 'Filters'}
+              </button>
+            </>
           )}
           {mode === 'manage' && (
             <button className="vehicle-sidebar__add-btn" onClick={handleAdd}>
@@ -371,7 +385,18 @@ export default function VehicleSidebar({
         </div>
       </div>
 
-      {mode === 'search' && showFilters ? (
+      {mode === 'search' && autoMatchOpen && (
+        <AutoMatchPanel
+          userLocation={userLocation || null}
+          onClose={() => setAutoMatchOpen(false)}
+          onMatchSelect={(result) => {
+            setAutoMatchOpen(false);
+            onAutoMatchSelect?.(result);
+          }}
+        />
+      )}
+
+      {mode === 'search' && !autoMatchOpen && showFilters ? (
         <div className="vehicle-sidebar__filters vehicle-sidebar__filters--full">
           <div className="vehicle-sidebar__filter-group">
             <span className="vehicle-sidebar__filter-label">Transmission</span>
