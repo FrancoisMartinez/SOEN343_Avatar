@@ -86,18 +86,18 @@ public class MatchingService {
     );
   }
 
-  private double computeProximityScore(double distanceKm) {
+  public double computeProximityScore(double distanceKm) {
     final double MAX_RADIUS = 50.0;
     return Math.max(0, 100 - (distanceKm / MAX_RADIUS) * 100);
   }
 
-  private double computeBudgetScore(double totalCost, double learnerBalance) {
+  public double computeBudgetScore(double totalCost, double learnerBalance) {
     if (totalCost <= 0) return 100.0;
     if (learnerBalance <= 0) return 0.0;
     return Math.min(100.0, (learnerBalance / totalCost) * 100);
   }
 
-  private double computeTransmissionScore(String carTransmission, String preference) {
+  public double computeTransmissionScore(String carTransmission, String preference) {
     if (preference == null || preference.isBlank()) {
       return 75.0; // Neutral score for no preference
     }
