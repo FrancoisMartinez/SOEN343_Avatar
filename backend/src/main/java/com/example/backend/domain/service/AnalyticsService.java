@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 @Service
 public class AnalyticsService {
@@ -48,34 +48,10 @@ public class AnalyticsService {
         stats.put("totalBookings", totalBookings);
         stats.put("totalRevenue", totalRevenue);
 
-        Map<String, Number> usageByCarType = new HashMap<>();
-        for (Booking b : allBookings) {
-            if (b.getCar() != null) {
-                String type = b.getCar().getMakeModel();
-                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
-            }
-        }
-
-        Map<String, Number> topLearners = new HashMap<>();
-        for (Booking b : allBookings) {
-            if (b.getLearner() != null) {
-                String name = b.getLearner().getFullName();
-                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
-            }
-        }
-
-        Map<String, Number> topInstructors = new HashMap<>();
-        for (Booking b : allBookings) {
-            if (b.getInstructor() != null) {
-                String name = b.getInstructor().getFullName();
-                topInstructors.put(name, topInstructors.getOrDefault(name, 0).intValue() + 1);
-            }
-        }
-
         Map<String, Map<String, Number>> charts = new HashMap<>();
-        charts.put("usageByCarType", usageByCarType);
-        charts.put("topLearners", topLearners);
-        charts.put("topInstructors", topInstructors);
+        charts.put("usageByCarType", countByField(allBookings, b -> b.getCar() != null ? b.getCar().getMakeModel() : null));
+        charts.put("topLearners", countByField(allBookings, b -> b.getLearner() != null ? b.getLearner().getFullName() : null));
+        charts.put("topInstructors", countByField(allBookings, b -> b.getInstructor() != null ? b.getInstructor().getFullName() : null));
 
         return new DashboardAnalyticsDTO(stats, charts);
     }
@@ -92,22 +68,9 @@ public class AnalyticsService {
         stats.put("totalSpent", totalSpent);
         stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
 
-        Map<String, Number> usageByCarType = new HashMap<>();
-        Map<String, Number> topInstructors = new HashMap<>();
-        for (Booking b : bookings) {
-            if (b.getCar() != null) {
-                String type = b.getCar().getMakeModel();
-                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
-            }
-            if (b.getInstructor() != null) {
-                String name = b.getInstructor().getFullName();
-                topInstructors.put(name, topInstructors.getOrDefault(name, 0).intValue() + 1);
-            }
-        }
-
         Map<String, Map<String, Number>> charts = new HashMap<>();
-        charts.put("usageByCarType", usageByCarType);
-        charts.put("topInstructors", topInstructors);
+        charts.put("usageByCarType", countByField(bookings, b -> b.getCar() != null ? b.getCar().getMakeModel() : null));
+        charts.put("topInstructors", countByField(bookings, b -> b.getInstructor() != null ? b.getInstructor().getFullName() : null));
 
         return new DashboardAnalyticsDTO(stats, charts);
     }
@@ -125,22 +88,9 @@ public class AnalyticsService {
         stats.put("totalBookings", totalBookings);
         stats.put("totalRevenue", totalRevenue);
 
-        Map<String, Number> usageByCarType = new HashMap<>();
-        Map<String, Number> topLearners = new HashMap<>();
-        for (Booking b : bookings) {
-            if (b.getCar() != null) {
-                String type = b.getCar().getMakeModel();
-                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
-            }
-            if (b.getLearner() != null) {
-                String name = b.getLearner().getFullName();
-                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
-            }
-        }
-
         Map<String, Map<String, Number>> charts = new HashMap<>();
-        charts.put("usageByCarType", usageByCarType);
-        charts.put("topLearners", topLearners);
+        charts.put("usageByCarType", countByField(bookings, b -> b.getCar() != null ? b.getCar().getMakeModel() : null));
+        charts.put("topLearners", countByField(bookings, b -> b.getLearner() != null ? b.getLearner().getFullName() : null));
 
         return new DashboardAnalyticsDTO(stats, charts);
     }
@@ -157,22 +107,9 @@ public class AnalyticsService {
         stats.put("totalEarned", totalEarned);
         stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
 
-        Map<String, Number> usageByCarType = new HashMap<>();
-        Map<String, Number> topLearners = new HashMap<>();
-        for (Booking b : bookings) {
-            if (b.getCar() != null) {
-                String type = b.getCar().getMakeModel();
-                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
-            }
-            if (b.getLearner() != null) {
-                String name = b.getLearner().getFullName();
-                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
-            }
-        }
-
         Map<String, Map<String, Number>> charts = new HashMap<>();
-        charts.put("usageByCarType", usageByCarType);
-        charts.put("topLearners", topLearners);
+        charts.put("usageByCarType", countByField(bookings, b -> b.getCar() != null ? b.getCar().getMakeModel() : null));
+        charts.put("topLearners", countByField(bookings, b -> b.getLearner() != null ? b.getLearner().getFullName() : null));
 
         return new DashboardAnalyticsDTO(stats, charts);
     }
@@ -242,6 +179,17 @@ public class AnalyticsService {
                 utilizationPercentage,
                 totalRevenue
         );
+    }
+
+    private Map<String, Number> countByField(List<Booking> bookings, Function<Booking, String> keyExtractor) {
+        Map<String, Number> counts = new HashMap<>();
+        for (Booking b : bookings) {
+            String key = keyExtractor.apply(b);
+            if (key != null) {
+                counts.put(key, counts.getOrDefault(key, 0).intValue() + 1);
+            }
+        }
+        return counts;
     }
 
     private void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {

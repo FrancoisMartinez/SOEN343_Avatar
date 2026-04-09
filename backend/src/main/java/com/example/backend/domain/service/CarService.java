@@ -7,6 +7,7 @@ import com.example.backend.domain.model.CarProvider;
 import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarProviderRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
+import com.example.backend.foundation.utils.GeoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -122,7 +123,7 @@ public class CarService {
                 .filter(car -> {
                     if (lat == null || lng == null || radius == null) return true;
                     if (car.getLatitude() == null || car.getLongitude() == null) return false;
-                    double distance = calculateDistance(lat, lng, car.getLatitude(), car.getLongitude());
+                    double distance = GeoUtils.calculateDistance(lat, lng, car.getLatitude(), car.getLongitude());
                     return distance <= radius;
                 })
                 .filter(car -> {
@@ -150,23 +151,6 @@ public class CarService {
                 })
                 .map(this::toDto)
                 .toList();
-    }
-
-    /**
-     * Calculate distance between two coordinates using Haversine formula.
-     * Returns distance in kilometers.
-     */
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Earth radius in km
-
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c;
     }
 
     /**
