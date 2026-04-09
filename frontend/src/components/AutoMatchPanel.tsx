@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CarData } from '../services/vehicleService';
 import type { MatchResultData } from '../services/matchingService';
 import { autoMatch } from '../services/matchingService';
+import { createBooking } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import './AutoMatchPanel.css';
 
@@ -76,6 +77,29 @@ export default function AutoMatchPanel({
       setResults(matchResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to find matches');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBookNow = async (result: MatchResultData) => {
+    setError(null);
+    setLoading(true);
+    try {
+      await createBooking({
+        carId: result.carId,
+        userId,
+        date,
+        startTime,
+        duration,
+      });
+      // After successful booking, call onMatchSelect to focus the car
+      onMatchSelect(result);
+      // Close the panel
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create booking';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -182,13 +206,10 @@ export default function AutoMatchPanel({
               </div>
               <button
                 className="auto-match-panel__book-btn"
-                onClick={() => {
-                  // Directly book with auto-match criteria and close panel
-                  onMatchSelect(result);
-                  onClose();
-                }}
+                onClick={() => handleBookNow(result)}
+                disabled={loading}
               >
-                Book This
+                {loading ? 'Booking...' : 'Book This'}
               </button>
             </div>
           ))}
