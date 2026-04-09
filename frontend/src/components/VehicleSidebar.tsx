@@ -116,7 +116,6 @@ export default function VehicleSidebar({
   const [transmissionType, setTransmissionType] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(50);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
 
@@ -157,18 +156,6 @@ export default function VehicleSidebar({
     }
   }, [mode, formOpen, editingCar, onFormOpen, onFormClose]);
 
-  // Sync userLocation with persistent searchCenter from MapPage
-  useEffect(() => {
-    if (mode === 'search' && searchCenter) {
-      setUserLocation(searchCenter);
-    }
-  }, [mode, searchCenter]);
-
-  useEffect(() => {
-    if (mode === 'search' && showFilters && draftLocation) {
-      setUserLocation(draftLocation);
-    }
-  }, [mode, showFilters, draftLocation]);
 
   useEffect(() => {
     if (selectedCarId == null) return;
@@ -275,11 +262,7 @@ export default function VehicleSidebar({
     setSearchKey(prev => prev + 1);
     
     // Mimic exact events from the X button
-    const clearedLoc = { ...(draftLocation || { lat: 0, lng: 0 }), address: '' };
-    setUserLocation(clearedLoc);
-    onLocationChange?.(clearedLoc);
-    
-    setUserLocation(null);
+    onLocationChange?.(null);
     onClearSearch?.();
   };
 
@@ -503,11 +486,10 @@ export default function VehicleSidebar({
             initialAddress={userLocation?.address || ''}
             draftLocation={showFilters ? (draftLocation || null) : (userLocation ? { lat: userLocation.lat, lng: userLocation.lng, address: userLocation.address || '' } : null)}
             onLocationChange={(loc) => {
-              setUserLocation(loc);
               onLocationChange?.(loc);
             }}
             onClear={() => {
-              setUserLocation(null);
+              onLocationChange?.(null);
               onClearSearch?.();
             }}
             label="Search Center"
