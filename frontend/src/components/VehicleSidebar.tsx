@@ -92,6 +92,8 @@ export default function VehicleSidebar({
   onFormOpen,
   onFormClose,
   onLocationChange,
+  userLocation,
+  onAutoMatchSelect,
 }: VehicleSidebarProps) {
   type AvailabilityReturnState = {
     view: 'list' | 'form';
@@ -387,7 +389,7 @@ export default function VehicleSidebar({
 
       {mode === 'search' && autoMatchOpen && (
         <AutoMatchPanel
-          userLocation={userLocation || null}
+          userLocation={userLocation}
           onClose={() => setAutoMatchOpen(false)}
           onMatchSelect={(result) => {
             setAutoMatchOpen(false);

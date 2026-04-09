@@ -79,8 +79,9 @@ export default function MapPage() {
       
       const data = await searchVehicles(finalFilters);
       setVehicles(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to search vehicles';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -259,26 +260,29 @@ export default function MapPage() {
     handleCarFocus(carId, { openPopup: true, forceRecenter: true });
   };
 
-  const handleAutoMatchSelect = (result: MatchResultData) => {
-    const matchedCar = vehicles.find((v) => v.id === result.carId);
-    if (matchedCar) {
-      handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
-    } else {
-      // Car not in vehicles list, add it
-      const newCar: CarData = {
-        id: result.carId,
-        makeModel: result.makeModel,
-        transmissionType: result.transmissionType,
-        location: result.location,
-        latitude: result.latitude,
-        longitude: result.longitude,
-        available: true,
-        hourlyRate: result.hourlyRate,
-      };
-      setVehicles([...vehicles, newCar]);
-      handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
-    }
-  };
+  const handleAutoMatchSelect = useCallback(
+    (result: MatchResultData) => {
+      const matchedCar = vehicles.find((v) => v.id === result.carId);
+      if (matchedCar) {
+        handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
+      } else {
+        // Car not in vehicles list, add it
+        const newCar: CarData = {
+          id: result.carId,
+          makeModel: result.makeModel,
+          transmissionType: result.transmissionType,
+          location: result.location,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          available: true,
+          hourlyRate: result.hourlyRate,
+        };
+        setVehicles((prev) => [...prev, newCar]);
+        handleCarFocus(result.carId, { openPopup: true, forceRecenter: true });
+      }
+    },
+    [vehicles, handleCarFocus]
+  );
 
   const handleClearSearch = useCallback(() => {
     setSearchCenter(null);

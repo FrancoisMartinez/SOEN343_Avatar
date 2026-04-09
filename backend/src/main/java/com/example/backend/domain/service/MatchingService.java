@@ -125,15 +125,29 @@ public class MatchingService {
   }
 
   private String dayOfWeekFrom(String date) {
-    LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
-    return localDate.getDayOfWeek().name();
+    try {
+      LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
+      return localDate.getDayOfWeek().name();
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Invalid date format. Use YYYY-MM-DD format");
+    }
   }
 
   private int startMinuteFrom(String time) {
-    String[] parts = time.split(":");
-    int hours = Integer.parseInt(parts[0]);
-    int minutes = Integer.parseInt(parts[1]);
-    return hours * 60 + minutes;
+    try {
+      String[] parts = time.split(":");
+      if (parts.length < 2) {
+        throw new IllegalArgumentException("Invalid time format");
+      }
+      int hours = Integer.parseInt(parts[0]);
+      int minutes = Integer.parseInt(parts[1]);
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new IllegalArgumentException("Invalid time values");
+      }
+      return hours * 60 + minutes;
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid time format. Use HH:mm format");
+    }
   }
 
   private int endMinuteFrom(String time, int durationHours) {
