@@ -9,6 +9,7 @@ class MatchResultTest {
   @Test
   void testGettersAndSetters() {
     MatchResult result = new MatchResult();
+    result.setResultType("CAR");
     result.setCarId(1L);
     result.setMakeModel("Toyota Corolla");
     result.setTransmissionType("Automatic");
@@ -23,6 +24,7 @@ class MatchResultTest {
     result.setCompositeScore(88.0);
     result.setDistanceKm(2.5);
 
+    assertEquals("CAR", result.getResultType());
     assertEquals(1L, result.getCarId());
     assertEquals("Toyota Corolla", result.getMakeModel());
     assertEquals("Automatic", result.getTransmissionType());
@@ -42,12 +44,16 @@ class MatchResultTest {
   void testConstructorWithAllArgs() {
     MatchResult result =
         new MatchResult(
+            "CAR",
             1L,
+            null,
             "Toyota Corolla",
+            null,
             "Automatic",
             "Montreal",
             45.5,
             -73.5,
+            null,
             50.0,
             100.0,
             95.0,
@@ -56,6 +62,7 @@ class MatchResultTest {
             88.0,
             2.5);
 
+    assertEquals("CAR", result.getResultType());
     assertEquals(1L, result.getCarId());
     assertEquals("Toyota Corolla", result.getMakeModel());
     assertEquals("Automatic", result.getTransmissionType());

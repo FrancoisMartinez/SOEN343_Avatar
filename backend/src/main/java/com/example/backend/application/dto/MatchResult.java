@@ -1,12 +1,16 @@
 package com.example.backend.application.dto;
 
 public class MatchResult {
+  private String resultType; // "CAR" or "INSTRUCTOR"
   private Long carId;
+  private Long instructorId;
   private String makeModel;
+  private String instructorName;
   private String transmissionType;
   private String location;
   private Double latitude;
   private Double longitude;
+  private Double rating; // instructor rating (null for car results)
   private double hourlyRate;
   private double totalCost;
   private double proximityScore;
@@ -18,12 +22,16 @@ public class MatchResult {
   public MatchResult() {}
 
   public MatchResult(
+      String resultType,
       Long carId,
+      Long instructorId,
       String makeModel,
+      String instructorName,
       String transmissionType,
       String location,
       Double latitude,
       Double longitude,
+      Double rating,
       double hourlyRate,
       double totalCost,
       double proximityScore,
@@ -31,12 +39,16 @@ public class MatchResult {
       double transmissionScore,
       double compositeScore,
       double distanceKm) {
+    this.resultType = resultType;
     this.carId = carId;
+    this.instructorId = instructorId;
     this.makeModel = makeModel;
+    this.instructorName = instructorName;
     this.transmissionType = transmissionType;
     this.location = location;
     this.latitude = latitude;
     this.longitude = longitude;
+    this.rating = rating;
     this.hourlyRate = hourlyRate;
     this.totalCost = totalCost;
     this.proximityScore = proximityScore;
@@ -44,6 +56,38 @@ public class MatchResult {
     this.transmissionScore = transmissionScore;
     this.compositeScore = compositeScore;
     this.distanceKm = distanceKm;
+  }
+
+  public String getResultType() {
+    return resultType;
+  }
+
+  public void setResultType(String resultType) {
+    this.resultType = resultType;
+  }
+
+  public Long getInstructorId() {
+    return instructorId;
+  }
+
+  public void setInstructorId(Long instructorId) {
+    this.instructorId = instructorId;
+  }
+
+  public String getInstructorName() {
+    return instructorName;
+  }
+
+  public void setInstructorName(String instructorName) {
+    this.instructorName = instructorName;
+  }
+
+  public Double getRating() {
+    return rating;
+  }
+
+  public void setRating(Double rating) {
+    this.rating = rating;
   }
 
   public Long getCarId() {

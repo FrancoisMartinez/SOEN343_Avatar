@@ -86,14 +86,23 @@ export default function AutoMatchPanel({
     setError(null);
     setLoading(true);
     try {
-      await createBooking({
-        carId: result.carId,
-        userId,
-        date,
-        startTime,
-        duration,
-      });
-      // After successful booking, call onMatchSelect to focus the car
+      const bookingPayload = result.resultType === 'INSTRUCTOR'
+        ? {
+            instructorId: result.instructorId,
+            userId,
+            date,
+            startTime,
+            duration,
+          }
+        : {
+            carId: result.carId,
+            userId,
+            date,
+            startTime,
+            duration,
+          };
+      await createBooking(bookingPayload);
+      // After successful booking, call onMatchSelect to focus the result
       onMatchSelect(result);
       // Close the panel
       onClose();
@@ -182,11 +191,25 @@ export default function AutoMatchPanel({
       {results.length > 0 && (
         <div className="auto-match-panel__results">
           {results.map((result, idx) => (
-            <div key={result.carId} className="auto-match-panel__result-card">
+            <div key={`${result.resultType}-${result.resultType === 'CAR' ? result.carId : result.instructorId}`} className="auto-match-panel__result-card">
               <div className="auto-match-panel__rank">#{idx + 1}</div>
               <div className="auto-match-panel__card-info">
-                <div className="auto-match-panel__car-name">{result.makeModel}</div>
-                <div className="auto-match-panel__location">{result.location}</div>
+                {result.resultType === 'INSTRUCTOR' ? (
+                  <>
+                    <div className="auto-match-panel__car-name">{result.instructorName}</div>
+                    <div className="auto-match-panel__location">Instructor</div>
+                    {result.rating !== undefined && (
+                      <div className="auto-match-panel__distance">
+                        ⭐ {result.rating.toFixed(1)}/5
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="auto-match-panel__car-name">{result.makeModel}</div>
+                    <div className="auto-match-panel__location">{result.location}</div>
+                  </>
+                )}
                 <div className="auto-match-panel__distance">
                   {result.distanceKm.toFixed(1)} km
                 </div>
@@ -217,7 +240,7 @@ export default function AutoMatchPanel({
       )}
 
       {!loading && results.length === 0 && date && !error && (
-        <div className="auto-match-panel__empty">No matching cars found for your criteria.</div>
+        <div className="auto-match-panel__empty">No matching cars or instructors found for your criteria.</div>
       )}
     </div>
   );

@@ -11,17 +11,21 @@ export interface AutoMatchRequest {
 }
 
 export interface MatchResultData {
-  carId: number;
-  makeModel: string;
-  transmissionType: string;
-  location: string;
+  resultType: 'CAR' | 'INSTRUCTOR';
+  carId?: number;
+  instructorId?: number;
+  makeModel?: string;
+  instructorName?: string;
+  transmissionType?: string;
+  location?: string;
   latitude: number;
   longitude: number;
+  rating?: number;
   hourlyRate: number;
   totalCost: number;
   proximityScore: number;
   budgetScore: number;
-  transmissionScore: number;
+  transmissionScore?: number;
   compositeScore: number;
   distanceKm: number;
 }
