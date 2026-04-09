@@ -16,6 +16,12 @@ class MatchResultTest {
     result.setLatitude(45.5);
     result.setLongitude(-73.5);
     result.setHourlyRate(50.0);
+    result.setInstructorId(2L);
+    result.setInstructorName("John Doe");
+    result.setInstructorHourlyRate(30.0);
+    result.setInstructorRating(4.5);
+    result.setInstructorLatitude(45.6);
+    result.setInstructorLongitude(-73.6);
     result.setTotalCost(100.0);
     result.setProximityScore(95.0);
     result.setBudgetScore(80.0);
@@ -30,6 +36,12 @@ class MatchResultTest {
     assertEquals(45.5, result.getLatitude());
     assertEquals(-73.5, result.getLongitude());
     assertEquals(50.0, result.getHourlyRate());
+    assertEquals(2L, result.getInstructorId());
+    assertEquals("John Doe", result.getInstructorName());
+    assertEquals(30.0, result.getInstructorHourlyRate());
+    assertEquals(4.5, result.getInstructorRating());
+    assertEquals(45.6, result.getInstructorLatitude());
+    assertEquals(-73.6, result.getInstructorLongitude());
     assertEquals(100.0, result.getTotalCost());
     assertEquals(95.0, result.getProximityScore());
     assertEquals(80.0, result.getBudgetScore());
@@ -49,6 +61,12 @@ class MatchResultTest {
             45.5,
             -73.5,
             50.0,
+            2L,
+            "John Doe",
+            30.0,
+            4.5,
+            45.6,
+            -73.6,
             100.0,
             95.0,
             80.0,
@@ -63,6 +81,12 @@ class MatchResultTest {
     assertEquals(45.5, result.getLatitude());
     assertEquals(-73.5, result.getLongitude());
     assertEquals(50.0, result.getHourlyRate());
+    assertEquals(2L, result.getInstructorId());
+    assertEquals("John Doe", result.getInstructorName());
+    assertEquals(30.0, result.getInstructorHourlyRate());
+    assertEquals(4.5, result.getInstructorRating());
+    assertEquals(45.6, result.getInstructorLatitude());
+    assertEquals(-73.6, result.getInstructorLongitude());
     assertEquals(100.0, result.getTotalCost());
     assertEquals(95.0, result.getProximityScore());
     assertEquals(80.0, result.getBudgetScore());

@@ -67,21 +67,15 @@ function FlyToSelected({
 }) {
   const map = useMap();
   const lastTargetRef = useRef<string | null>(null);
-  const prevFocusEventIdRef = useRef<number>(0);
+  const lastProcessedEventIdRef = useRef<number>(0);
 
   useEffect(() => {
-    const focusRequested = prevFocusEventIdRef.current !== focusEvent.id;
-    prevFocusEventIdRef.current = focusEvent.id;
-
-    if (!focusRequested) {
-      return;
-    }
-
     const selectedCarId = focusEvent.carId;
     const selectedInstructorId = focusEvent.instructorId;
 
     if (selectedCarId == null && selectedInstructorId == null) {
       lastTargetRef.current = null;
+      lastProcessedEventIdRef.current = focusEvent.id;
       return;
     }
 
@@ -105,23 +99,25 @@ function FlyToSelected({
       }
     }
 
+    // If we have a target, check if we should fly
     if (target) {
-      if (!focusEvent.forceRecenter && lastTargetRef.current === targetKey) {
-        return;
-      }
+      const isNewEvent = lastProcessedEventIdRef.current !== focusEvent.id;
+      const isNewTarget = lastTargetRef.current !== targetKey;
 
-      const currentCenter = map.getCenter();
-      const distanceToTargetMeters = map.distance(currentCenter, target);
-      const isAlreadyFocused = distanceToTargetMeters < 1;
+      if (isNewEvent || (focusEvent.forceRecenter && isNewTarget)) {
+        const currentCenter = map.getCenter();
+        const distanceToTargetMeters = map.distance(currentCenter, target);
+        const isAlreadyFocused = distanceToTargetMeters < 1;
 
-      if (isAlreadyFocused && !focusEvent.forceRecenter) {
+        if (isAlreadyFocused && !focusEvent.forceRecenter && !isNewEvent) {
+          return;
+        }
+
         lastTargetRef.current = targetKey;
-        return;
+        lastProcessedEventIdRef.current = focusEvent.id;
+        map.stop();
+        map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 1 });
       }
-
-      lastTargetRef.current = targetKey;
-      map.stop();
-      map.flyTo(target, LOCATE_ZOOM_LEVEL, { duration: 1 });
     }
   }, [focusEvent, vehicles, instructors, map, userLocation]);
 
@@ -461,7 +457,13 @@ export default function MapComponent({
         {!pickingMode && onSelectCar && <DeselectOnMapClick onDeselect={() => { onSelectCar(null); onSelectInstructor?.(null); }} />}
         {!pickingMode && searchCenter && (
           <><Marker position={[searchCenter.lat, searchCenter.lng]} icon={reticleIcon}><Popup><strong>Search Center</strong></Popup></Marker>
-          {serviceType !== 'class' && <Circle center={[searchCenter.lat, searchCenter.lng]} radius={searchRadius * 1000} pathOptions={{ color: '#646cff', fillColor: '#646cff', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} />}
+          {serviceType !== 'class' && searchRadius < 50 && (
+            <Circle 
+              center={[searchCenter.lat, searchCenter.lng]} 
+              radius={searchRadius * 1000} 
+              pathOptions={{ color: '#646cff', fillColor: '#646cff', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} 
+            />
+          )}
           <FlyToSearchCenter searchCenter={searchCenter} searchRadius={serviceType === 'class' ? 2 : searchRadius} /></>
         )}
         {pickingMode && onLocationPick && <><PickingClickHandler onPick={onLocationPick} /><PickingCursor /></>}
@@ -469,7 +471,13 @@ export default function MapComponent({
           <><Marker position={[draftLocation.lat, draftLocation.lng]} icon={draftIcon} ref={(ref) => { draftMarkerRef.current = ref; }}><Popup autoPan={false}><strong>{pickingPurpose === 'vehicle' ? (selectedCar?.makeModel ?? 'New Vehicle') : pickingPurpose === 'instructor' ? 'Instructor Location' : 'Search Center'}</strong></Popup></Marker>
           {pickingPurpose === 'search' && (
             <>
-              {serviceType !== 'class' && <Circle center={[draftLocation.lat, draftLocation.lng]} radius={searchRadius * 1000} pathOptions={{ color: '#646cff', fillColor: '#646cff', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} />}
+              {serviceType !== 'class' && searchRadius < 50 && (
+                <Circle 
+                  center={[draftLocation.lat, draftLocation.lng]} 
+                  radius={searchRadius * 1000} 
+                  pathOptions={{ color: '#646cff', fillColor: '#646cff', fillOpacity: 0.1, weight: 2, dashArray: '5, 10' }} 
+                />
+              )}
               <FlyToSearchCenter searchCenter={draftLocation} searchRadius={serviceType === 'class' ? 2 : searchRadius} />
             </>
           )}

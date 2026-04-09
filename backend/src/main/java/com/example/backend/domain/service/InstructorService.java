@@ -24,7 +24,10 @@ public class InstructorService {
                     // Filter by distance: check if user is within instructor's travel radius
                     if (lat != null && lng != null) {
                         double dist = calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
+                        // Mandatory: learner must be within instructor's travel radius for a match to be possible
                         if (dist > instructor.getTravelRadius()) return false;
+                        // Optional: learner's own search radius preference
+                        if (searchRadius != null && dist > searchRadius) return false;
                     }
                     // Filter by min price if provided
                     if (minPrice != null && instructor.getHourlyRate() < minPrice) {

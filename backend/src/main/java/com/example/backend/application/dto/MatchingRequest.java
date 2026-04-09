@@ -4,10 +4,13 @@ public class MatchingRequest {
   private Long learnerId;
   private String date;
   private String startTime;
-  private int duration;
+  private Integer duration;
   private double learnerLat;
   private double learnerLng;
   private String transmissionPreference;
+  private Double radius;
+  private Double minPrice;
+  private Double maxPrice;
 
   public MatchingRequest() {}
 
@@ -15,7 +18,7 @@ public class MatchingRequest {
       Long learnerId,
       String date,
       String startTime,
-      int duration,
+      Integer duration,
       double learnerLat,
       double learnerLng,
       String transmissionPreference) {
@@ -52,11 +55,11 @@ public class MatchingRequest {
     this.startTime = startTime;
   }
 
-  public int getDuration() {
+  public Integer getDuration() {
     return duration;
   }
 
-  public void setDuration(int duration) {
+  public void setDuration(Integer duration) {
     this.duration = duration;
   }
 
@@ -82,5 +85,29 @@ public class MatchingRequest {
 
   public void setTransmissionPreference(String transmissionPreference) {
     this.transmissionPreference = transmissionPreference;
+  }
+
+  public Double getRadius() {
+    return radius;
+  }
+
+  public void setRadius(Double radius) {
+    this.radius = radius;
+  }
+
+  public Double getMinPrice() {
+    return minPrice;
+  }
+
+  public void setMinPrice(Double minPrice) {
+    this.minPrice = minPrice;
+  }
+
+  public Double getMaxPrice() {
+    return maxPrice;
+  }
+
+  public void setMaxPrice(Double maxPrice) {
+    this.maxPrice = maxPrice;
   }
 }

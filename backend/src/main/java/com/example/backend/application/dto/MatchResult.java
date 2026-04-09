@@ -7,13 +7,22 @@ public class MatchResult {
   private String location;
   private Double latitude;
   private Double longitude;
-  private double hourlyRate;
+  private double hourlyRate; // This is the car's hourly rate
+
+  // Instructor details
+  private Long instructorId;
+  private String instructorName;
+  private double instructorHourlyRate;
+  private Double instructorRating;
+  private Double instructorLatitude;
+  private Double instructorLongitude;
+
   private double totalCost;
   private double proximityScore;
   private double budgetScore;
   private double transmissionScore;
   private double compositeScore;
-  private double distanceKm;
+  private double distanceKm; // Total distance (Learner to Car + Learner to Instructor)
 
   public MatchResult() {}
 
@@ -25,6 +34,12 @@ public class MatchResult {
       Double latitude,
       Double longitude,
       double hourlyRate,
+      Long instructorId,
+      String instructorName,
+      double instructorHourlyRate,
+      Double instructorRating,
+      Double instructorLatitude,
+      Double instructorLongitude,
       double totalCost,
       double proximityScore,
       double budgetScore,
@@ -38,6 +53,12 @@ public class MatchResult {
     this.latitude = latitude;
     this.longitude = longitude;
     this.hourlyRate = hourlyRate;
+    this.instructorId = instructorId;
+    this.instructorName = instructorName;
+    this.instructorHourlyRate = instructorHourlyRate;
+    this.instructorRating = instructorRating;
+    this.instructorLatitude = instructorLatitude;
+    this.instructorLongitude = instructorLongitude;
     this.totalCost = totalCost;
     this.proximityScore = proximityScore;
     this.budgetScore = budgetScore;
@@ -100,6 +121,54 @@ public class MatchResult {
 
   public void setHourlyRate(double hourlyRate) {
     this.hourlyRate = hourlyRate;
+  }
+
+  public Long getInstructorId() {
+    return instructorId;
+  }
+
+  public void setInstructorId(Long instructorId) {
+    this.instructorId = instructorId;
+  }
+
+  public String getInstructorName() {
+    return instructorName;
+  }
+
+  public void setInstructorName(String instructorName) {
+    this.instructorName = instructorName;
+  }
+
+  public double getInstructorHourlyRate() {
+    return instructorHourlyRate;
+  }
+
+  public void setInstructorHourlyRate(double instructorHourlyRate) {
+    this.instructorHourlyRate = instructorHourlyRate;
+  }
+
+  public Double getInstructorRating() {
+    return instructorRating;
+  }
+
+  public void setInstructorRating(Double instructorRating) {
+    this.instructorRating = instructorRating;
+  }
+
+  public Double getInstructorLatitude() {
+    return instructorLatitude;
+  }
+
+  public void setInstructorLatitude(Double instructorLatitude) {
+    this.instructorLatitude = instructorLatitude;
+  }
+
+  public Double getInstructorLongitude() {
+    return instructorLongitude;
+  }
+
+  public void setInstructorLongitude(Double instructorLongitude) {
+    this.instructorLongitude = instructorLongitude;
   }
 
   public double getTotalCost() {

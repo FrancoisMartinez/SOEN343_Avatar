@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { autoMatch, AutoMatchRequest } from '../../services/matchingService';
+import { autoMatch } from '../../services/matchingService';
+import type { AutoMatchRequest } from '../../services/matchingService';
 
 describe('matchingService', () => {
   const originalFetch = globalThis.fetch;

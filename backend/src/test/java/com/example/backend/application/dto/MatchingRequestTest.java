@@ -46,7 +46,7 @@ class MatchingRequestTest {
     assertNull(request.getLearnerId());
     assertNull(request.getDate());
     assertNull(request.getStartTime());
-    assertEquals(0, request.getDuration());
+    assertNull(request.getDuration());
     assertEquals(0.0, request.getLearnerLat());
     assertEquals(0.0, request.getLearnerLng());
     assertNull(request.getTransmissionPreference());

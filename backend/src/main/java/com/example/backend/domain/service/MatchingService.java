@@ -1,6 +1,7 @@
 package com.example.backend.domain.service;
 
 import com.example.backend.application.dto.CarDto;
+import com.example.backend.application.dto.InstructorDto;
 import com.example.backend.application.dto.MatchingRequest;
 import com.example.backend.application.dto.MatchResult;
 import com.example.backend.domain.model.Learner;
@@ -10,35 +11,28 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class MatchingService {
 
   private final CarService carService;
+  private final InstructorService instructorService;
   private final LearnerRepository learnerRepository;
 
-  public MatchingService(CarService carService, LearnerRepository learnerRepository) {
+  public MatchingService(CarService carService, InstructorService instructorService, LearnerRepository learnerRepository) {
     this.carService = carService;
+    this.instructorService = instructorService;
     this.learnerRepository = learnerRepository;
   }
 
   /**
-   * Auto-match: finds and ranks available cars for a learner's request.
+   * Auto-match: finds and ranks available car+instructor pairs for a learner's request.
    */
   public List<MatchResult> autoMatch(MatchingRequest request) {
-    // Validate request fields
     if (request.getLearnerId() == null) {
       throw new IllegalArgumentException("learnerId is required");
-    }
-    if (request.getDate() == null || request.getDate().isBlank()) {
-      throw new IllegalArgumentException("date is required in YYYY-MM-DD format");
-    }
-    if (request.getStartTime() == null || request.getStartTime().isBlank()) {
-      throw new IllegalArgumentException("startTime is required in HH:mm format");
-    }
-    if (request.getDuration() <= 0 || request.getDuration() > 12) {
-      throw new IllegalArgumentException("duration must be between 1 and 12 hours");
     }
     if (request.getLearnerLat() < -90 || request.getLearnerLat() > 90) {
       throw new IllegalArgumentException("latitude must be between -90 and 90");
@@ -50,40 +44,83 @@ public class MatchingService {
     Learner learner = learnerRepository.findById(request.getLearnerId())
         .orElseThrow(() -> new IllegalArgumentException("Learner not found"));
 
-    String dayOfWeek = dayOfWeekFrom(request.getDate());
-    int startMinute = startMinuteFrom(request.getStartTime());
-    int endMinute = endMinuteFrom(request.getStartTime(), request.getDuration());
+    String dayOfWeek = null;
+    Integer startMinute = null;
+    Integer endMinute = null;
 
-    List<CarDto> candidates = carService.searchCars(
+    if (request.getDate() != null && !request.getDate().isBlank()) {
+      dayOfWeek = dayOfWeekFrom(request.getDate());
+    }
+
+    if (request.getStartTime() != null && !request.getStartTime().isBlank()) {
+      startMinute = startMinuteFrom(request.getStartTime());
+      int duration = (request.getDuration() != null && request.getDuration() > 0) ? request.getDuration() : 1;
+      endMinute = endMinuteFrom(request.getStartTime(), duration);
+    }
+
+    List<CarDto> carCandidates = carService.searchCars(
         request.getTransmissionPreference(),
-        null,
-        null,
-        true,
+        request.getMinPrice(),
+        request.getMaxPrice(),
+        true, // Available cars
         request.getLearnerLat(),
         request.getLearnerLng(),
-        50.0,
+        request.getRadius(),
         dayOfWeek,
         startMinute,
         endMinute
     );
 
-    return candidates.stream()
-        .map(car -> scoreAndBuild(car, request, learner.getBalance()))
+    List<InstructorDto> instructorCandidates = instructorService.searchInstructors(
+        request.getLearnerLat(),
+        request.getLearnerLng(),
+        request.getRadius(),
+        request.getMinPrice(),
+        request.getMaxPrice(),
+        dayOfWeek,
+        startMinute,
+        endMinute
+    );
+
+    List<MatchResult> allPairs = new ArrayList<>();
+    
+    // Default duration to 1 hour if not specified to calculate scoring costs reasonably.
+    int effectiveDuration = (request.getDuration() != null && request.getDuration() > 0) ? request.getDuration() : 1;
+
+    for (CarDto car : carCandidates) {
+      for (InstructorDto instructor : instructorCandidates) {
+        MatchResult result = scoreAndBuild(car, instructor, request, learner.getBalance(), effectiveDuration);
+        allPairs.add(result);
+      }
+    }
+
+    return allPairs.stream()
         .sorted((a, b) -> Double.compare(b.getCompositeScore(), a.getCompositeScore()))
+        .limit(20) // Only return the top 20 matches to avoid overwhelming frontend
         .toList();
   }
 
-  private MatchResult scoreAndBuild(CarDto car, MatchingRequest request, double learnerBalance) {
-    double distanceKm = haversineKm(
+  private MatchResult scoreAndBuild(CarDto car, InstructorDto instructor, MatchingRequest request, double learnerBalance, int duration) {
+    double distanceLearnerToCar = haversineKm(
         request.getLearnerLat(),
         request.getLearnerLng(),
         car.getLatitude(),
         car.getLongitude()
     );
 
-    double totalCost = request.getDuration() * car.getHourlyRate();
+    double distanceLearnerToInstructor = haversineKm(
+        request.getLearnerLat(),
+        request.getLearnerLng(),
+        instructor.getLatitude(),
+        instructor.getLongitude()
+    );
 
-    double proximityScore = computeProximityScore(distanceKm);
+    // Sum of distances (Learner to Car and Learner to Instructor)
+    double totalDistanceKm = distanceLearnerToCar + distanceLearnerToInstructor;
+
+    double totalCost = duration * (car.getHourlyRate() + instructor.getHourlyRate());
+
+    double proximityScore = computeProximityScore(totalDistanceKm);
     double budgetScore = computeBudgetScore(totalCost, learnerBalance);
     double transmissionScore = computeTransmissionScore(car.getTransmissionType(),
         request.getTransmissionPreference());
@@ -97,17 +134,24 @@ public class MatchingService {
         car.getLatitude(),
         car.getLongitude(),
         car.getHourlyRate(),
+        instructor.getId(),
+        instructor.getFullName(),
+        instructor.getHourlyRate(),
+        instructor.getRating(),
+        instructor.getLatitude(),
+        instructor.getLongitude(),
         totalCost,
         proximityScore,
         budgetScore,
         transmissionScore,
         compositeScore,
-        distanceKm
+        totalDistanceKm
     );
   }
 
   public double computeProximityScore(double distanceKm) {
-    final double MAX_RADIUS = 50.0;
+    // Distance could be up to 100km max theoretically (50km max for each)
+    final double MAX_RADIUS = 100.0;
     return Math.max(0, 100 - (distanceKm / MAX_RADIUS) * 100);
   }
 

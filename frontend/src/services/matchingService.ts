@@ -2,12 +2,15 @@ const API_BASE = '/api/matchings';
 
 export interface AutoMatchRequest {
   learnerId: number;
-  date: string;
-  startTime: string;
-  duration: number;
+  date?: string;
+  startTime?: string;
+  duration?: number;
   learnerLat: number;
   learnerLng: number;
   transmissionPreference?: string;
+  radius?: number;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export interface MatchResultData {
@@ -18,6 +21,12 @@ export interface MatchResultData {
   latitude: number;
   longitude: number;
   hourlyRate: number;
+  instructorId: number;
+  instructorName: string;
+  instructorHourlyRate: number;
+  instructorRating?: number;
+  instructorLatitude?: number;
+  instructorLongitude?: number;
   totalCost: number;
   proximityScore: number;
   budgetScore: number;

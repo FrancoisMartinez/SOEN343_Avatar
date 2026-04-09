@@ -30,8 +30,8 @@ interface VehicleSidebarProps {
   onRetry: () => void;
   onFormOpen?: (car: CarData | null, purpose?: 'search' | 'vehicle' | 'instructor') => void;
   onFormClose?: () => void;
-  onLocationChange?: (loc: DraftLocation) => void;
-  userLocation?: { lat: number; lng: number } | null;
+  onLocationChange?: (loc: DraftLocation | null) => void;
+  userLocation?: { lat: number; lng: number; address?: string } | null;
   onAutoMatchSelect?: (result: MatchResultData) => void;
 }
 
@@ -80,8 +80,8 @@ export default function VehicleSidebar({
   error,
   selectedCarId,
   draftLocation,
-  searchCenter,
-  searchRadius = 5,
+  searchCenter: _searchCenter,
+  searchRadius = 50,
   onSearchRadiusChange,
   onAddVehicle,
   onSetVehicleAvailability,
@@ -295,7 +295,7 @@ export default function VehicleSidebar({
       minPrice: minPrice || undefined,
       maxPrice: maxPrice === 50 ? undefined : maxPrice,
       isAvailable: true,
-      radius: (userLocation && userLocation.address) ? searchRadius : undefined,
+      radius: (userLocation && userLocation.address) ? (searchRadius >= 50 ? undefined : searchRadius) : undefined,
       lat: (userLocation && userLocation.address) ? userLocation.lat : undefined,
       lng: (userLocation && userLocation.address) ? userLocation.lng : undefined,
       dayOfWeek,
@@ -337,6 +337,19 @@ export default function VehicleSidebar({
     );
   }
 
+  if (autoMatchOpen) {
+    return (
+      <AutoMatchPanel
+        userLocation={userLocation || null}
+        onClose={() => setAutoMatchOpen(false)}
+        onMatchSelect={(result) => {
+          setAutoMatchOpen(false);
+          onAutoMatchSelect?.(result);
+        }}
+      />
+    );
+  }
+
   return (
     <aside className="vehicle-sidebar">
       <div className="vehicle-sidebar__header">
@@ -346,13 +359,6 @@ export default function VehicleSidebar({
         <div className="vehicle-sidebar__header-actions">
           {mode === 'search' && (
             <>
-              <button
-                className="vehicle-sidebar__header-btn"
-                onClick={() => setAutoMatchOpen(true)}
-                title="Auto-match cars"
-              >
-                Auto-Match
-              </button>
               <button
                 className="vehicle-sidebar__header-btn"
                 onClick={() => setShowFilters(!showFilters)}
@@ -369,17 +375,6 @@ export default function VehicleSidebar({
           )}
         </div>
       </div>
-
-      {mode === 'search' && autoMatchOpen && (
-        <AutoMatchPanel
-          userLocation={userLocation}
-          onClose={() => setAutoMatchOpen(false)}
-          onMatchSelect={(result) => {
-            setAutoMatchOpen(false);
-            onAutoMatchSelect?.(result);
-          }}
-        />
-      )}
 
       {mode === 'search' && !autoMatchOpen && showFilters ? (
         <div className="vehicle-sidebar__filters vehicle-sidebar__filters--full">
@@ -499,7 +494,7 @@ export default function VehicleSidebar({
           <div className="vehicle-sidebar__filter-group">
             <div className="vehicle-sidebar__price-label">
               <span className="vehicle-sidebar__filter-label">Search Radius</span>
-              <span className="vehicle-sidebar__price-current">{searchRadius} km</span>
+              <span className="vehicle-sidebar__price-current">{searchRadius >= 50 ? 'Unlimited' : `${searchRadius} km`}</span>
             </div>
             <div className="vehicle-sidebar__price-slider">
               <div className="vehicle-sidebar__price-slider-track" />
