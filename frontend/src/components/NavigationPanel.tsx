@@ -247,19 +247,6 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
 
       {!isCollapsed && (
         <>
-          <div style={{ display: 'flex', gap: '1rem', padding: '0.5rem 1rem', flexWrap: 'wrap', borderBottom: '1px solid #333' }}>
-            {role && (
-              <Link to="/analytics" className="nav-panel__link" style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                Analytics
-              </Link>
-            )}
-            {role === 'INSTRUCTOR' && (
-              <Link to="/instructor-reservations" className="nav-panel__link" style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                Instructor Reservations
-              </Link>
-            )}
-          </div>
-
           <div className="nav-panel__modes" role="group" aria-label="Transport mode">
             {MODES.map(({ value, label, icon }) => (
               <button
