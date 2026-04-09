@@ -8,10 +8,12 @@ import {
   type UserProfile,
   type UpdateProfilePayload,
 } from '../services/userService';
+import LocationPicker from '../components/LocationPicker';
+import type { DraftLocation } from '../components/VehicleFormModal';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { token, isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -21,6 +23,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [draftLocation, setDraftLocation] = useState<DraftLocation | null>(null);
 
   // Balance top-up state
   const [topUpAmount, setTopUpAmount] = useState('');
@@ -29,24 +32,28 @@ export default function ProfilePage() {
   const [topUpSuccess, setTopUpSuccess] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    getUserProfile(token)
+    getUserProfile()
       .then((data) => {
         setProfile(data);
         setForm({
           fullName: data.fullName ?? '',
           email: data.email ?? '',
-          licenseNumber: data.licenseNumber ?? '',
-          licenseIssueDate: data.licenseIssueDate ?? '',
-          licenseRegion: data.licenseRegion ?? '',
+          latitude: data.latitude ?? undefined,
+          longitude: data.longitude ?? undefined,
+          travelRadius: data.travelRadius ?? undefined,
+          hourlyRate: data.hourlyRate ?? undefined,
         });
+        if (data.latitude && data.longitude) {
+          setDraftLocation({ lat: data.latitude, lng: data.longitude, address: 'Current Location' });
+        }
       })
       .catch(() => setError('Failed to load profile.'))
       .finally(() => setLoading(false));
-  }, [token, isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const handleLogout = () => {
     logout();
@@ -64,21 +71,31 @@ export default function ProfilePage() {
       setForm({
         fullName: profile.fullName ?? '',
         email: profile.email ?? '',
-        licenseNumber: profile.licenseNumber ?? '',
-        licenseIssueDate: profile.licenseIssueDate ?? '',
-        licenseRegion: profile.licenseRegion ?? '',
+        latitude: profile.latitude ?? undefined,
+        longitude: profile.longitude ?? undefined,
+        travelRadius: profile.travelRadius ?? undefined,
+        hourlyRate: profile.hourlyRate ?? undefined,
       });
+      if (profile.latitude && profile.longitude) {
+        setDraftLocation({ lat: profile.latitude, lng: profile.longitude, address: 'Current Location' });
+      } else {
+        setDraftLocation(null);
+      }
     }
     setEditing(false);
     setError(null);
   };
 
   const handleSave = async () => {
-    if (!token) return;
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateUserProfile(token, form);
+      const payload = { ...form };
+      if (draftLocation) {
+        payload.latitude = draftLocation.lat;
+        payload.longitude = draftLocation.lng;
+      }
+      const updated = await updateUserProfile(payload);
       setProfile(updated);
       setEditing(false);
       setSuccess(true);
@@ -89,12 +106,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleChange = (field: keyof UpdateProfilePayload, value: string) => {
+  const handleChange = (field: keyof UpdateProfilePayload, value: string | number | undefined) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleTopUp = async () => {
-    if (!token) return;
     const amount = parseFloat(topUpAmount);
     if (isNaN(amount) || amount <= 0) {
       setTopUpError('Please enter a valid positive amount');
@@ -104,7 +120,7 @@ export default function ProfilePage() {
     setTopUpError(null);
     setTopUpSuccess(false);
     try {
-      const updated = await addBalance(token, amount);
+      const updated = await addBalance(amount);
       setProfile(updated);
       setTopUpAmount('');
       setTopUpSuccess(true);
@@ -182,49 +198,58 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-field">
-            <label className="profile-field-label">License Number</label>
-            {editing ? (
-              <input
-                className="profile-input"
-                value={form.licenseNumber ?? ''}
-                onChange={(e) => handleChange('licenseNumber', e.target.value)}
-              />
-            ) : (
-              <span className="profile-field-value">{profile.licenseNumber || '\u2014'}</span>
-            )}
-          </div>
-
-          <div className="profile-field">
-            <label className="profile-field-label">License Issue Date</label>
-            {editing ? (
-              <input
-                className="profile-input"
-                type="date"
-                value={form.licenseIssueDate ?? ''}
-                onChange={(e) => handleChange('licenseIssueDate', e.target.value)}
-              />
-            ) : (
-              <span className="profile-field-value">{profile.licenseIssueDate || '\u2014'}</span>
-            )}
-          </div>
-
-          <div className="profile-field">
-            <label className="profile-field-label">License Region</label>
-            {editing ? (
-              <input
-                className="profile-input"
-                value={form.licenseRegion ?? ''}
-                onChange={(e) => handleChange('licenseRegion', e.target.value)}
-              />
-            ) : (
-              <span className="profile-field-value">{profile.licenseRegion || '\u2014'}</span>
-            )}
-          </div>
-
-          <div className="profile-field">
             <label className="profile-field-label">Role</label>
             <span className="profile-field-value">{formatRole(profile.role)}</span>
           </div>
+
+          {profile.role === 'INSTRUCTOR' && (
+            <>
+              <div className="profile-field">
+                <label className="profile-field-label">Hourly Rate ($)</label>
+                {editing ? (
+                  <input
+                    className="profile-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.hourlyRate ?? ''}
+                    onChange={(e) => handleChange('hourlyRate', e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                ) : (
+                  <span className="profile-field-value">{profile.hourlyRate != null ? `$${profile.hourlyRate.toFixed(2)}/hr` : '\u2014'}</span>
+                )}
+              </div>
+
+              <div className="profile-field">
+                <label className="profile-field-label">Travel Radius (km)</label>
+                {editing ? (
+                  <input
+                    className="profile-input"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={form.travelRadius ?? ''}
+                    onChange={(e) => handleChange('travelRadius', e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                ) : (
+                  <span className="profile-field-value">{profile.travelRadius != null ? `${profile.travelRadius} km` : '\u2014'}</span>
+                )}
+              </div>
+
+              {editing && (
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                  <LocationPicker
+                    initialAddress={draftLocation?.address ?? ''}
+                    draftLocation={draftLocation}
+                    onLocationChange={setDraftLocation}
+                    label="Service Location"
+                    placeholder="Search your base location..."
+                    mapAvailable={false}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="profile-actions">

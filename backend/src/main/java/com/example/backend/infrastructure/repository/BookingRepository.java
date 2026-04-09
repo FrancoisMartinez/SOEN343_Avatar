@@ -16,6 +16,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.car.id = :carId AND b.date = :date AND b.status <> 'CANCELLED'")
     List<Booking> findActiveBookingsByCarAndDate(@Param("carId") Long carId, @Param("date") LocalDate date);
 
+    /** Find all bookings for a specific instructor on a given date (excluding cancelled) */
+    @Query("SELECT b FROM Booking b WHERE b.instructor.id = :instructorId AND b.date = :date AND b.status <> 'CANCELLED'")
+    List<Booking> findActiveBookingsByInstructorAndDate(@Param("instructorId") Long instructorId, @Param("date") LocalDate date);
+
     /** Find all bookings for a learner, ordered by date descending */
     List<Booking> findByLearnerIdOrderByDateDesc(Long learnerId);
 
@@ -24,4 +28,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /** Find all bookings for cars owned by a specific provider, ordered by date descending */
     @Query("SELECT b FROM Booking b WHERE b.car.provider.id = :providerId ORDER BY b.date DESC")
     List<Booking> findByProviderIdOrderByDateDesc(@Param("providerId") Long providerId);
+
+    /** Find all bookings for a specific instructor, ordered by date descending */
+    List<Booking> findByInstructorIdOrderByDateDesc(Long instructorId);
 }
+

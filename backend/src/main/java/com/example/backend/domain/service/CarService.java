@@ -111,11 +111,14 @@ public class CarService {
     public List<CarDto> searchCars(String transmissionType, Double minPrice, Double maxPrice, Boolean isAvailable, Double lat, Double lng, Double radius, String dayOfWeek, Integer startMinute, Integer endMinute) {
         List<Car> allCars = carRepository.findAll();
 
+        // Default to only showing available cars if the filter is not explicitly provided
+        final boolean effectiveIsAvailable = (isAvailable != null) ? isAvailable : true;
+
         return allCars.stream()
                 .filter(car -> transmissionType == null || transmissionType.isEmpty() || transmissionType.equalsIgnoreCase(car.getTransmissionType()))
                 .filter(car -> minPrice == null || car.getHourlyRate() >= minPrice)
                 .filter(car -> maxPrice == null || car.getHourlyRate() <= maxPrice)
-                .filter(car -> isAvailable == null || car.isAvailable() == isAvailable)
+                .filter(car -> car.isAvailable() == effectiveIsAvailable)
                 .filter(car -> {
                     if (lat == null || lng == null || radius == null) return true;
                     if (car.getLatitude() == null || car.getLongitude() == null) return false;
@@ -123,17 +126,24 @@ public class CarService {
                     return distance <= radius;
                 })
                 .filter(car -> {
-                    if (dayOfWeek == null || startMinute == null || endMinute == null) return true;
+                    if (dayOfWeek == null) return true;
                     if (car.getAvailabilitySlots() == null) return false;
                     
                     try {
                         java.time.DayOfWeek requestedDay = java.time.DayOfWeek.valueOf(dayOfWeek.toUpperCase());
-                        return car.getAvailabilitySlots().stream().anyMatch(slot -> 
-                            slot.getDayOfWeek() == requestedDay &&
-                            slot.isAvailable() &&
-                            slot.getStartMinute() <= startMinute &&
-                            slot.getEndMinute() >= endMinute
-                        );
+                        if (startMinute != null && endMinute != null) {
+                            return car.getAvailabilitySlots().stream().anyMatch(slot -> 
+                                slot.getDayOfWeek() == requestedDay &&
+                                slot.isAvailable() &&
+                                slot.getStartMinute() <= startMinute &&
+                                slot.getEndMinute() >= endMinute
+                            );
+                        } else {
+                            // If only day is provided, show cars that have at least one available slot on that day
+                            return car.getAvailabilitySlots().stream().anyMatch(slot ->
+                                slot.getDayOfWeek() == requestedDay && slot.isAvailable()
+                            );
+                        }
                     } catch (IllegalArgumentException e) {
                         return true; // ignore invalid dayOfWeek
                     }

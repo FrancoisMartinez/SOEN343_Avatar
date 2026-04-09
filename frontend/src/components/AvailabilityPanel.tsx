@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchWeeklyAvailability, updateWeeklyAvailability } from '../services/availabilityService';
+import {
+  fetchWeeklyAvailability,
+  updateWeeklyAvailability,
+  fetchInstructorAvailability,
+  updateInstructorAvailability,
+} from '../services/availabilityService';
 import type { AvailabilitySlot, DayName } from '../types/availability';
 
 interface AvailabilityPanelProps {
-  carId?: number;
+  entityId?: number;
+  entityType?: 'car' | 'instructor';
   initialSlots?: AvailabilitySlot[];
   onSaveDraft?: (slots: AvailabilitySlot[]) => void;
   onClose: () => void;
@@ -133,7 +139,36 @@ function convertUtcSlotsToLocal(utcSlots: AvailabilitySlot[]): LocalInterval[] {
     }
   }
 
-  return result;
+  // Merge contiguous intervals in the same day
+  const merged: LocalInterval[] = [];
+  for (const day of DAYS) {
+    const dayIntervals = result
+      .filter((idx) => idx.dayOfWeek === day)
+      .sort((a, b) => parseMinutes(a.startTime) - parseMinutes(b.startTime));
+
+    if (dayIntervals.length === 0) continue;
+
+    let current = { ...dayIntervals[0] };
+    for (let i = 1; i < dayIntervals.length; i++) {
+      const next = dayIntervals[i];
+      const currentEndMin = parseMinutes(current.endTime === '24:00' ? '24:00' : current.endTime);
+      const nextStartMin = parseMinutes(next.startTime);
+
+      if (nextStartMin <= currentEndMin) {
+        // Overlap or contiguous
+        const nextEndMin = parseMinutes(next.endTime === '24:00' ? '24:00' : next.endTime);
+        if (nextEndMin > currentEndMin) {
+          current.endTime = next.endTime;
+        }
+      } else {
+        merged.push(current);
+        current = { ...next };
+      }
+    }
+    merged.push(current);
+  }
+
+  return merged;
 }
 
 function convertLocalIntervalsToUtc(localIntervals: LocalInterval[]): AvailabilitySlot[] {
@@ -181,7 +216,7 @@ function convertLocalIntervalsToUtc(localIntervals: LocalInterval[]): Availabili
   return result;
 }
 
-export default function AvailabilityPanel({ carId, initialSlots, onSaveDraft, onClose }: AvailabilityPanelProps) {
+export default function AvailabilityPanel({ entityId, entityType = 'car', initialSlots, onSaveDraft, onClose }: AvailabilityPanelProps) {
   const { userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -192,22 +227,27 @@ export default function AvailabilityPanel({ carId, initialSlots, onSaveDraft, on
   const [endTime, setEndTime] = useState('17:00');
 
   useEffect(() => {
-    if (carId == null) {
+    if (entityId == null) {
       setIntervals(convertUtcSlotsToLocal(initialSlots ?? []));
       setLoading(false);
       return;
     }
 
-    if (!userId) return;
+    if (!userId && entityType === 'car') return;
 
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetchWeeklyAvailability(userId, carId);
+        let response;
+        if (entityType === 'instructor') {
+          response = await fetchInstructorAvailability(entityId);
+        } else {
+          response = await fetchWeeklyAvailability(userId!, entityId);
+        }
         if (cancelled) return;
-        setIntervals(convertUtcSlotsToLocal(response.slots));
+        setIntervals(convertUtcSlotsToLocal(response.slots.map(s => ({ ...s, dayOfWeek: s.dayOfWeek as any }))));
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? 'Failed to load availability.');
       } finally {
@@ -219,7 +259,7 @@ export default function AvailabilityPanel({ carId, initialSlots, onSaveDraft, on
     return () => {
       cancelled = true;
     };
-  }, [carId, initialSlots, userId]);
+  }, [entityId, entityType, initialSlots, userId]);
 
   const grouped = useMemo(() => {
     return DAYS.map((day) => ({
@@ -258,17 +298,21 @@ export default function AvailabilityPanel({ carId, initialSlots, onSaveDraft, on
   const handleSave = async () => {
     const utcSlots = convertLocalIntervalsToUtc(intervals);
 
-    if (carId == null) {
+    if (entityId == null) {
       onSaveDraft?.(utcSlots);
       onClose();
       return;
     }
 
-    if (!userId) return;
+    if (!userId && entityType === 'car') return;
     setSaving(true);
     setError(null);
     try {
-      await updateWeeklyAvailability(userId, carId, { slots: utcSlots });
+      if (entityType === 'instructor') {
+        await updateInstructorAvailability(entityId, { slots: utcSlots });
+      } else {
+        await updateWeeklyAvailability(userId!, entityId, { slots: utcSlots });
+      }
       onClose();
     } catch (e: any) {
       setError(e.message ?? 'Failed to save availability.');
@@ -281,7 +325,7 @@ export default function AvailabilityPanel({ carId, initialSlots, onSaveDraft, on
     <aside className="vehicle-sidebar">
       <div className="availability-panel">
         <div className="availability-panel__header">
-          <h2>{carId == null ? 'Availability (Draft)' : 'Availability'}</h2>
+          <h2>{entityId == null ? 'Availability (Draft)' : 'Availability'}</h2>
           <button className="modal-close" onClick={onClose} disabled={saving}>&#x2715;</button>
         </div>
 

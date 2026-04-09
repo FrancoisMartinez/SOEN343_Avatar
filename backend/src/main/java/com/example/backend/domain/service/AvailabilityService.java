@@ -3,8 +3,10 @@ package com.example.backend.domain.service;
 import com.example.backend.application.dto.*;
 import com.example.backend.domain.model.AvailabilitySlot;
 import com.example.backend.domain.model.Car;
+import com.example.backend.domain.model.Instructor;
 import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
+import com.example.backend.infrastructure.repository.InstructorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +16,12 @@ import java.util.*;
 @Service
 public class AvailabilityService {
     private final CarRepository carRepository;
+    private final InstructorRepository instructorRepository;
     private final AvailabilitySlotRepository availabilitySlotRepository;
 
-    public AvailabilityService(CarRepository carRepository, AvailabilitySlotRepository availabilitySlotRepository) {
+    public AvailabilityService(CarRepository carRepository, InstructorRepository instructorRepository, AvailabilitySlotRepository availabilitySlotRepository) {
         this.carRepository = carRepository;
+        this.instructorRepository = instructorRepository;
         this.availabilitySlotRepository = availabilitySlotRepository;
     }
 
@@ -29,6 +33,16 @@ public class AvailabilityService {
                 .toList();
 
         return new WeeklyAvailabilityResponse(car.getId(), car.isAvailable(), slots);
+    }
+
+    public WeeklyAvailabilityResponse getWeeklyInstructorAvailability(Long instructorId) {
+        Instructor instructor = instructorRepository.findById(instructorId)
+                .orElseThrow(() -> new RuntimeException("Instructor not found"));
+        List<AvailabilitySlotDto> slots = availabilitySlotRepository.findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(instructorId)
+                .stream()
+                .map(this::toDto)
+                .toList();
+        return new WeeklyAvailabilityResponse(instructor.getId(), true, slots); // assuming instructors are always "available" if they have slots
     }
 
     @Transactional
@@ -54,6 +68,29 @@ public class AvailabilityService {
         carRepository.save(car);
 
         return new WeeklyAvailabilityResponse(car.getId(), car.isAvailable(),
+                saved.stream().map(this::toDto).toList());
+    }
+
+    @Transactional
+    public WeeklyAvailabilityResponse replaceWeeklyInstructorAvailability(Long instructorId,
+            WeeklyAvailabilityRequest request) {
+        Instructor instructor = instructorRepository.findById(instructorId)
+                .orElseThrow(() -> new RuntimeException("Instructor not found"));
+
+        List<SlotWindow> parsedSlots = parseAndValidateSlots(request.getSlots());
+
+        availabilitySlotRepository.deleteByInstructorId(instructorId);
+        List<AvailabilitySlot> saved = parsedSlots.stream().map(window -> {
+            AvailabilitySlot slot = new AvailabilitySlot();
+            slot.setInstructor(instructor);
+            slot.setDayOfWeek(window.dayOfWeek());
+            slot.setStartMinute(window.startMinute());
+            slot.setEndMinute(window.endMinute());
+            slot.setAvailable(window.available());
+            return availabilitySlotRepository.save(slot);
+        }).toList();
+
+        return new WeeklyAvailabilityResponse(instructor.getId(), true,
                 saved.stream().map(this::toDto).toList());
     }
 

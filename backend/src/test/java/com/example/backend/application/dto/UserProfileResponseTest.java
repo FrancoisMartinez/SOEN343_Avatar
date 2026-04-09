@@ -19,7 +19,11 @@ class UserProfileResponseTest {
                 issueDate,
                 "ON",
                 "LEARNER",
-                150.0);
+                150.0,
+                20.0,
+                50.0,
+                45.5017,
+                -73.5673);
 
         assertEquals(4L, response.getId());
         assertEquals("Jane Smith", response.getFullName());
@@ -29,5 +33,9 @@ class UserProfileResponseTest {
         assertEquals("ON", response.getLicenseRegion());
         assertEquals("LEARNER", response.getRole());
         assertEquals(150.0, response.getBalance());
+        assertEquals(20.0, response.getTravelRadius());
+        assertEquals(50.0, response.getHourlyRate());
+        assertEquals(45.5017, response.getLatitude());
+        assertEquals(-73.5673, response.getLongitude());
     }
 }

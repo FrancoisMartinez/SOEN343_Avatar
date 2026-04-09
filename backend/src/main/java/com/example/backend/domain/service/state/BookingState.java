@@ -8,6 +8,7 @@ import com.example.backend.domain.model.Booking;
  */
 public interface BookingState {
     String getStateName();
+    void confirm(BookingContext context);
     void finish(BookingContext context);
     void cancel(BookingContext context);
 }

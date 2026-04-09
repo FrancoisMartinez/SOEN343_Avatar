@@ -7,6 +7,7 @@ public class FinishBookingRequest {
     private Double latitude;
     private Double longitude;
     private String location;
+    private Integer rating;
 
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
@@ -16,4 +17,7 @@ public class FinishBookingRequest {
 
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
 }

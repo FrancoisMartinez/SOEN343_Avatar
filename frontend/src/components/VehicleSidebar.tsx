@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState,  } from 'react';
 import VehicleCard from './VehicleCard';
 import VehicleFormModal from './VehicleFormModal';
 import AvailabilityPanel from './AvailabilityPanel';
@@ -20,13 +20,13 @@ interface VehicleSidebarProps {
   searchCenter?: DraftLocation | null;
   searchRadius?: number;
   onSearchRadiusChange?: (radius: number) => void;
-  onAddVehicle?: (data: Omit<CarData, 'id'>) => Promise<CarData>;
+  onAddVehicle?: (data: Omit<CarData, 'id' | 'providerId'>) => Promise<CarData>;
   onSetVehicleAvailability?: (carId: number, slots: AvailabilitySlot[]) => Promise<void>;
-  onUpdateVehicle?: (carId: number, data: Omit<CarData, 'id'>) => Promise<void>;
+  onUpdateVehicle?: (carId: number, data: Omit<CarData, 'id' | 'providerId'>) => Promise<void>;
   onDeleteVehicle?: (carId: number) => Promise<void>;
   onLocateCar?: (carId: number) => void;
   onRetry: () => void;
-  onFormOpen?: (car: CarData | null) => void;
+  onFormOpen?: (car: CarData | null, purpose?: 'search' | 'vehicle' | 'instructor') => void;
   onFormClose?: () => void;
   onLocationChange?: (loc: DraftLocation) => void;
 }
@@ -131,7 +131,7 @@ export default function VehicleSidebar({
   useEffect(() => {
     if (mode === 'search' && showFilters !== lastShowFilters.current) {
       if (showFilters) {
-        onFormOpen?.(null);
+        onFormOpen?.(null, 'search');
       } else {
         onFormClose?.();
       }
@@ -226,7 +226,7 @@ export default function VehicleSidebar({
     handleClose();
   };
 
-  const handleSubmit = async (data: Omit<CarData, 'id'>, editAvailabilityAfterSave = false) => {
+  const handleSubmit = async (data: Omit<CarData, 'id' | 'providerId'>, editAvailabilityAfterSave = false) => {
     if (editingCar) {
       await onUpdateVehicle?.(editingCar.id!, data);
       handleClose();
@@ -316,8 +316,6 @@ export default function VehicleSidebar({
     setShowFilters(false);
   };
 
-  const handleLocationPickerModeChange = useCallback(() => {}, []);
-
   if (formOpen && mode === 'manage') {
     return (
       <aside className="vehicle-sidebar">
@@ -330,8 +328,8 @@ export default function VehicleSidebar({
           onSubmit={handleSubmit}
           onLocationChange={onLocationChange!}
           onEditAvailability={(carId) => handleOpenAvailability(carId, 'form')}
-          onFormOpen={onFormOpen}
-          onFormClose={onFormClose}
+
+
         />
       </aside>
     );
@@ -340,7 +338,8 @@ export default function VehicleSidebar({
   if (availabilityOpen) {
     return (
       <AvailabilityPanel
-        carId={availabilityCarId ?? undefined}
+        entityId={availabilityCarId ?? undefined}
+        entityType="car"
         initialSlots={availabilityCarId == null ? addDraftAvailability : undefined}
         onSaveDraft={availabilityCarId == null ? setAddDraftAvailability : undefined}
         onClose={handleCloseAvailability}
@@ -484,7 +483,6 @@ export default function VehicleSidebar({
               setUserLocation(null);
               onClearSearch?.();
             }}
-            onPickingModeChange={handleLocationPickerModeChange}
             label="Search Center"
             placeholder="Search address to center..."
           />

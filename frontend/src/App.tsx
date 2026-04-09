@@ -8,6 +8,7 @@ import ProfilePage from './pages/ProfilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ReservationsPage from './pages/ReservationsPage';
 import ProviderReservationsPage from './pages/ProviderReservationsPage';
+import InstructorReservationsPage from './pages/InstructorReservationsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
             <Route path="/provider-reservations" element={<ProviderReservationsPage />} />
+            <Route path="/instructor-reservations" element={<InstructorReservationsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

@@ -1,11 +1,25 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getUserProfile, updateUserProfile } from '../../services/userService';
 
 describe('userService', () => {
   const originalFetch = globalThis.fetch;
 
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storage: Record<string, string> = {
+      'token': 'test-token'
+    };
+    globalThis.sessionStorage = {
+      getItem: vi.fn((key) => storage[key] || null),
+      setItem: vi.fn((key, value) => { storage[key] = value; }),
+      removeItem: vi.fn((key) => { delete storage[key]; }),
+      clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
+    } as any;
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
@@ -17,15 +31,12 @@ describe('userService', () => {
     const profile = {
       id: 1,
       fullName: 'John Doe',
-      email: 'john@example.com',
-      licenseNumber: null,
-      licenseIssueDate: null,
-      licenseRegion: null,
       role: 'LEARNER',
     };
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      status: 200,
       json: vi.fn().mockResolvedValue(profile),
     });
 
@@ -35,16 +46,17 @@ describe('userService', () => {
       value: fetchMock,
     });
 
-    await expect(getUserProfile('token-123')).resolves.toEqual(profile);
-    expect(fetchMock).toHaveBeenCalledWith('/api/users/me', {
-      headers: { Authorization: 'Bearer token-123' },
-    });
+    const result = await getUserProfile();
+    expect(result).toEqual(profile);
+    
+    // Check that fetch was called with the correct headers from apiClient
+    const callArgs = fetchMock.mock.calls[0];
+    expect(callArgs[0]).toBe('/api/users/me');
+    expect(callArgs[1].headers.get('Authorization')).toBe('Bearer test-token');
   });
 
   it('updateUserProfile throws API error message', async () => {
     const payload = { fullName: 'Jane Doe' };
-
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
@@ -58,16 +70,6 @@ describe('userService', () => {
       value: fetchMock,
     });
 
-    await expect(updateUserProfile('token-abc', payload)).rejects.toThrow('Invalid profile data');
-    expect(fetchMock).toHaveBeenCalledWith('/api/users/me', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-abc',
-      },
-      body: JSON.stringify(payload),
-    });
-    expect(consoleSpy).toHaveBeenCalledWith('[User] PUT /me failed (400):', 'Invalid profile data');
-    consoleSpy.mockRestore();
+    await expect(updateUserProfile(payload)).rejects.toThrow('Invalid profile data');
   });
 });

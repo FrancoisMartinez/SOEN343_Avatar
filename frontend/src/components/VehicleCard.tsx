@@ -75,7 +75,7 @@ export default function VehicleCard({ car, isSelected, mode = 'manage', onEdit, 
         </div>
         <div className="vehicle-card__detail">
           <span className="vehicle-card__label">Rate</span>
-          <span className="vehicle-card__value">${car.hourlyRate.toFixed(2)}/hr</span>
+          <span className="vehicle-card__value">${car.hourlyRate?.toFixed(2) ?? '0.00'}/hr</span>
         </div>
       </div>
 

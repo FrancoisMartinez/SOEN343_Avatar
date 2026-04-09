@@ -19,21 +19,19 @@ interface VehicleFormProps {
   draftForm: VehicleFormDraft | null;
   onDraftChange: (draft: VehicleFormDraft) => void;
   onClose: () => void;
-  onSubmit: (data: Omit<CarData, 'id'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
+  onSubmit: (data: Omit<CarData, 'id' | 'providerId'>, editAvailabilityAfterSave?: boolean) => Promise<void>;
   onLocationChange: (loc: DraftLocation) => void;
   onEditAvailability: (carId?: number) => void;
-  onFormOpen?: (car: CarData | null) => void;
-  onFormClose?: () => void;
 }
 
-type VehicleFormData = Omit<CarData, 'id' | 'hourlyRate'> & { hourlyRate: number | '' };
+type VehicleFormData = Omit<CarData, 'id' | 'providerId' | 'hourlyRate'> & { hourlyRate: number | '' };
 
 const emptyForm: VehicleFormData = {
   makeModel: '',
   transmissionType: 'AUTOMATIC',
   location: '',
-  latitude: undefined,
-  longitude: undefined,
+  latitude: undefined as any,
+  longitude: undefined as any,
   available: true,
   hourlyRate: '',
 };
@@ -46,11 +44,10 @@ export default function VehicleFormModal({
   onClose,
   onSubmit,
   onLocationChange,
-  onEditAvailability,
-  onFormOpen,
-  onFormClose,
+  onEditAvailability
 }: VehicleFormProps) {
   const [form, setForm] = useState<VehicleFormData>(() => {
+    if (draftForm) return draftForm.form;
     if (car) {
       return {
         makeModel: car.makeModel,
@@ -62,8 +59,9 @@ export default function VehicleFormModal({
         hourlyRate: car.hourlyRate,
       };
     }
-    return draftForm?.form ?? emptyForm;
+    return emptyForm;
   });
+  
   const [addressQuery, setAddressQuery] = useState(() => (car ? car.location : draftForm?.addressQuery ?? ''));
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -80,17 +78,17 @@ export default function VehicleFormModal({
         available: car.available,
         hourlyRate: car.hourlyRate,
       });
-      setAddressQuery(car.location);
+      setAddressQuery(car.location ?? '');
     } else {
       setForm(draftForm?.form ?? emptyForm);
       setAddressQuery(draftForm?.addressQuery ?? '');
     }
     setGeocodeError(null);
-  }, [car]);
+  }, [car, draftForm]);
 
   useEffect(() => {
     if (!car) {
-      onDraftChange({ form, addressQuery });
+      onDraftChange({ form, addressQuery: addressQuery ?? '' });
     }
   }, [car, form, addressQuery, onDraftChange]);
 
@@ -109,12 +107,14 @@ export default function VehicleFormModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked
-             : type === 'number' ? (value === '' ? '' : Number(value))
-             : value,
-    }));
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm((prev) => ({ ...prev, [name]: checked }));
+    } else if (type === 'number') {
+      setForm((prev) => ({ ...prev, [name]: value === '' ? '' : Number(value) }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,7 +171,7 @@ export default function VehicleFormModal({
         </div>
 
         <div className="vehicle-form__group">
-          <label htmlFor="transmissionType">Transmission</label>
+          <label htmlFor="transmissionType">Transmission / Type</label>
           <select
             id="transmissionType"
             name="transmissionType"
@@ -231,18 +231,11 @@ export default function VehicleFormModal({
         </div>
 
         <LocationPicker
-          initialAddress={car ? car.location : draftForm?.addressQuery ?? ''}
+          initialAddress={car ? (car.location ?? '') : draftForm?.addressQuery ?? ''}
           draftLocation={draftLocation}
           onLocationChange={(loc) => {
             onLocationChange(loc);
             setAddressQuery(loc.address);
-          }}
-          onPickingModeChange={(active) => {
-            if (active) {
-              onFormOpen?.(car);
-            } else {
-              onFormClose?.();
-            }
           }}
           label="Location"
         />

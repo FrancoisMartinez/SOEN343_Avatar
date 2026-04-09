@@ -1,106 +1,110 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchWeeklyAvailability,
   updateWeeklyAvailability,
+  fetchInstructorAvailability,
+  updateInstructorAvailability,
 } from '../../services/availabilityService';
 
 describe('availabilityService', () => {
   const originalFetch = globalThis.fetch;
-  const getItemMock = vi.fn();
+
+  beforeEach(() => {
+    // Mock sessionStorage
+    const storage: Record<string, string> = {};
+    globalThis.sessionStorage = {
+      getItem: vi.fn((key) => storage[key] || null),
+      setItem: vi.fn((key, value) => { storage[key] = value; }),
+      removeItem: vi.fn((key) => { delete storage[key]; }),
+      clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
+    } as any;
+
+    globalThis.fetch = vi.fn() as any;
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    getItemMock.mockReset();
-
+    
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       writable: true,
       value: originalFetch,
     });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
   });
 
-  it('fetchWeeklyAvailability returns availability data', async () => {
-    const availability = {
-      carId: 9,
-      available: true,
-      slots: [
-        {
-          dayOfWeek: 'MONDAY',
-          startTime: '09:00',
-          endTime: '12:00',
-          available: true,
-        },
-      ],
+  it('fetchWeeklyAvailability (Car) returns availability data', async () => {
+    const response = {
+      slots: [{ dayOfWeek: 'MONDAY', startTime: '09:00', endTime: '12:00', available: true }],
     };
 
-    getItemMock.mockReturnValue('token-111');
-    const fetchMock = vi.fn().mockResolvedValue({
+    sessionStorage.setItem('token', 'token-car');
+    (fetch as any).mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue(availability),
-    });
+      status: 200,
+      json: vi.fn().mockResolvedValue(response),
+    } as any);
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(fetchWeeklyAvailability(5, 9)).resolves.toEqual(availability);
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/5/cars/9/availability', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-111',
-      },
-    });
+    const result = await fetchWeeklyAvailability(1, 10);
+    expect(result).toEqual(response);
+    expect(fetch).toHaveBeenCalledWith('/api/providers/1/cars/10/availability', expect.objectContaining({
+      method: 'GET',
+    }));
   });
 
-  it('updateWeeklyAvailability throws backend error message', async () => {
+  it('updateWeeklyAvailability (Car) sends PUT request', async () => {
     const payload = {
-      slots: [
-        {
-          dayOfWeek: 'TUESDAY',
-          startTime: '13:00',
-          endTime: '15:00',
-          available: true,
-        },
-      ],
+      slots: [{ dayOfWeek: 'TUESDAY', startTime: '10:00', endTime: '14:00', available: true }],
     };
 
-    getItemMock.mockReturnValue('token-222');
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'Overlapping slots' }),
-    });
+    sessionStorage.setItem('token', 'token-car-update');
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(payload),
+    } as any);
 
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    Object.defineProperty(globalThis, 'sessionStorage', {
-      configurable: true,
-      value: { getItem: getItemMock },
-    });
-
-    await expect(updateWeeklyAvailability(2, 4, payload)).rejects.toThrow('Overlapping slots');
-    expect(fetchMock).toHaveBeenCalledWith('/api/providers/2/cars/4/availability', {
+    await updateWeeklyAvailability(1, 10, payload);
+    expect(fetch).toHaveBeenCalledWith('/api/providers/1/cars/10/availability', expect.objectContaining({
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-222',
-      },
       body: JSON.stringify(payload),
-    });
+    }));
+  });
+
+  it('fetchInstructorAvailability returns availability data', async () => {
+    const response = {
+      slots: [{ dayOfWeek: 'WEDNESDAY', startTime: '14:00', endTime: '18:00', available: true }],
+    };
+
+    sessionStorage.setItem('token', 'token-instr');
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(response),
+    } as any);
+
+    const result = await fetchInstructorAvailability(5);
+    expect(result).toEqual(response);
+    expect(fetch).toHaveBeenCalledWith('/api/instructors/5/availability', expect.objectContaining({
+      method: 'GET',
+    }));
+    
+    const lastCall = (fetch as any).mock.calls[0];
+    const headers = new Headers(lastCall[1]?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer token-instr');
+  });
+
+  it('updateInstructorAvailability throws backend error message', async () => {
+    const payload = {
+      slots: [{ dayOfWeek: 'MONDAY', startTime: '09:00', endTime: '12:00', available: true }],
+    };
+
+    sessionStorage.setItem('token', 'token-err');
+    (fetch as any).mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ error: 'Overlapping slots' })),
+    } as any);
+
+    await expect(updateInstructorAvailability(2, payload)).rejects.toThrow('Overlapping slots');
   });
 });

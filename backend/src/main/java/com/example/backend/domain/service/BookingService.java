@@ -13,6 +13,7 @@ import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
 import com.example.backend.infrastructure.repository.LearnerRepository;
 import com.example.backend.infrastructure.repository.AvailabilitySlotRepository;
+import com.example.backend.infrastructure.repository.InstructorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,23 +31,26 @@ public class BookingService {
     private final AvailabilitySlotRepository availabilitySlotRepository;
     private final PricingStrategyFactory pricingStrategyFactory;
     private final BookingEventPublisher bookingEventPublisher;
+    private final InstructorRepository instructorRepository;
 
     public BookingService(BookingRepository bookingRepository,
                           CarRepository carRepository,
                           LearnerRepository learnerRepository,
                           AvailabilitySlotRepository availabilitySlotRepository,
                           PricingStrategyFactory pricingStrategyFactory,
-                          BookingEventPublisher bookingEventPublisher) {
+                          BookingEventPublisher bookingEventPublisher,
+                          InstructorRepository instructorRepository) {
         this.bookingRepository = bookingRepository;
         this.carRepository = carRepository;
         this.learnerRepository = learnerRepository;
         this.availabilitySlotRepository = availabilitySlotRepository;
         this.pricingStrategyFactory = pricingStrategyFactory;
         this.bookingEventPublisher = bookingEventPublisher;
+        this.instructorRepository = instructorRepository;
     }
 
     /**
-     * Creates a new booking after validating availability and checking for overlaps.
+     * Creates a new booking after validating availability and checking for overlaps. 
      * Total cost is computed server-side: duration * hourlyRate.
      */
     public BookingResponse createBooking(BookingRequest request) {
@@ -54,8 +58,9 @@ public class BookingService {
             throw new IllegalArgumentException("Duration must be between 1 and 12 hours");
         }
 
-        Car car = carRepository.findById(request.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (request.getCarId() == null && request.getInstructorId() == null) {
+            throw new IllegalArgumentException("Either Car ID or Instructor ID must be provided");
+        }
 
         Learner learner = learnerRepository.findById(request.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Learner not found"));
@@ -64,27 +69,94 @@ public class BookingService {
         LocalTime startTime = LocalTime.parse(request.getStartTime());
         LocalTime endTime = startTime.plusHours(request.getDuration());
 
-        validateAvailability(car.getId(), date, startTime, endTime);
-        validateNoOverlap(car.getId(), date, startTime, endTime);
+        // Validate booking is at least 1 hour in the future
+        if (date.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Cannot book in the past");
+        }
+        if (date.isEqual(LocalDate.now())) {
+            if (startTime.isBefore(LocalTime.now().plusHours(1))) {
+                throw new IllegalArgumentException("Bookings must be at least 1 hour in advance");
+            }
+        }
 
-        // Strategy Pattern: delegate pricing to the selected strategy
-        PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(request.getPricingStrategy());
-        double totalCost = pricingStrategy.calculatePrice(car, request.getDuration(), date, startTime);
+        Car car = null;
+        Instructor instructor = null;
+        double totalCost = 0.0;
+
+        if (request.getCarId() != null) {
+            car = carRepository.findById(request.getCarId())
+                    .orElseThrow(() -> new IllegalArgumentException("Car not found"));    
+            validateAvailability(car.getId(), date, startTime, endTime);
+            validateNoOverlap(car.getId(), date, startTime, endTime);
+
+            // Strategy Pattern: delegate pricing to the selected strategy
+            PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(request.getPricingStrategy());
+            totalCost = pricingStrategy.calculatePrice(car, request.getDuration(), date, startTime);
+        } else if (request.getInstructorId() != null) {
+            instructor = instructorRepository.findById(request.getInstructorId())
+                    .orElseThrow(() -> new IllegalArgumentException("Instructor not found"));
+            validateInstructorAvailability(instructor.getId(), date, startTime, endTime);
+            validateInstructorNoOverlap(instructor.getId(), date, startTime, endTime);
+            
+            totalCost = instructor.getHourlyRate() * request.getDuration();
+        }
 
         Booking booking = new Booking();
-        booking.setCar(car);
+        if (car != null) {
+            booking.setCar(car);
+        }
+        if (instructor != null) {
+            booking.setInstructor(instructor);
+        }
         booking.setLearner(learner);
         booking.setDate(date);
         booking.setStartTime(startTime);
         booking.setDuration(request.getDuration());
         booking.setTotalCost(totalCost);
-        booking.setStatus("CONFIRMED");
+        booking.setStatus(instructor != null ? "PENDING" : "CONFIRMED");
 
         Booking saved = bookingRepository.save(booking);
 
         // Observer Pattern: notify all observers about the new booking
         bookingEventPublisher.publish(new BookingEvent(BookingEvent.EventType.CREATED, saved));
 
+        return toResponse(saved);
+    }
+
+    /**
+     * Confirms a pending booking. Optionally assigns a car if provided.
+     */
+    @Transactional
+    public BookingResponse confirmBooking(Long bookingId, Long carId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        BookingContext context = new BookingContext(booking);
+        context.confirm(); // Transitions PENDING -> CONFIRMED
+
+        if (carId != null) {
+            Car car = carRepository.findById(carId)
+                    .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+            booking.setCar(car);
+        }
+
+        Booking saved = bookingRepository.save(booking);
+        return toResponse(saved);
+    }
+
+    /**
+     * Cancels a booking.
+     */
+    @Transactional
+    public BookingResponse cancelBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        BookingContext context = new BookingContext(booking);
+        context.cancel(); // Transitions PENDING/CONFIRMED -> CANCELLED
+
+        Booking saved = bookingRepository.save(booking);
+        bookingEventPublisher.publish(new BookingEvent(BookingEvent.EventType.CANCELLED, saved));
         return toResponse(saved);
     }
 
@@ -109,7 +181,17 @@ public class BookingService {
     }
 
     /**
-     * Finishes a booking: deducts balance from learner and updates car location.
+     * Returns all bookings for a given instructor.
+     */
+    public List<BookingResponse> getBookingsForInstructor(Long instructorId) {
+        return bookingRepository.findByInstructorIdOrderByDateDesc(instructorId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * Finishes a booking: deducts balance from learner and updates car location.     
      */
     @Transactional
     public BookingResponse finishBooking(Long bookingId, FinishBookingRequest request) {
@@ -128,15 +210,24 @@ public class BookingService {
         learner.setBalance(learner.getBalance() - booking.getTotalCost());
         learnerRepository.save(learner);
 
-        // Update car location
-        Car car = booking.getCar();
-        if (request != null && request.getLatitude() != null && request.getLongitude() != null) {
-            car.setLatitude(request.getLatitude());
-            car.setLongitude(request.getLongitude());
-            if (request.getLocation() != null && !request.getLocation().isBlank()) {
-                car.setLocation(request.getLocation());
+        // Update car location (if it was a car booking)
+        if (booking.getCar() != null) {
+            Car car = booking.getCar();
+            if (request != null && request.getLatitude() != null && request.getLongitude() != null) {
+                car.setLatitude(request.getLatitude());
+                car.setLongitude(request.getLongitude());
+                if (request.getLocation() != null && !request.getLocation().isBlank()) {  
+                    car.setLocation(request.getLocation());
+                }
+                carRepository.save(car);
             }
-            carRepository.save(car);
+        }
+
+        // Update instructor rating (if it was an instructor booking)
+        if (booking.getInstructor() != null && request != null && request.getRating() != null) {
+            Instructor instructor = booking.getInstructor();
+            instructor.addRating(request.getRating());
+            instructorRepository.save(instructor);
         }
 
         Booking saved = bookingRepository.save(booking);
@@ -156,8 +247,8 @@ public class BookingService {
                 .anyMatch(slot -> {
                     int slotStart = slot.getStartMinute();
                     int slotEnd = slot.getEndMinute();
-                    int reqStart = startTime.getHour() * 60 + startTime.getMinute();
-                    int reqEnd = endTime.getHour() * 60 + endTime.getMinute();
+                    int reqStart = startTime.getHour() * 60 + startTime.getMinute();  
+                    int reqEnd = endTime.getHour() * 60 + endTime.getMinute();        
                     return reqStart >= slotStart && reqEnd <= slotEnd;
                 });
 
@@ -183,11 +274,56 @@ public class BookingService {
         }
     }
 
+    private void validateInstructorAvailability(Long instructorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        List<AvailabilitySlot> slots = availabilitySlotRepository.findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(instructorId);
+
+        boolean fits = slots.stream()
+                .filter(slot -> slot.getDayOfWeek() == dayOfWeek && slot.isAvailable())
+                .anyMatch(slot -> {
+                    int slotStart = slot.getStartMinute();
+                    int slotEnd = slot.getEndMinute();
+                    int reqStart = startTime.getHour() * 60 + startTime.getMinute();  
+                    int reqEnd = endTime.getHour() * 60 + endTime.getMinute();        
+                    return reqStart >= slotStart && reqEnd <= slotEnd;
+                });
+
+        if (!fits) {
+            throw new IllegalArgumentException("Instructor is not available for this timeslot");
+        }
+    }
+
+    private void validateInstructorNoOverlap(Long instructorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        List<Booking> existingBookings = bookingRepository.findActiveBookingsByInstructorAndDate(instructorId, date);
+
+        int reqStart = startTime.getHour() * 60 + startTime.getMinute();
+        int reqEnd = endTime.getHour() * 60 + endTime.getMinute();
+
+        boolean hasOverlap = existingBookings.stream().anyMatch(b -> {
+            int bStart = b.getStartTime().getHour() * 60 + b.getStartTime().getMinute();
+            int bEnd = bStart + (b.getDuration() * 60);
+            return reqStart < bEnd && reqEnd > bStart;
+        });
+
+        if (hasOverlap) {
+            throw new IllegalArgumentException("This timeslot overlaps with an existing booking");
+        }
+    }
+
     private BookingResponse toResponse(Booking booking) {
         BookingResponse res = new BookingResponse();
         res.setId(booking.getId());
-        res.setCarId(booking.getCar().getId());
-        res.setCarName(booking.getCar().getMakeModel());
+        
+        if (booking.getCar() != null) {
+            res.setCarId(booking.getCar().getId());
+            res.setCarName(booking.getCar().getMakeModel());
+        }
+        
+        if (booking.getInstructor() != null) {
+            res.setInstructorId(booking.getInstructor().getId());
+            res.setInstructorName(booking.getInstructor().getFullName());
+        }
+        
         res.setUserId(booking.getLearner().getId());
         res.setLearnerName(booking.getLearner().getFullName());
         res.setDate(booking.getDate().toString());

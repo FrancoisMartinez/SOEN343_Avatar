@@ -996,6 +996,15 @@
   width: 20px;
   height: 20px;
 }
+
+/* Instructor specific colors */
+.instructor-marker .car-marker__inner {
+  border-color: #646cff;
+}
+.instructor-marker .car-marker__inner svg {
+  fill: #646cff;
+}
+
 .car-marker--highlighted .car-marker__inner,
 .car-marker__inner--highlighted {
   width: 44px;

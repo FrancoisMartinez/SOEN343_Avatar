@@ -2,24 +2,179 @@ package com.example.backend.domain.service;
 
 import com.example.backend.application.dto.AnalyticsResponseDTO;
 import com.example.backend.application.dto.CarUtilizationDTO;
+import com.example.backend.application.dto.DashboardAnalyticsDTO;
 import com.example.backend.domain.model.Booking;
 import com.example.backend.domain.model.Car;
+import com.example.backend.domain.model.User;
 import com.example.backend.infrastructure.repository.BookingRepository;
 import com.example.backend.infrastructure.repository.CarRepository;
+import com.example.backend.infrastructure.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AnalyticsService {
 
     private final CarRepository carRepository;
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
 
-    public AnalyticsService(CarRepository carRepository, BookingRepository bookingRepository) {
+    public AnalyticsService(CarRepository carRepository, BookingRepository bookingRepository, UserRepository userRepository) {
         this.carRepository = carRepository;
         this.bookingRepository = bookingRepository;
+        this.userRepository = userRepository;
+    }
+
+    public DashboardAnalyticsDTO getAdminDashboard() {
+        List<Booking> allBookings = bookingRepository.findAll();
+        List<Car> allCars = carRepository.findAll();
+        List<User> allUsers = userRepository.findAll();
+
+        long activeUsers = allUsers.stream().filter(u -> !u.getRole().equals("ADMIN")).count();
+        long activeInstructors = allUsers.stream().filter(u -> u.getRole().equals("INSTRUCTOR")).count();
+        long activeCars = allCars.size();
+        long totalBookings = allBookings.size();
+        double totalRevenue = allBookings.stream().mapToDouble(Booking::getTotalCost).sum();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("activeUsers", activeUsers);
+        stats.put("activeCars", activeCars);
+        stats.put("activeInstructors", activeInstructors);
+        stats.put("totalBookings", totalBookings);
+        stats.put("totalRevenue", totalRevenue);
+
+        Map<String, Number> usageByCarType = new HashMap<>();
+        for (Booking b : allBookings) {
+            if (b.getCar() != null) {
+                String type = b.getCar().getMakeModel();
+                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Number> topLearners = new HashMap<>();
+        for (Booking b : allBookings) {
+            if (b.getLearner() != null) {
+                String name = b.getLearner().getFullName();
+                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Number> topInstructors = new HashMap<>();
+        for (Booking b : allBookings) {
+            if (b.getInstructor() != null) {
+                String name = b.getInstructor().getFullName();
+                topInstructors.put(name, topInstructors.getOrDefault(name, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Map<String, Number>> charts = new HashMap<>();
+        charts.put("usageByCarType", usageByCarType);
+        charts.put("topLearners", topLearners);
+        charts.put("topInstructors", topInstructors);
+
+        return new DashboardAnalyticsDTO(stats, charts);
+    }
+
+    public DashboardAnalyticsDTO getLearnerDashboard(Long learnerId) {
+        List<Booking> bookings = bookingRepository.findByLearnerIdOrderByDateDesc(learnerId);
+
+        long totalBookings = bookings.size();
+        double totalSpent = bookings.stream().mapToDouble(Booking::getTotalCost).sum();
+        long totalTimeSpentMinutes = bookings.stream().mapToLong(Booking::getDuration).sum() * 60;
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalBookings", totalBookings);
+        stats.put("totalSpent", totalSpent);
+        stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
+
+        Map<String, Number> usageByCarType = new HashMap<>();
+        Map<String, Number> topInstructors = new HashMap<>();
+        for (Booking b : bookings) {
+            if (b.getCar() != null) {
+                String type = b.getCar().getMakeModel();
+                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
+            }
+            if (b.getInstructor() != null) {
+                String name = b.getInstructor().getFullName();
+                topInstructors.put(name, topInstructors.getOrDefault(name, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Map<String, Number>> charts = new HashMap<>();
+        charts.put("usageByCarType", usageByCarType);
+        charts.put("topInstructors", topInstructors);
+
+        return new DashboardAnalyticsDTO(stats, charts);
+    }
+
+    public DashboardAnalyticsDTO getProviderDashboard(Long providerId) {
+        List<Car> providerCars = carRepository.findByProviderId(providerId);
+        List<Booking> bookings = bookingRepository.findByProviderIdOrderByDateDesc(providerId);
+
+        long activeCars = providerCars.size();
+        long totalBookings = bookings.size();
+        double totalRevenue = bookings.stream().mapToDouble(Booking::getTotalCost).sum();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("activeCars", activeCars);
+        stats.put("totalBookings", totalBookings);
+        stats.put("totalRevenue", totalRevenue);
+
+        Map<String, Number> usageByCarType = new HashMap<>();
+        Map<String, Number> topLearners = new HashMap<>();
+        for (Booking b : bookings) {
+            if (b.getCar() != null) {
+                String type = b.getCar().getMakeModel();
+                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
+            }
+            if (b.getLearner() != null) {
+                String name = b.getLearner().getFullName();
+                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Map<String, Number>> charts = new HashMap<>();
+        charts.put("usageByCarType", usageByCarType);
+        charts.put("topLearners", topLearners);
+
+        return new DashboardAnalyticsDTO(stats, charts);
+    }
+
+    public DashboardAnalyticsDTO getInstructorDashboard(Long instructorId) {
+        List<Booking> bookings = bookingRepository.findByInstructorIdOrderByDateDesc(instructorId);
+
+        long totalBookings = bookings.size();
+        double totalEarned = bookings.stream().mapToDouble(Booking::getTotalCost).sum();
+        long totalTimeSpentMinutes = bookings.stream().mapToLong(Booking::getDuration).sum() * 60;
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalBookings", totalBookings);
+        stats.put("totalEarned", totalEarned);
+        stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
+
+        Map<String, Number> usageByCarType = new HashMap<>();
+        Map<String, Number> topLearners = new HashMap<>();
+        for (Booking b : bookings) {
+            if (b.getCar() != null) {
+                String type = b.getCar().getMakeModel();
+                usageByCarType.put(type, usageByCarType.getOrDefault(type, 0).intValue() + 1);
+            }
+            if (b.getLearner() != null) {
+                String name = b.getLearner().getFullName();
+                topLearners.put(name, topLearners.getOrDefault(name, 0).intValue() + 1);
+            }
+        }
+
+        Map<String, Map<String, Number>> charts = new HashMap<>();
+        charts.put("usageByCarType", usageByCarType);
+        charts.put("topLearners", topLearners);
+
+        return new DashboardAnalyticsDTO(stats, charts);
     }
 
     public AnalyticsResponseDTO getCarUtilizationAnalytics() {

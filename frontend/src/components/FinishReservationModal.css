@@ -26,6 +26,12 @@
   /* Header and actions are fixed, only middle should scroll if needed */
 }
 
+.finish-modal--small {
+  height: auto;
+  max-width: 400px;
+  min-height: unset;
+}
+
 .finish-modal__header {
   display: flex;
   align-items: center;
@@ -132,4 +138,13 @@
 .finish-modal__btn--cancel:hover:not(:disabled) {
   border-color: #646cff;
   color: #fff;
+}
+
+.rating-stars button {
+  padding: 0;
+  line-height: 1;
+}
+
+.rating-stars button:hover {
+  transform: scale(1.2);
 }

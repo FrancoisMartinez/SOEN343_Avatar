@@ -7,6 +7,8 @@ public class BookingResponse {
     private Long id;
     private Long carId;
     private String carName;
+    private Long instructorId;
+    private String instructorName;
     private Long userId;
     private String date;
     private String startTime;
@@ -23,6 +25,12 @@ public class BookingResponse {
 
     public String getCarName() { return carName; }
     public void setCarName(String carName) { this.carName = carName; }
+
+    public Long getInstructorId() { return instructorId; }
+    public void setInstructorId(Long instructorId) { this.instructorId = instructorId; }
+
+    public String getInstructorName() { return instructorName; }
+    public void setInstructorName(String instructorName) { this.instructorName = instructorName; }
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

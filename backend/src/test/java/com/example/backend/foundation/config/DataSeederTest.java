@@ -31,9 +31,9 @@ class DataSeederTest {
         CommandLineRunner runner = dataSeeder.seedUsersAndCars(userRepository, carRepository, availabilitySlotRepository, passwordEncoder);
         runner.run();
 
-        verify(userRepository, times(4)).save(any());
+        verify(userRepository, times(6)).save(any());
         verify(carRepository, times(1)).saveAll(any());
-        verify(passwordEncoder, times(4)).encode("password123");
+        verify(passwordEncoder, times(6)).encode("password123");
     }
 
     @Test

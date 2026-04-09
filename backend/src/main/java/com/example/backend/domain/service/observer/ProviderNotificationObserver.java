@@ -17,16 +17,31 @@ public class ProviderNotificationObserver implements BookingObserver {
     @Override
     public void onBookingEvent(BookingEvent event) {
         Booking booking = event.getBooking();
-        String providerContact = booking.getCar().getProvider().getContactInfo();
-        String carName = booking.getCar().getMakeModel();
+        
+        if (booking.getCar() != null) {
+            String providerContact = booking.getCar().getProvider().getContactInfo();
+            String carName = booking.getCar().getMakeModel();
 
-        switch (event.getType()) {
-            case CREATED -> log.info("[NOTIFICATION] Provider '{}': New booking for {} on {} ({} hours, ${})",
-                    providerContact, carName, booking.getDate(), booking.getDuration(), booking.getTotalCost());
-            case FINISHED -> log.info("[NOTIFICATION] Provider '{}': Booking for {} completed. Revenue: ${}",
-                    providerContact, carName, booking.getTotalCost());
-            case CANCELLED -> log.info("[NOTIFICATION] Provider '{}': Booking for {} on {} was cancelled.",
-                    providerContact, carName, booking.getDate());
+            switch (event.getType()) {
+                case CREATED -> log.info("[NOTIFICATION] Provider '{}': New booking for {} on {} ({} hours, ${})",
+                        providerContact, carName, booking.getDate(), booking.getDuration(), booking.getTotalCost());
+                case FINISHED -> log.info("[NOTIFICATION] Provider '{}': Booking for {} completed. Revenue: ${}",
+                        providerContact, carName, booking.getTotalCost());
+                case CANCELLED -> log.info("[NOTIFICATION] Provider '{}': Booking for {} on {} was cancelled.",
+                        providerContact, carName, booking.getDate());
+            }
+        } else if (booking.getInstructor() != null) {
+            String instructorName = booking.getInstructor().getFullName();
+            String instructorEmail = booking.getInstructor().getEmail();
+
+            switch (event.getType()) {
+                case CREATED -> log.info("[NOTIFICATION] Instructor '{}' ({}): New class booking on {} ({} hours, ${})",
+                        instructorName, instructorEmail, booking.getDate(), booking.getDuration(), booking.getTotalCost());
+                case FINISHED -> log.info("[NOTIFICATION] Instructor '{}': Class on {} completed. Revenue: ${}",
+                        instructorName, booking.getDate(), booking.getTotalCost());
+                case CANCELLED -> log.info("[NOTIFICATION] Instructor '{}': Class booking on {} was cancelled.",
+                        instructorName, booking.getDate());
+            }
         }
     }
 }

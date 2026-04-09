@@ -12,7 +12,7 @@ import './ReservationsPage.css';
  * then deducts balance and updates the car location.
  */
 export default function ReservationsPage() {
-  const { userId, token, isAuthenticated, role } = useAuth();
+  const { userId, isAuthenticated, role } = useAuth();
 
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,14 +36,13 @@ export default function ReservationsPage() {
   }, [userId]);
 
   const loadBalance = useCallback(async () => {
-    if (!token) return;
     try {
-      const profile = await getUserProfile(token);
+      const profile = await getUserProfile();
       setBalance(profile.balance);
     } catch {
       // non-critical
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && role === 'LEARNER') {
@@ -67,15 +66,18 @@ export default function ReservationsPage() {
     setFinishingBooking(booking);
   };
 
-  const handleFinishConfirm = async (lat: number, lng: number, address: string) => {
+  const handleFinishConfirm = async (lat?: number, lng?: number, address?: string, rating?: number) => {
     if (!finishingBooking?.id) return;
     setSubmitting(true);
     try {
-      const updated = await finishBooking(finishingBooking.id, {
-        latitude: lat,
-        longitude: lng,
-        location: address,
-      });
+      const payload: any = { rating };
+      if (lat != null && lng != null) {
+        payload.latitude = lat;
+        payload.longitude = lng;
+        payload.location = address;
+      }
+      
+      const updated = await finishBooking(finishingBooking.id, payload);
       setBookings((prev) => prev.map((b) => (b.id === finishingBooking.id ? updated : b)));
       setFinishingBooking(null);
       // Refresh balance after deduction

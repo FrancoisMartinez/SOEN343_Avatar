@@ -1,3 +1,5 @@
+import { api } from './apiClient';
+
 export interface UserProfile {
   id: number;
   fullName: string;
@@ -7,6 +9,10 @@ export interface UserProfile {
   licenseRegion: string | null;
   role: string;
   balance: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  travelRadius?: number | null;
+  hourlyRate?: number | null;
 }
 
 export interface UpdateProfilePayload {
@@ -15,63 +21,25 @@ export interface UpdateProfilePayload {
   licenseNumber?: string;
   licenseIssueDate?: string;
   licenseRegion?: string;
+  latitude?: number;
+  longitude?: number;
+  travelRadius?: number;
+  hourlyRate?: number;
 }
 
-async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
-  const text = await res.text().catch(() => '');
-  try {
-    const body = JSON.parse(text);
-    return body.error || body.message || fallback;
-  } catch {
-    return text.trim() || fallback;
-  }
+/** Get the current user's profile based on the stored token */
+export async function getUserProfile(): Promise<UserProfile> {
+  return api.get<UserProfile>('/api/users/me', { headers: {} });
 }
 
-export async function getUserProfile(token: string): Promise<UserProfile> {
-  const res = await fetch('/api/users/me', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const message = await extractErrorMessage(res, 'Failed to fetch profile');
-    console.error(`[User] GET /me failed (${res.status}):`, message);
-    throw new Error(message);
-  }
-  return res.json();
-}
-
+/** Update the current user's profile */
 export async function updateUserProfile(
-  token: string,
   data: UpdateProfilePayload
 ): Promise<UserProfile> {
-  const res = await fetch('/api/users/me', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const message = await extractErrorMessage(res, 'Failed to update profile');
-    console.error(`[User] PUT /me failed (${res.status}):`, message);
-    throw new Error(message);
-  }
-  return res.json();
+  return api.put<UserProfile>('/api/users/me', data);
 }
 
 /** Add funds to the learner's balance */
-export async function addBalance(token: string, amount: number): Promise<UserProfile> {
-  const res = await fetch('/api/users/me/balance', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ amount }),
-  });
-  if (!res.ok) {
-    const message = await extractErrorMessage(res, 'Failed to add balance');
-    throw new Error(message);
-  }
-  return res.json();
+export async function addBalance(amount: number): Promise<UserProfile> {
+  return api.post<UserProfile>('/api/users/me/balance', { amount });
 }

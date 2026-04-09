@@ -27,6 +27,11 @@ export default function Header() {
 
         {isAuthenticated ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isAuthenticated && (
+              <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                Analytics
+              </Link>
+            )}
             {role === 'LEARNER' && (
               <Link to="/reservations" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
                 My Reservations
@@ -37,9 +42,9 @@ export default function Header() {
                 Car Reservations
               </Link>
             )}
-            {role === 'ADMIN' && (
-              <Link to="/analytics" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
-                Analytics
+            {role === 'INSTRUCTOR' && (
+              <Link to="/instructor-reservations" style={{ color: '#ccc', textDecoration: 'none', fontSize: '0.95rem' }}>
+                Class Reservations
               </Link>
             )}
             <Link

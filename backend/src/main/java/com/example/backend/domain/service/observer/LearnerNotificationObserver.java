@@ -18,15 +18,15 @@ public class LearnerNotificationObserver implements BookingObserver {
     public void onBookingEvent(BookingEvent event) {
         Booking booking = event.getBooking();
         String learnerName = booking.getLearner().getFullName();
-        String carName = booking.getCar().getMakeModel();
+        String entityName = booking.getCar() != null ? booking.getCar().getMakeModel() : "Class with " + booking.getInstructor().getFullName();
 
         switch (event.getType()) {
             case CREATED -> log.info("[NOTIFICATION] Learner '{}': Your booking for {} on {} at {} has been confirmed. Total: ${}",
-                    learnerName, carName, booking.getDate(), booking.getStartTime(), booking.getTotalCost());
+                    learnerName, entityName, booking.getDate(), booking.getStartTime(), booking.getTotalCost());
             case FINISHED -> log.info("[NOTIFICATION] Learner '{}': Your booking for {} has been completed. ${} deducted from your balance.",
-                    learnerName, carName, booking.getTotalCost());
+                    learnerName, entityName, booking.getTotalCost());
             case CANCELLED -> log.info("[NOTIFICATION] Learner '{}': Your booking for {} on {} has been cancelled.",
-                    learnerName, carName, booking.getDate());
+                    learnerName, entityName, booking.getDate());
         }
     }
 }

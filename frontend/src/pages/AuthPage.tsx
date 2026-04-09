@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import './AuthPage.css';
 import LoginForm from '../components/LoginForm';
 import RegisterForm from '../components/RegisterForm';
@@ -9,6 +10,15 @@ export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Check for expired session flag in URL
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('expired') === 'true') {
+      setError('Your session has expired. Please login again.');
+    }
+  }, [location.search]);
 
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
