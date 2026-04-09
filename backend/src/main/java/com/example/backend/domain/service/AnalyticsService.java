@@ -40,6 +40,12 @@ public class AnalyticsService {
         long activeCars = allCars.size();
         long totalBookings = allBookings.size();
         double totalRevenue = allBookings.stream().mapToDouble(Booking::getTotalCost).sum();
+        long totalDrivingMinutes = allBookings.stream()
+                .filter(b -> b.getCar() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
+        long totalLearningMinutes = allBookings.stream()
+                .filter(b -> b.getInstructor() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("activeUsers", activeUsers);
@@ -47,6 +53,8 @@ public class AnalyticsService {
         stats.put("activeInstructors", activeInstructors);
         stats.put("totalBookings", totalBookings);
         stats.put("totalRevenue", totalRevenue);
+        stats.put("totalDrivingMinutes", totalDrivingMinutes);
+        stats.put("totalLearningMinutes", totalLearningMinutes);
 
         Map<String, Number> usageByCarType = new HashMap<>();
         for (Booking b : allBookings) {
@@ -86,11 +94,19 @@ public class AnalyticsService {
         long totalBookings = bookings.size();
         double totalSpent = bookings.stream().mapToDouble(Booking::getTotalCost).sum();
         long totalTimeSpentMinutes = bookings.stream().mapToLong(Booking::getDuration).sum() * 60;
+        long totalDrivingMinutes = bookings.stream()
+                .filter(b -> b.getCar() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
+        long totalLearningMinutes = bookings.stream()
+                .filter(b -> b.getInstructor() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalBookings", totalBookings);
         stats.put("totalSpent", totalSpent);
         stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
+        stats.put("totalDrivingMinutes", totalDrivingMinutes);
+        stats.put("totalLearningMinutes", totalLearningMinutes);
 
         Map<String, Number> usageByCarType = new HashMap<>();
         Map<String, Number> topInstructors = new HashMap<>();
@@ -124,6 +140,12 @@ public class AnalyticsService {
         stats.put("activeCars", activeCars);
         stats.put("totalBookings", totalBookings);
         stats.put("totalRevenue", totalRevenue);
+        stats.put("totalDrivingMinutes", bookings.stream()
+                .filter(b -> b.getCar() != null)
+                .mapToLong(Booking::getDuration).sum() * 60);
+        stats.put("totalLearningMinutes", bookings.stream()
+                .filter(b -> b.getInstructor() != null)
+                .mapToLong(Booking::getDuration).sum() * 60);
 
         Map<String, Number> usageByCarType = new HashMap<>();
         Map<String, Number> topLearners = new HashMap<>();
@@ -151,11 +173,19 @@ public class AnalyticsService {
         long totalBookings = bookings.size();
         double totalEarned = bookings.stream().mapToDouble(Booking::getTotalCost).sum();
         long totalTimeSpentMinutes = bookings.stream().mapToLong(Booking::getDuration).sum() * 60;
+        long totalDrivingMinutes = bookings.stream()
+                .filter(b -> b.getCar() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
+        long totalLearningMinutes = bookings.stream()
+                .filter(b -> b.getInstructor() != null)
+                .mapToLong(Booking::getDuration).sum() * 60;
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalBookings", totalBookings);
         stats.put("totalEarned", totalEarned);
         stats.put("totalTimeSpentMinutes", totalTimeSpentMinutes);
+        stats.put("totalDrivingMinutes", totalDrivingMinutes);
+        stats.put("totalLearningMinutes", totalLearningMinutes);
 
         Map<String, Number> usageByCarType = new HashMap<>();
         Map<String, Number> topLearners = new HashMap<>();
