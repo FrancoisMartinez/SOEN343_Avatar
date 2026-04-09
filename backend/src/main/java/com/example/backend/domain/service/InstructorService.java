@@ -21,13 +21,10 @@ public class InstructorService {
 
         return allInstructors.stream()
                 .filter(instructor -> {
-                    // Filter by distance: check if user is within instructor's travel radius
-                    if (lat != null && lng != null) {
+                    // Filter by distance: check if user is within requested search radius
+                    if (lat != null && lng != null && searchRadius != null) {
                         double dist = calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
-                        // Mandatory: learner must be within instructor's travel radius for a match to be possible
-                        if (dist > instructor.getTravelRadius()) return false;
-                        // Optional: learner's own search radius preference
-                        if (searchRadius != null && dist > searchRadius) return false;
+                        if (dist > searchRadius) return false;
                     }
                     // Filter by min price if provided
                     if (minPrice != null && instructor.getHourlyRate() < minPrice) {
@@ -89,7 +86,6 @@ private double calculateDistance(Double lat1, Double lng1, Double lat2, Double l
                 instructor.getId(),
                 instructor.getFullName(),
                 instructor.getHourlyRate(),
-                instructor.getTravelRadius(),
                 instructor.getRating(),
                 instructor.getLatitude(),
                 instructor.getLongitude()

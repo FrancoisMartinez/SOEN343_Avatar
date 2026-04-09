@@ -10,7 +10,7 @@ import './AutoMatchPanel.css';
 interface AutoMatchPanelProps {
   userLocation: { lat: number; lng: number; address?: string } | null;
   onClose: () => void;
-  onMatchSelect: (result: MatchResultData) => void;
+  onLocateCar: (carId: number) => void;
   draftLocation?: DraftLocation | null;
   searchCenter?: DraftLocation | null;
   searchRadius?: number;
@@ -20,6 +20,8 @@ interface AutoMatchPanelProps {
   onLocationChange?: (loc: DraftLocation | null) => void;
   onClearSearch?: () => void;
   onResults?: (results: MatchResultData[]) => void;
+  selectedCarId?: number | null;
+  selectedInstructorId?: number | null;
 }
 
 function buildTimeOptions(): string[] {
@@ -45,7 +47,7 @@ const DURATION_OPTIONS = [
 export default function AutoMatchPanel({
   userLocation,
   onClose,
-  onMatchSelect,
+  onLocateCar,
   draftLocation,
   searchCenter,
   searchRadius = 50,
@@ -55,6 +57,8 @@ export default function AutoMatchPanel({
   onLocationChange,
   onClearSearch,
   onResults,
+  selectedCarId,
+  selectedInstructorId,
 }: AutoMatchPanelProps) {
   const { userId } = useAuth();
   const [showFilters, setShowFilters] = useState(false);
@@ -73,10 +77,24 @@ export default function AutoMatchPanel({
 
   const [selectedMatch, setSelectedMatch] = useState<MatchResultData | null>(null);
 
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   const toSliderValue = (r: number) => (r === 0.5 ? 0 : r);
   const fromSliderValue = (v: number) => (v === 0 ? 0.5 : v);
 
   const lastShowFilters = useRef(showFilters);
+
+  useEffect(() => {
+    if (selectedCarId == null || results.length === 0) return;
+    const matched = results.find(r => r.carId === selectedCarId && (selectedInstructorId == null || r.instructorId === selectedInstructorId));
+    if (!matched) return;
+    
+    const key = `${matched.carId}-${matched.instructorId}`;
+    const card = cardRefs.current[key];
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedCarId, selectedInstructorId, results]);
 
   useEffect(() => {
     if (showFilters !== lastShowFilters.current) {
@@ -335,100 +353,114 @@ export default function AutoMatchPanel({
             </div>
           )}
 
+          {error && (
+            <div className="vehicle-sidebar__status vehicle-sidebar__status--error">
+              {error}
+            </div>
+          )}
+
           {!loading && results.length > 0 && (
             <>
               <div className="vehicle-sidebar__results-header">
                 Best Matches Found ({results.length})
               </div>
-              {results.map((result, idx) => (
-                <div key={`${result.carId}-${result.instructorId}`} className="vehicle-card auto-match-result-card">
-                  <div className="auto-match-panel__rank-badge">#{idx + 1}</div>
-                  <div className="vehicle-card__header">
-                    <h3 className="vehicle-card__title">{result.makeModel}</h3>
-                    <span className="vehicle-card__badge vehicle-card__badge--available">
-                      {result.compositeScore.toFixed(0)}% Match
-                    </span>
-                  </div>
-
-                  <div className="vehicle-card__details">
-                    <div className="vehicle-card__detail">
-                      <span className="vehicle-card__label">Car Location</span>
-                      <span className="vehicle-card__value">{result.location}</span>
-                    </div>
-                    <div className="vehicle-card__detail">
-                      <span className="vehicle-card__label">Distance</span>
-                      <span className="vehicle-card__value">{result.distanceKm.toFixed(1)} km</span>
-                    </div>
-                    <div className="vehicle-card__detail">
-                      <span className="vehicle-card__label">Instructor</span>
-                      <span className="vehicle-card__value">{result.instructorName}</span>
-                    </div>
-                    <div className="vehicle-card__detail">
-                      <span className="vehicle-card__label">Total Rate</span>
-                      <span className="vehicle-card__value" style={{ color: '#4ade80', fontWeight: 'bold' }}>
-                        ${(result.hourlyRate + result.instructorHourlyRate).toFixed(2)}/hr
+              {results.map((result, idx) => {
+                const isSelected = result.carId === selectedCarId && (selectedInstructorId == null || result.instructorId === selectedInstructorId);
+                return (
+                  <div
+                    key={`${result.carId}-${result.instructorId}`}
+                    className={`vehicle-card auto-match-result-card ${isSelected ? 'vehicle-card--selected' : ''}`}
+                    onClick={() => onLocateCar(result.carId)}
+                    ref={(el) => { cardRefs.current[`${result.carId}-${result.instructorId}`] = el; }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="auto-match-panel__rank-badge">#{idx + 1}</div>
+                    <div className="vehicle-card__header">
+                      <h3 className="vehicle-card__title">{result.makeModel}</h3>
+                      <span className="vehicle-card__badge vehicle-card__badge--available">
+                        {result.compositeScore.toFixed(0)}% Match
                       </span>
                     </div>
-                  </div>
 
-                  <div className="auto-match-panel__score-bar-container">
-                    <div className="auto-match-panel__score-bar-bg">
-                      <div
-                        className="auto-match-panel__score-bar-fill"
-                        style={{ width: `${result.compositeScore}%` }}
-                      />
+                    <div className="vehicle-card__details">
+                      <div className="vehicle-card__detail">
+                        <span className="vehicle-card__label">Car Location</span>
+                        <span className="vehicle-card__value">{result.location}</span>
+                      </div>
+                      <div className="vehicle-card__detail">
+                        <span className="vehicle-card__label">Distance</span>
+                        <span className="vehicle-card__value">{result.distanceKm.toFixed(1)} km</span>
+                      </div>
+                      <div className="vehicle-card__detail">
+                        <span className="vehicle-card__label">Instructor</span>
+                        <span className="vehicle-card__value">{result.instructorName}</span>
+                      </div>
+                      <div className="vehicle-card__detail">
+                        <span className="vehicle-card__label">Total Rate</span>
+                        <span className="vehicle-card__value" style={{ color: '#4ade80', fontWeight: 'bold' }}>
+                          ${(result.hourlyRate + result.instructorHourlyRate).toFixed(2)}/hr
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="vehicle-card__actions">
-                    <button
-                      className="vehicle-card__btn vehicle-card__btn--locate"
-                      onClick={() => onMatchSelect(result)}
-                    >
-                      View on Map
-                    </button>
-                    <button
-                      className="vehicle-card__btn vehicle-card__btn--confirm"
-                      onClick={() => handleBookNow(result)}
-                      disabled={loading}
-                    >
-                      Book Now
-                    </button>
-                  </div>
-
-                  {selectedMatch?.carId === result.carId && selectedMatch?.instructorId === result.instructorId && (
-                    <div className="vehicle-card__booking-overlay" onClick={(e) => e.stopPropagation()}>
-                      <BookingPanel
-                        car={{
-                          id: result.carId,
-                          makeModel: result.makeModel,
-                          transmissionType: result.transmissionType,
-                          location: result.location,
-                          latitude: result.latitude,
-                          longitude: result.longitude,
-                          available: true,
-                          hourlyRate: result.hourlyRate,
-                        }}
-                        instructor={{
-                          id: result.instructorId,
-                          fullName: result.instructorName,
-                          email: '',
-                          latitude: 0,
-                          longitude: 0,
-                          travelRadius: 0,
-                          hourlyRate: result.instructorHourlyRate,
-                          rating: result.instructorRating,
-                        }}
-                        onClose={() => setSelectedMatch(null)}
-                        onBooked={() => {
-                          setSelectedMatch(null);
-                          onClose();
-                        }}
-                      />
+                    <div className="auto-match-panel__score-bar-container">
+                      <div className="auto-match-panel__score-bar-bg">
+                        <div
+                          className="auto-match-panel__score-bar-fill"
+                          style={{ width: `${result.compositeScore}%` }}
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="vehicle-card__actions">
+                      <button
+                        className="vehicle-card__btn vehicle-card__btn--locate"
+                        onClick={(e) => { e.stopPropagation(); onLocateCar(result.carId); }}
+                      >
+                        View on Map
+                      </button>
+                      <button
+                        className="vehicle-card__btn vehicle-card__btn--confirm"
+                        onClick={(e) => { e.stopPropagation(); handleBookNow(result); }}
+                        disabled={loading}
+                      >
+                        Book Now
+                      </button>
+                    </div>
+
+                    {selectedMatch?.carId === result.carId && selectedMatch?.instructorId === result.instructorId && (
+                      <div className="vehicle-card__booking-overlay" onClick={(e) => e.stopPropagation()}>
+                        <BookingPanel
+                          car={{
+                            id: result.carId,
+                            makeModel: result.makeModel,
+                            transmissionType: result.transmissionType,
+                            location: result.location,
+                            latitude: result.latitude,
+                            longitude: result.longitude,
+                            available: true,
+                            hourlyRate: result.hourlyRate,
+                          }}
+                          instructor={{
+                            id: result.instructorId,
+                            fullName: result.instructorName,
+                            email: '',
+                            latitude: result.instructorLatitude || 0,
+                            longitude: result.instructorLongitude || 0,
+                            hourlyRate: result.instructorHourlyRate,
+                            rating: result.instructorRating,
+                          }}
+                          onClose={() => setSelectedMatch(null)}
+                          onBooked={() => {
+                            setSelectedMatch(null);
+                            onClose();
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </>
           )}
 

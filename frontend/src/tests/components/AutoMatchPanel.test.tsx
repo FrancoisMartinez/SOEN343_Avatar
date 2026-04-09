@@ -15,7 +15,7 @@ describe('AutoMatchPanel', () => {
     vi.clearAllMocks();
   });
 
-  it('renders_formFieldsAndSubmitButton', () => {
+  it('renders_headerAndMatchesListInitially', () => {
     render(
       <AutoMatchPanel
         userLocation={{ lat: 45.5, lng: -73.5 }}
@@ -24,6 +24,22 @@ describe('AutoMatchPanel', () => {
       />
     );
 
+    expect(screen.getByText('Auto-Match Results')).toBeTruthy();
+    expect(screen.getByText('Filters')).toBeTruthy();
+  });
+
+  it('showsFilters_whenFiltersButtonClicked', () => {
+    render(
+      <AutoMatchPanel
+        userLocation={{ lat: 45.5, lng: -73.5 }}
+        onClose={() => {}}
+        onMatchSelect={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Filters'));
+
+    expect(screen.getByText('Filter Auto-Match')).toBeTruthy();
     expect(screen.getByDisplayValue('Any Transmission')).toBeTruthy();
     expect(screen.getByText('Find Best Match')).toBeTruthy();
   });
@@ -37,10 +53,7 @@ describe('AutoMatchPanel', () => {
       />
     );
 
-    // Initial load will fail but error is handled in useEffect
-    // Triggering manual search to check error display
-    const filterBtn = screen.getByText('Filters');
-    fireEvent.click(filterBtn);
+    fireEvent.click(screen.getByText('Filters'));
     
     const submitBtn = screen.getByText('Find Best Match');
     fireEvent.click(submitBtn);

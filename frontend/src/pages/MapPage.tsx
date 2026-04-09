@@ -120,26 +120,28 @@ export default function MapPage() {
   }, [userId]);
 
   const handleCarFocus = useCallback((carId: number | null, options: FocusOptions = {}) => {
-    setSelectedCarId(carId);
+    const numericId = carId != null ? Number(carId) : null;
+    setSelectedCarId(numericId);
     setSelectedInstructorId(null);
     setFocusEvent((prev) => ({
       id: prev.id + 1,
-      carId,
+      carId: numericId,
       instructorId: null,
-      openPopup: Boolean(options.openPopup) && carId != null,
-      forceRecenter: Boolean(options.forceRecenter) && carId != null,
+      openPopup: (options.openPopup !== undefined ? options.openPopup : true) && numericId != null,
+      forceRecenter: Boolean(options.forceRecenter) && numericId != null,
     }));
   }, []);
 
   const handleInstructorFocus = useCallback((instructorId: number | null, options: FocusOptions = {}) => {
-    setSelectedInstructorId(instructorId);
+    const numericId = instructorId != null ? Number(instructorId) : null;
+    setSelectedInstructorId(numericId);
     setSelectedCarId(null);
     setFocusEvent((prev) => ({
       id: prev.id + 1,
       carId: null,
-      instructorId,
-      openPopup: Boolean(options.openPopup) && instructorId != null,
-      forceRecenter: Boolean(options.forceRecenter) && instructorId != null,
+      instructorId: numericId,
+      openPopup: (options.openPopup !== undefined ? options.openPopup : true) && numericId != null,
+      forceRecenter: Boolean(options.forceRecenter) && numericId != null,
     }));
   }, []);
 
@@ -184,26 +186,6 @@ export default function MapPage() {
     setSearchRadius(50);
     handleSearchVehicles({}); // Broad search
   }, [handleSearchVehicles]);
-
-  useEffect(() => {
-    if (selectedCarId == null) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setFocusEvent((prev) => ({ ...prev, openPopup: true }));
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [selectedCarId]);
-
-  useEffect(() => {
-    if (selectedInstructorId == null) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setFocusEvent((prev) => ({ ...prev, openPopup: true }));
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [selectedInstructorId]);
 
   useEffect(() => {
     if (isAuthenticated && isCarProvider) {
@@ -267,7 +249,6 @@ export default function MapPage() {
         email: '',
         latitude: r.instructorLatitude || 0,
         longitude: r.instructorLongitude || 0,
-        travelRadius: 0,
         hourlyRate: r.instructorHourlyRate,
         rating: r.instructorRating
       })).filter(i => i.latitude !== 0);
@@ -337,7 +318,7 @@ export default function MapPage() {
               <AutoMatchPanel
                 userLocation={userLocation}
                 onClose={() => setServiceType('car')}
-                onMatchSelect={handleAutoMatchSelect}
+                onLocateCar={handleLocateCar}
                 draftLocation={draftLocation}
                 searchCenter={searchCenter}
                 searchRadius={searchRadius}
@@ -347,6 +328,8 @@ export default function MapPage() {
                 onLocationChange={handleLocationChange}
                 onClearSearch={handleClearSearch}
                 onResults={handleAutoMatchResults}
+                selectedCarId={selectedCarId}
+                selectedInstructorId={selectedInstructorId}
               />
             )}
           </div>

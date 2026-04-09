@@ -11,7 +11,6 @@ export interface UserProfile {
   balance: number | null;
   latitude?: number | null;
   longitude?: number | null;
-  travelRadius?: number | null;
   hourlyRate?: number | null;
 }
 
@@ -23,7 +22,6 @@ export interface UpdateProfilePayload {
   licenseRegion?: string;
   latitude?: number;
   longitude?: number;
-  travelRadius?: number;
   hourlyRate?: number;
 }
 

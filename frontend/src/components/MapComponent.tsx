@@ -225,21 +225,26 @@ function getClusterRadiusPx(zoom: number) {
   return 34;
 }
 
-function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onNavigateToCar }: {
+function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onNavigateToCar, selectedCarIdRef }: {
   cars: CarData[];
   selectedCarId: number | null;
-  markerRefs: MutableRefObject<Record<number, LeafletMarker | null>>;
+  markerRefs: MutableRefObject<Record<string, LeafletMarker | null>>;
   onSelectCar?: (carId: number | null) => void;
   onNavigateToCar?: (lat: number, lon: number, name: string) => void;
+  selectedCarIdRef: MutableRefObject<number | null>;
 }) {
   const map = useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
   const [zoom, setZoom] = useState<number>(map.getZoom());
+  
+  const selectedCar = useMemo(() => cars.find(c => Number(c.id) === Number(selectedCarId)), [cars, selectedCarId]);
+  const otherCars = useMemo(() => cars.filter(c => Number(c.id) !== Number(selectedCarId)), [cars, selectedCarId]);
+
   const clusteredEntries = useMemo(() => {
-    if (cars.length === 0) return [];
-    if (zoom >= 17) return cars.map(car => ({ center: [car.latitude!, car.longitude!], cars: [car] }));
+    if (otherCars.length === 0) return [];
+    if (zoom >= 17) return otherCars.map(car => ({ center: [car.latitude!, car.longitude!], cars: [car] }));
     const radiusPx = getClusterRadiusPx(zoom);
     const clusters: Array<{ x: number; y: number; cars: CarData[] }> = [];
-    for (const car of cars) {
+    for (const car of otherCars) {
       const point = map.project([car.latitude!, car.longitude!], zoom);
       let nearestCluster = null;
       let nearestDistanceSq = Number.POSITIVE_INFINITY;
@@ -254,10 +259,37 @@ function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onN
       } else { clusters.push({ x: point.x, y: point.y, cars: [car] }); }
     }
     return clusters.map(cluster => ({ center: map.unproject(L.point(cluster.x, cluster.y), zoom), cars: cluster.cars }));
-  }, [cars, map, zoom]);
+  }, [otherCars, map, zoom]);
 
   return (
     <>
+      {selectedCar && (
+        <Marker
+          key={`car-${selectedCar.id}`}
+          position={[selectedCar.latitude!, selectedCar.longitude!]}
+          icon={carIconHighlighted}
+          ref={(ref) => { if (selectedCar.id != null) { markerRefs.current[`car-${selectedCar.id}`] = ref; if (ref) ref.openPopup(); } }}
+          eventHandlers={{ 
+            click: () => onSelectCar?.(selectedCar.id),
+            popupclose: () => {
+              if (Number(selectedCar.id) === Number(selectedCarIdRef.current)) {
+                onSelectCar?.(null);
+              }
+            }
+          }}
+        >
+          <Popup autoPan={false}>
+            <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
+              <strong>{selectedCar.makeModel}</strong><br />
+              <span style={{ fontSize: '0.85em', opacity: 0.8 }}>{selectedCar.location}</span><br />
+              <span style={{ fontSize: '0.85em' }}>${selectedCar.hourlyRate?.toFixed(2) ?? '0.00'}/hr</span>
+              {onNavigateToCar && (
+                <><br /><button style={{ marginTop: 6, fontSize: '0.82em', cursor: 'pointer' }} onClick={() => onNavigateToCar(selectedCar.latitude!, selectedCar.longitude!, selectedCar.makeModel)}>Directions here</button></>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      )}
       {clusteredEntries.map((entry: any) => {
         if (entry.cars.length === 1) {
           const car = entry.cars[0];
@@ -265,9 +297,9 @@ function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onN
             <Marker
               key={`car-${car.id}`}
               position={[car.latitude!, car.longitude!]}
-              icon={car.id === selectedCarId ? carIconHighlighted : carIcon}
-              ref={(ref) => { if (car.id != null) { markerRefs.current[car.id] = ref; if (ref && car.id === selectedCarId) ref.openPopup(); } }}
-              eventHandlers={{ click: () => onSelectCar?.(car.id), popupclose: () => { if (car.id === selectedCarId) onSelectCar?.(null); } }}
+              icon={carIcon}
+              ref={(ref) => { if (car.id != null) markerRefs.current[`car-${car.id}`] = ref; }}
+              eventHandlers={{ click: () => onSelectCar?.(car.id) }}
             >
               <Popup autoPan={false}>
                 <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
@@ -286,7 +318,7 @@ function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onN
           <Marker
             key={`cluster-${entry.cars.map((c: any) => c.id).join('-')}`}
             position={[entry.center.lat, entry.center.lng]}
-            icon={createClusterIcon(entry.cars.length, selectedCarId != null && entry.cars.some((c: any) => c.id === selectedCarId))}
+            icon={createClusterIcon(entry.cars.length, false)}
             eventHandlers={{ click: () => { const bounds = L.latLngBounds(entry.cars.map((c: any) => [c.latitude, c.longitude])); map.flyTo(bounds.getCenter(), Math.min(map.getBoundsZoom(bounds), LOCATE_ZOOM_LEVEL)); } }}
           />
         );
@@ -295,21 +327,26 @@ function ClusteredCarMarkers({ cars, selectedCarId, markerRefs, onSelectCar, onN
   );
 }
 
-function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerRefs, onSelectInstructor, onNavigateToTarget }: {
+function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerRefs, onSelectInstructor, onNavigateToTarget, selectedInstructorIdRef }: {
   instructors: InstructorData[];
   selectedInstructorId: number | null;
-  markerRefs: MutableRefObject<Record<number, LeafletMarker | null>>;
+  markerRefs: MutableRefObject<Record<string, LeafletMarker | null>>;
   onSelectInstructor?: (id: number | null) => void;
   onNavigateToTarget?: (lat: number, lon: number, name: string) => void;
+  selectedInstructorIdRef: MutableRefObject<number | null>;
 }) {
   const map = useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
   const [zoom, setZoom] = useState<number>(map.getZoom());
+
+  const selectedInstructor = useMemo(() => instructors.find(i => Number(i.id) === Number(selectedInstructorId)), [instructors, selectedInstructorId]);
+  const otherInstructors = useMemo(() => instructors.filter(i => Number(i.id) !== Number(selectedInstructorId)), [instructors, selectedInstructorId]);
+
   const clusteredEntries = useMemo(() => {
-    if (instructors.length === 0) return [];
-    if (zoom >= 17) return instructors.map(inst => ({ center: [inst.latitude!, inst.longitude!], instructors: [inst] }));
+    if (otherInstructors.length === 0) return [];
+    if (zoom >= 17) return otherInstructors.map(inst => ({ center: [inst.latitude!, inst.longitude!], instructors: [inst] }));
     const radiusPx = getClusterRadiusPx(zoom);
     const clusters: Array<{ x: number; y: number; instructors: InstructorData[] }> = [];
-    for (const inst of instructors) {
+    for (const inst of otherInstructors) {
       const point = map.project([inst.latitude!, inst.longitude!], zoom);
       let nearestCluster = null;
       let nearestDistanceSq = Number.POSITIVE_INFINITY;
@@ -324,10 +361,37 @@ function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerR
       } else { clusters.push({ x: point.x, y: point.y, instructors: [inst] }); }
     }
     return clusters.map(cluster => ({ center: map.unproject(L.point(cluster.x, cluster.y), zoom), instructors: cluster.instructors }));
-  }, [instructors, map, zoom]);
+  }, [otherInstructors, map, zoom]);
 
   return (
     <>
+      {selectedInstructor && (
+        <Marker
+          key={`instructor-${selectedInstructor.id}`}
+          position={[selectedInstructor.latitude!, selectedInstructor.longitude!]}
+          icon={instructorIconHighlighted}
+          ref={(ref) => { if (selectedInstructor.id != null) { markerRefs.current[`inst-${selectedInstructor.id}`] = ref; if (ref) ref.openPopup(); } }}
+          eventHandlers={{ 
+            click: () => onSelectInstructor?.(selectedInstructor.id),
+            popupclose: () => {
+              if (Number(selectedInstructor.id) === Number(selectedInstructorIdRef.current)) {
+                onSelectInstructor?.(null);
+              }
+            }
+          }}
+        >
+          <Popup autoPan={false}>
+            <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
+              <strong>{selectedInstructor.fullName}</strong><br />
+              <span style={{ fontSize: '0.85em' }}>Driving Instructor</span><br />
+              <span style={{ fontSize: '0.85em' }}>${selectedInstructor.hourlyRate.toFixed(2)}/hr</span>
+              {onNavigateToTarget && (
+                <><br /><button style={{ marginTop: 6, fontSize: '0.82em', cursor: 'pointer' }} onClick={() => onNavigateToTarget(selectedInstructor.latitude!, selectedInstructor.longitude!, selectedInstructor.fullName)}>Directions here</button></>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      )}
       {clusteredEntries.map((entry: any) => {
         if (entry.instructors.length === 1) {
           const inst = entry.instructors[0];
@@ -335,9 +399,9 @@ function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerR
             <Marker
               key={`instructor-${inst.id}`}
               position={[inst.latitude!, inst.longitude!]}
-              icon={inst.id === selectedInstructorId ? instructorIconHighlighted : instructorIcon}
-              ref={(ref) => { if (inst.id != null) { markerRefs.current[inst.id] = ref; if (ref && inst.id === selectedInstructorId) ref.openPopup(); } }}
-              eventHandlers={{ click: () => onSelectInstructor?.(inst.id), popupclose: () => { if (inst.id === selectedInstructorId) onSelectInstructor?.(null); } }}
+              icon={instructorIcon}
+              ref={(ref) => { if (inst.id != null) markerRefs.current[`inst-${inst.id}`] = ref; }}
+              eventHandlers={{ click: () => onSelectInstructor?.(inst.id) }}
             >
               <Popup autoPan={false}>
                 <div style={{ fontFamily: 'inherit', minWidth: 140 }}>
@@ -356,7 +420,7 @@ function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerR
           <Marker
             key={`inst-cluster-${entry.instructors.map((i: any) => i.id).join('-')}`}
             position={[entry.center.lat, entry.center.lng]}
-            icon={createInstructorClusterIcon(entry.instructors.length, selectedInstructorId != null && entry.instructors.some((i: any) => i.id === selectedInstructorId))}
+            icon={createInstructorClusterIcon(entry.instructors.length, false)}
             eventHandlers={{ click: () => { const bounds = L.latLngBounds(entry.instructors.map((i: any) => [i.latitude, i.longitude])); map.flyTo(bounds.getCenter(), Math.min(map.getBoundsZoom(bounds), LOCATE_ZOOM_LEVEL)); } }}
           />
         );
@@ -364,6 +428,7 @@ function ClusteredInstructorMarkers({ instructors, selectedInstructorId, markerR
     </>
   );
 }
+
 
 function MapCenterTracker({ onCenterChange }: { onCenterChange: (lat: number, lon: number) => void }) {
   const map = useMapEvents({ moveend: () => { const c = map.getCenter(); onCenterChange(c.lat, c.lng); } });
@@ -388,23 +453,48 @@ export default function MapComponent({
   const instructorsWithCoords = instructors.filter(i => i.latitude != null && i.longitude != null);
   const visibleCars = carsWithCoords.filter(car => !(pickingMode && draftLocation && selectedCarId != null && car.id === selectedCarId));
   const visibleInstructors = instructorsWithCoords.filter(inst => !(pickingMode && draftLocation && selectedInstructorId != null && inst.id === selectedInstructorId));
-  const markerRefs = useRef<Record<number, LeafletMarker | null>>({});
+  const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
   const draftMarkerRef = useRef<LeafletMarker | null>(null);
   const wasPickingModeRef = useRef<boolean>(pickingMode);
-  const selectedCar = carsWithCoords.find(car => car.id === selectedCarId) ?? null;
+  const selectedCar = carsWithCoords.find(car => Number(car.id) === Number(selectedCarId)) ?? null;
 
   useEffect(() => {
+    const isCar = selectedCarId != null;
     const activeId = selectedCarId ?? selectedInstructorId;
     if (activeId == null || !carFocusEvent.openPopup || carFocusEvent.id === 0) return;
-    if (pickingMode && draftLocation) { draftMarkerRef.current?.openPopup(); return; }
-    const tryOpen = () => markerRefs.current[activeId]?.openPopup();
-    tryOpen(); window.setTimeout(tryOpen, 350);
-  }, [selectedCarId, selectedInstructorId, carFocusEvent, pickingMode, draftLocation]);
+    
+    if (pickingMode && draftLocation) { 
+      draftMarkerRef.current?.openPopup(); 
+      return; 
+    }
+
+    const tryOpen = () => {
+      const key = isCar ? `car-${activeId}` : `inst-${activeId}`;
+      const marker = markerRefs.current[key];
+      if (marker) {
+        marker.openPopup();
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryOpen()) {
+      // Retry more aggressively and for longer to account for fly durations
+      const timers = [100, 300, 600, 1000, 1500].map(ms => window.setTimeout(tryOpen, ms));
+      return () => timers.forEach(clearTimeout);
+    }
+  }, [selectedCarId, selectedInstructorId, carFocusEvent, pickingMode, draftLocation, vehicles, instructors]);
 
   useEffect(() => {
     const wasPickingMode = wasPickingModeRef.current; wasPickingModeRef.current = pickingMode;
     const activeId = selectedCarId ?? selectedInstructorId;
-    if (wasPickingMode && !pickingMode && activeId != null) window.setTimeout(() => markerRefs.current[activeId]?.openPopup(), 0);
+    const isCar = selectedCarId != null;
+    if (wasPickingMode && !pickingMode && activeId != null) {
+      window.setTimeout(() => {
+        const key = isCar ? `car-${activeId}` : `inst-${activeId}`;
+        markerRefs.current[key]?.openPopup();
+      }, 0);
+    }
   }, [pickingMode, selectedCarId, selectedInstructorId]);
 
   const pickingBannerText = useMemo(() => {
@@ -427,6 +517,17 @@ export default function MapComponent({
     }
     return carIconHighlighted;
   }, [pickingPurpose, serviceType]);
+
+  const selectedCarIdRef = useRef<number | null>(selectedCarId);
+  const selectedInstructorIdRef = useRef<number | null>(selectedInstructorId);
+
+  useEffect(() => {
+    selectedCarIdRef.current = selectedCarId;
+  }, [selectedCarId]);
+
+  useEffect(() => {
+    selectedInstructorIdRef.current = selectedInstructorId;
+  }, [selectedInstructorId]);
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
@@ -483,8 +584,8 @@ export default function MapComponent({
           )}
           <FlyToDraft draftLocation={draftLocation} /></>
         )}
-        {!pickingMode && <ClusteredCarMarkers cars={visibleCars} selectedCarId={selectedCarId} markerRefs={markerRefs} onSelectCar={onSelectCar} onNavigateToCar={onNavigateToCar} />}
-        {!pickingMode && <ClusteredInstructorMarkers instructors={visibleInstructors} selectedInstructorId={selectedInstructorId} markerRefs={markerRefs} onSelectInstructor={onSelectInstructor} onNavigateToTarget={onNavigateToTarget} />}
+        {!pickingMode && <ClusteredCarMarkers cars={visibleCars} selectedCarId={selectedCarId} markerRefs={markerRefs} onSelectCar={onSelectCar} onNavigateToCar={onNavigateToCar} selectedCarIdRef={selectedCarIdRef} />}
+        {!pickingMode && <ClusteredInstructorMarkers instructors={visibleInstructors} selectedInstructorId={selectedInstructorId} markerRefs={markerRefs} onSelectInstructor={onSelectInstructor} onNavigateToTarget={onNavigateToTarget} selectedInstructorIdRef={selectedInstructorIdRef} />}
       </MapContainer>
     </div>
   );

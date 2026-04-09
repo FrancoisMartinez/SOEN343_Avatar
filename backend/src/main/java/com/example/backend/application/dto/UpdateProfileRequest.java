@@ -9,7 +9,6 @@ public class UpdateProfileRequest {
     private LocalDate licenseIssueDate;
     private String licenseRegion;
 
-    private Double travelRadius;
     private Double hourlyRate;
     private Double latitude;
     private Double longitude;
@@ -31,9 +30,6 @@ public class UpdateProfileRequest {
     public String getLicenseRegion() { return licenseRegion; }
     public void setLicenseRegion(String licenseRegion) { this.licenseRegion = licenseRegion; }
 
-    public Double getTravelRadius() { return travelRadius; }
-    public void setTravelRadius(Double travelRadius) { this.travelRadius = travelRadius; }
-
     public Double getHourlyRate() { return hourlyRate; }
     public void setHourlyRate(Double hourlyRate) { this.hourlyRate = hourlyRate; }
 
@@ -43,4 +39,3 @@ public class UpdateProfileRequest {
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
 }
-

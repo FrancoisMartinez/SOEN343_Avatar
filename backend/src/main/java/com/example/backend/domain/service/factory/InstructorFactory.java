@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Factory that creates Instructor instances with default configuration:
- * initial rating of 0.0 and default travel radius of 10 km.
+ * initial rating of 0.0.
  */
 @Component
 public class InstructorFactory implements UserFactory {
@@ -15,7 +15,6 @@ public class InstructorFactory implements UserFactory {
     public User createUser() {
         Instructor instructor = new Instructor();
         instructor.setRating(0.0);
-        instructor.setTravelRadius(10.0);
         return instructor;
     }
 
