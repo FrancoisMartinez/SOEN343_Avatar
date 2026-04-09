@@ -156,9 +156,18 @@ export default function MapPage() {
   useEffect(() => {
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => console.warn('Location watcher error:', err),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+      },
+      () => {
+        // Silently handle location watch errors
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
