@@ -27,6 +27,26 @@ public class MatchingService {
    * Auto-match: finds and ranks available cars for a learner's request.
    */
   public List<MatchResult> autoMatch(MatchingRequest request) {
+    // Validate request fields
+    if (request.getLearnerId() == null) {
+      throw new IllegalArgumentException("learnerId is required");
+    }
+    if (request.getDate() == null || request.getDate().isBlank()) {
+      throw new IllegalArgumentException("date is required in YYYY-MM-DD format");
+    }
+    if (request.getStartTime() == null || request.getStartTime().isBlank()) {
+      throw new IllegalArgumentException("startTime is required in HH:mm format");
+    }
+    if (request.getDuration() <= 0 || request.getDuration() > 12) {
+      throw new IllegalArgumentException("duration must be between 1 and 12 hours");
+    }
+    if (request.getLearnerLat() < -90 || request.getLearnerLat() > 90) {
+      throw new IllegalArgumentException("latitude must be between -90 and 90");
+    }
+    if (request.getLearnerLng() < -180 || request.getLearnerLng() > 180) {
+      throw new IllegalArgumentException("longitude must be between -180 and 180");
+    }
+
     Learner learner = learnerRepository.findById(request.getLearnerId())
         .orElseThrow(() -> new IllegalArgumentException("Learner not found"));
 
