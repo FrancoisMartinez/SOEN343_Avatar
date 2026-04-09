@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import AutoMatchPanel from '../../components/AutoMatchPanel';
 import * as matchingService from '../../services/matchingService';
 
@@ -13,6 +13,7 @@ vi.mock('../../components/BookingPanel', () => ({
 
 describe('AutoMatchPanel', () => {
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
   });
 
