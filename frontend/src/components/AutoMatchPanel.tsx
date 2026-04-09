@@ -183,8 +183,9 @@ export default function AutoMatchPanel({
               <button
                 className="auto-match-panel__book-btn"
                 onClick={() => {
-                  // Directly book with auto-match criteria
+                  // Directly book with auto-match criteria and close panel
                   onMatchSelect(result);
+                  onClose();
                 }}
               >
                 Book This
