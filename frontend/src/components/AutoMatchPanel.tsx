@@ -3,7 +3,6 @@ import type { CarData } from '../services/vehicleService';
 import type { MatchResultData } from '../services/matchingService';
 import { autoMatch } from '../services/matchingService';
 import { useAuth } from '../contexts/AuthContext';
-import BookingPanel from './BookingPanel';
 import './AutoMatchPanel.css';
 
 interface AutoMatchPanelProps {
@@ -44,7 +43,6 @@ export default function AutoMatchPanel({
   const [results, setResults] = useState<MatchResultData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedForBooking, setSelectedForBooking] = useState<MatchResultData | null>(null);
 
   const handleAutoMatch = async () => {
     setError(null);
@@ -82,16 +80,6 @@ export default function AutoMatchPanel({
       setLoading(false);
     }
   };
-
-  if (selectedForBooking) {
-    return (
-      <BookingPanel
-        car={carDataFromResult(selectedForBooking)}
-        onClose={() => setSelectedForBooking(null)}
-        onBooked={onClose}
-      />
-    );
-  }
 
   return (
     <div className="auto-match-panel">
@@ -194,7 +182,10 @@ export default function AutoMatchPanel({
               </div>
               <button
                 className="auto-match-panel__book-btn"
-                onClick={() => setSelectedForBooking(result)}
+                onClick={() => {
+                  // Directly book with auto-match criteria
+                  onMatchSelect(result);
+                }}
               >
                 Book This
               </button>

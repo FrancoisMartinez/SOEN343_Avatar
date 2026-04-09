@@ -130,7 +130,7 @@ describe('AutoMatchPanel', () => {
     });
   });
 
-  it('rendersBookingPanel_afterBookThisClicked', async () => {
+  it('callsOnMatchSelect_whenBookThisClicked', async () => {
     const mockResults = [
       {
         carId: 1,
@@ -151,11 +151,12 @@ describe('AutoMatchPanel', () => {
 
     vi.mocked(matchingService.autoMatch).mockResolvedValue(mockResults);
 
+    const onMatchSelect = vi.fn();
     render(
       <AutoMatchPanel
         userLocation={{ lat: 45.5, lng: -73.5 }}
         onClose={() => {}}
-        onMatchSelect={() => {}}
+        onMatchSelect={onMatchSelect}
       />
     );
 
@@ -171,7 +172,7 @@ describe('AutoMatchPanel', () => {
     fireEvent.click(screen.getByText('Book This'));
 
     await waitFor(() => {
-      expect(screen.getByText('Booking Toyota')).toBeInTheDocument();
+      expect(onMatchSelect).toHaveBeenCalledWith(expect.objectContaining({ carId: 1 }));
     });
   });
 });
