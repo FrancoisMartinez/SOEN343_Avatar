@@ -427,9 +427,9 @@ export default function MapPage() {
             )}
             {serviceType === 'package' && (
               <AutoMatchPanel
-                vehicles={vehicles}
-                onAutoMatchSelect={handleAutoMatchSelect}
-                onClearSearch={handleClearSearch}
+                userLocation={userLocation}
+                onClose={() => setServiceType('car')}
+                onMatchSelect={handleAutoMatchSelect}
               />
             )}
           </div>
