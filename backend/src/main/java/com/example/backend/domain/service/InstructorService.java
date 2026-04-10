@@ -2,6 +2,7 @@ package com.example.backend.domain.service;
 
 import com.example.backend.application.dto.InstructorDto;
 import com.example.backend.domain.model.Instructor;
+import com.example.backend.foundation.utils.GeoUtils;
 import com.example.backend.infrastructure.repository.InstructorRepository;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +23,11 @@ public class InstructorService {
         return allInstructors.stream()
                 .filter(instructor -> {
                     // Filter by distance: check if user is within requested search radius
-                    if (lat != null && lng != null && searchRadius != null) {
-                        double dist = calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
-                        if (dist > searchRadius) return false;
+                    if (lat != null && lng != null) {
+                        if (instructor.getLatitude() == null || instructor.getLongitude() == null) return false;
+                        double dist = GeoUtils.calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
+                        double radius = (searchRadius != null) ? searchRadius : 50.0;
+                        if (dist > radius) return false;
                     }
                     // Filter by min price if provided
                     if (minPrice != null && instructor.getHourlyRate() < minPrice) {
@@ -66,21 +69,6 @@ public class InstructorService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
-private double calculateDistance(Double lat1, Double lng1, Double lat2, Double lng2) {
-    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return Double.MAX_VALUE;
-
-    double earthRadiusKm = 6371.0;
-    double dLat = Math.toRadians(lat2 - lat1);
-    double dLng = Math.toRadians(lng2 - lng1);
-
-    double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return earthRadiusKm * c;
-}
-
     private InstructorDto toDto(Instructor instructor) {
         return new InstructorDto(
                 instructor.getId(),

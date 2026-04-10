@@ -241,63 +241,40 @@ public class BookingService {
     }
 
     private void validateAvailability(Long carId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
         List<AvailabilitySlot> slots = availabilitySlotRepository.findByCarIdOrderByDayOfWeekAscStartMinuteAsc(carId);
+        checkSlotsFit(slots, date, startTime, endTime, "Car is not available for this timeslot");
+    }
+
+    private void validateInstructorAvailability(Long instructorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        List<AvailabilitySlot> slots = availabilitySlotRepository.findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(instructorId);
+        checkSlotsFit(slots, date, startTime, endTime, "Instructor is not available for this timeslot");
+    }
+
+    private void checkSlotsFit(List<AvailabilitySlot> slots, LocalDate date, LocalTime startTime, LocalTime endTime, String errorMessage) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        int reqStart = startTime.getHour() * 60 + startTime.getMinute();
+        int reqEnd = endTime.getHour() * 60 + endTime.getMinute();
 
         boolean fits = slots.stream()
                 .filter(slot -> slot.getDayOfWeek() == dayOfWeek && slot.isAvailable())
-                .anyMatch(slot -> {
-                    int slotStart = slot.getStartMinute();
-                    int slotEnd = slot.getEndMinute();
-                    int reqStart = startTime.getHour() * 60 + startTime.getMinute();  
-                    int reqEnd = endTime.getHour() * 60 + endTime.getMinute();        
-                    return reqStart >= slotStart && reqEnd <= slotEnd;
-                });
+                .anyMatch(slot -> reqStart >= slot.getStartMinute() && reqEnd <= slot.getEndMinute());
 
         if (!fits) {
-            throw new IllegalArgumentException("Car is not available for this timeslot");
+            throw new IllegalArgumentException(errorMessage);
         }
     }
 
     private void validateNoOverlap(Long carId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         List<Booking> existingBookings = bookingRepository.findActiveBookingsByCarAndDate(carId, date);
-
-        int reqStart = startTime.getHour() * 60 + startTime.getMinute();
-        int reqEnd = endTime.getHour() * 60 + endTime.getMinute();
-
-        boolean hasOverlap = existingBookings.stream().anyMatch(b -> {
-            int bStart = b.getStartTime().getHour() * 60 + b.getStartTime().getMinute();
-            int bEnd = bStart + (b.getDuration() * 60);
-            return reqStart < bEnd && reqEnd > bStart;
-        });
-
-        if (hasOverlap) {
-            throw new IllegalArgumentException("This timeslot overlaps with an existing booking");
-        }
-    }
-
-    private void validateInstructorAvailability(Long instructorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
-        List<AvailabilitySlot> slots = availabilitySlotRepository.findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(instructorId);
-
-        boolean fits = slots.stream()
-                .filter(slot -> slot.getDayOfWeek() == dayOfWeek && slot.isAvailable())
-                .anyMatch(slot -> {
-                    int slotStart = slot.getStartMinute();
-                    int slotEnd = slot.getEndMinute();
-                    int reqStart = startTime.getHour() * 60 + startTime.getMinute();  
-                    int reqEnd = endTime.getHour() * 60 + endTime.getMinute();        
-                    return reqStart >= slotStart && reqEnd <= slotEnd;
-                });
-
-        if (!fits) {
-            throw new IllegalArgumentException("Instructor is not available for this timeslot");
-        }
+        checkNoOverlap(existingBookings, startTime, endTime);
     }
 
     private void validateInstructorNoOverlap(Long instructorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         List<Booking> existingBookings = bookingRepository.findActiveBookingsByInstructorAndDate(instructorId, date);
+        checkNoOverlap(existingBookings, startTime, endTime);
+    }
 
+    private void checkNoOverlap(List<Booking> existingBookings, LocalTime startTime, LocalTime endTime) {
         int reqStart = startTime.getHour() * 60 + startTime.getMinute();
         int reqEnd = endTime.getHour() * 60 + endTime.getMinute();
 
