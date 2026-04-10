@@ -13,14 +13,12 @@ import {
 import './AnalyticsPage.css';
 
 const STAT_LABELS: Record<string, string> = {
-  activeUsers: 'Active Users',
-  activeCars: 'Active Cars',
-  activeInstructors: 'Active Instructors',
+  totalSpent: 'Total Money Spent',
+  totalRevenue: 'Total Money Earned',
+  totalEarned: 'Total Money Earned',
   totalBookings: 'Total Bookings',
-  totalRevenue: 'Total Revenue',
-  totalSpent: 'Total Spent',
-  totalTimeSpentMinutes: 'Time Spent (Mins)',
-  totalEarned: 'Total Earned',
+  totalDrivingMinutes: 'Time Spent Driving',
+  totalLearningMinutes: 'Time Spent Learning',
 };
 
 const CHART_TITLES: Record<string, string> = {
@@ -30,6 +28,12 @@ const CHART_TITLES: Record<string, string> = {
   timeWithInstructor: 'Time Spent with Instructors',
   bookingsByCar: 'Bookings by Car',
 };
+
+function formatMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = Math.round(totalMinutes % 60);
+  return `${hours}h${mins.toString().padStart(2, '0')}`;
+}
 
 export default function AnalyticsPage() {
   const { isAuthenticated, role } = useAuth();
@@ -128,6 +132,15 @@ export default function AnalyticsPage() {
     .slice(0, 5);
   const maxServiceLatency = slowestEndpoints.length > 0 ? slowestEndpoints[0].avgLatencyMs : 0;
 
+  const STAT_ORDER = [
+    'totalSpent',
+    'totalRevenue',
+    'totalEarned',
+    'totalBookings',
+    'totalDrivingMinutes',
+    'totalLearningMinutes'
+  ];
+
   return (
     <div className="analytics-page">
       <section className="analytics-card">
@@ -169,16 +182,23 @@ export default function AnalyticsPage() {
         {!loading && dashboard && (
           <>
             <div className="analytics-stats-grid">
-              {Object.entries(dashboard.stats).map(([key, value]) => (
-                <div className="analytics-stat-card" key={key}>
-                  <div className="analytics-stat-label">{STAT_LABELS[key] || key}</div>
-                  <div className="analytics-stat-value">
-                    {key.toLowerCase().includes('revenue') || key.toLowerCase().includes('spent') || key.toLowerCase().includes('earned')
-                      ? `$${Number(value).toFixed(2)}`
-                      : String(value)}
-                  </div>
-                </div>
-              ))}
+              {STAT_ORDER
+                .filter(key => dashboard.stats[key] !== undefined)
+                .map(key => {
+                  const value = dashboard.stats[key];
+                  return (
+                    <div className="analytics-stat-card" key={key}>
+                      <div className="analytics-stat-label">{STAT_LABELS[key]}</div>
+                      <div className="analytics-stat-value">
+                        {key === 'totalDrivingMinutes' || key === 'totalLearningMinutes'
+                          ? formatMinutes(Number(value))
+                          : (key.toLowerCase().includes('revenue') || key.toLowerCase().includes('spent') || key.toLowerCase().includes('earned'))
+                            ? `$${Number(value).toFixed(2)}`
+                            : String(value)}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="analytics-charts-grid">
@@ -235,7 +255,7 @@ export default function AnalyticsPage() {
                         <div key={`${chartKey}-${label}`}>
                           <div className="analytics-chart-item-header">
                             <span>{label}</span>
-                            <span>{count}</span>
+                            <span>{chartKey === 'timeWithInstructor' ? formatMinutes(Number(count)) : count}</span>
                           </div>
                           <div className="analytics-chart-bar-container">
                             <div className="analytics-chart-bar" style={{ width: `${(count / maxVal) * 100}%`, background: '#818cf8' }} />
