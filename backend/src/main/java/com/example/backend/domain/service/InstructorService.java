@@ -22,11 +22,10 @@ public class InstructorService {
 
         return allInstructors.stream()
                 .filter(instructor -> {
-                    // Filter by distance: check if user is within instructor's travel radius
-                    if (lat != null && lng != null) {
-                        if (instructor.getLatitude() == null || instructor.getLongitude() == null) return false;
-                        double dist = GeoUtils.calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
-                        if (dist > instructor.getTravelRadius()) return false;
+                    // Filter by distance: check if user is within requested search radius
+                    if (lat != null && lng != null && searchRadius != null) {
+                        double dist = calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
+                        if (dist > searchRadius) return false;
                     }
                     // Filter by min price if provided
                     if (minPrice != null && instructor.getHourlyRate() < minPrice) {
@@ -73,7 +72,6 @@ public class InstructorService {
                 instructor.getId(),
                 instructor.getFullName(),
                 instructor.getHourlyRate(),
-                instructor.getTravelRadius(),
                 instructor.getRating(),
                 instructor.getLatitude(),
                 instructor.getLongitude()

@@ -28,7 +28,8 @@ interface VehicleSidebarProps {
   onRetry: () => void;
   onFormOpen?: (car: CarData | null, purpose?: 'search' | 'vehicle' | 'instructor') => void;
   onFormClose?: () => void;
-  onLocationChange?: (loc: DraftLocation) => void;
+  onLocationChange?: (loc: DraftLocation | null) => void;
+  userLocation?: { lat: number; lng: number; address?: string } | null;
 }
 
 const DAYS: DayName[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -76,8 +77,8 @@ export default function VehicleSidebar({
   error,
   selectedCarId,
   draftLocation,
-  searchCenter,
-  searchRadius = 5,
+  searchCenter: _searchCenter,
+  searchRadius = 50,
   onSearchRadiusChange,
   onAddVehicle,
   onSetVehicleAvailability,
@@ -88,6 +89,7 @@ export default function VehicleSidebar({
   onFormOpen,
   onFormClose,
   onLocationChange,
+  userLocation,
 }: VehicleSidebarProps) {
   type AvailabilityReturnState = {
     view: 'list' | 'form';
@@ -109,7 +111,6 @@ export default function VehicleSidebar({
   const [transmissionType, setTransmissionType] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(50);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
 
@@ -150,18 +151,6 @@ export default function VehicleSidebar({
     }
   }, [mode, formOpen, editingCar, onFormOpen, onFormClose]);
 
-  // Sync userLocation with persistent searchCenter from MapPage
-  useEffect(() => {
-    if (mode === 'search' && searchCenter) {
-      setUserLocation(searchCenter);
-    }
-  }, [mode, searchCenter]);
-
-  useEffect(() => {
-    if (mode === 'search' && showFilters && draftLocation) {
-      setUserLocation(draftLocation);
-    }
-  }, [mode, showFilters, draftLocation]);
 
   useEffect(() => {
     if (selectedCarId == null) return;
@@ -268,11 +257,7 @@ export default function VehicleSidebar({
     setSearchKey(prev => prev + 1);
     
     // Mimic exact events from the X button
-    const clearedLoc = { ...(draftLocation || { lat: 0, lng: 0 }), address: '' };
-    setUserLocation(clearedLoc);
-    onLocationChange?.(clearedLoc);
-    
-    setUserLocation(null);
+    onLocationChange?.(null);
     onClearSearch?.();
   };
 
@@ -305,7 +290,7 @@ export default function VehicleSidebar({
       minPrice: minPrice || undefined,
       maxPrice: maxPrice === 50 ? undefined : maxPrice,
       isAvailable: true,
-      radius: (userLocation && userLocation.address) ? searchRadius : undefined,
+      radius: (userLocation && userLocation.address) ? (searchRadius >= 50 ? undefined : searchRadius) : undefined,
       lat: (userLocation && userLocation.address) ? userLocation.lat : undefined,
       lng: (userLocation && userLocation.address) ? userLocation.lng : undefined,
       dayOfWeek,
@@ -355,13 +340,15 @@ export default function VehicleSidebar({
         </h2>
         <div className="vehicle-sidebar__header-actions">
           {mode === 'search' && (
-            <button 
-              className="vehicle-sidebar__header-btn" 
-              onClick={() => setShowFilters(!showFilters)}
-              title={showFilters ? 'Show vehicles' : 'Edit filters'}
-            >
-              {showFilters ? 'Vehicles' : 'Filters'}
-            </button>
+            <>
+              <button
+                className="vehicle-sidebar__header-btn"
+                onClick={() => setShowFilters(!showFilters)}
+                title={showFilters ? 'Show vehicles' : 'Edit filters'}
+              >
+                {showFilters ? 'Vehicles' : 'Filters'}
+              </button>
+            </>
           )}
           {mode === 'manage' && (
             <button className="vehicle-sidebar__add-btn" onClick={handleAdd}>
@@ -476,11 +463,10 @@ export default function VehicleSidebar({
             initialAddress={userLocation?.address || ''}
             draftLocation={showFilters ? (draftLocation || null) : (userLocation ? { lat: userLocation.lat, lng: userLocation.lng, address: userLocation.address || '' } : null)}
             onLocationChange={(loc) => {
-              setUserLocation(loc);
               onLocationChange?.(loc);
             }}
             onClear={() => {
-              setUserLocation(null);
+              onLocationChange?.(null);
               onClearSearch?.();
             }}
             label="Search Center"
@@ -490,7 +476,7 @@ export default function VehicleSidebar({
           <div className="vehicle-sidebar__filter-group">
             <div className="vehicle-sidebar__price-label">
               <span className="vehicle-sidebar__filter-label">Search Radius</span>
-              <span className="vehicle-sidebar__price-current">{searchRadius} km</span>
+              <span className="vehicle-sidebar__price-current">{searchRadius >= 50 ? 'Unlimited' : `${searchRadius} km`}</span>
             </div>
             <div className="vehicle-sidebar__price-slider">
               <div className="vehicle-sidebar__price-slider-track" />

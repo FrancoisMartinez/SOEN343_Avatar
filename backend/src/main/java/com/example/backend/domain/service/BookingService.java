@@ -91,14 +91,16 @@ public class BookingService {
 
             // Strategy Pattern: delegate pricing to the selected strategy
             PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(request.getPricingStrategy());
-            totalCost = pricingStrategy.calculatePrice(car, request.getDuration(), date, startTime);
-        } else if (request.getInstructorId() != null) {
+            totalCost += pricingStrategy.calculatePrice(car, request.getDuration(), date, startTime);
+        }
+        
+        if (request.getInstructorId() != null) {
             instructor = instructorRepository.findById(request.getInstructorId())
                     .orElseThrow(() -> new IllegalArgumentException("Instructor not found"));
             validateInstructorAvailability(instructor.getId(), date, startTime, endTime);
             validateInstructorNoOverlap(instructor.getId(), date, startTime, endTime);
             
-            totalCost = instructor.getHourlyRate() * request.getDuration();
+            totalCost += instructor.getHourlyRate() * request.getDuration();
         }
 
         Booking booking = new Booking();

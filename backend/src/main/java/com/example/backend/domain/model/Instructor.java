@@ -6,7 +6,6 @@ import java.util.List;
 @Entity
 public class Instructor extends User {
     private int yearsLicensed;
-    private double travelRadius;
     private double rating;
     private int ratingCount;
     private double hourlyRate;
@@ -24,9 +23,6 @@ public class Instructor extends User {
 
     public int getYearsLicensed() { return yearsLicensed; }
     public void setYearsLicensed(int yearsLicensed) { this.yearsLicensed = yearsLicensed; }
-
-    public double getTravelRadius() { return travelRadius; }
-    public void setTravelRadius(double travelRadius) { this.travelRadius = travelRadius; }
 
     public double getRating() { return rating; }
     public void setRating(double rating) { this.rating = rating; }
