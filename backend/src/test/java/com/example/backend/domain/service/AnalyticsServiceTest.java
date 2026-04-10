@@ -278,4 +278,188 @@ class AnalyticsServiceTest {
         assertEquals(0L, dto.getStats().get("totalBookings"));
         assertEquals(0.0, dto.getStats().get("totalSpent"));
     }
+
+    // --- Additional coverage ---
+
+    @Test
+    void adminDashboardComputesDrivingAndLearningMinutes() {
+        Learner learner = createLearner("Alice");
+        learner.setId(1L);
+        Car car = createCar(1L, "Toyota");
+        Instructor instructor = createInstructor("Bob");
+
+        Booking carBooking = createBooking(car, learner, null, 100.0, 2);
+        Booking instructorBooking = createBooking(null, learner, instructor, 80.0, 3);
+
+        when(bookingRepository.findAll()).thenReturn(List.of(carBooking, instructorBooking));
+        when(carRepository.findAll()).thenReturn(List.of(car));
+        when(userRepository.findAll()).thenReturn(List.of(learner, instructor));
+
+        DashboardAnalyticsDTO dto = analyticsService.getAdminDashboard();
+
+        assertEquals(120L, dto.getStats().get("totalDrivingMinutes")); // 2 * 60
+        assertEquals(180L, dto.getStats().get("totalLearningMinutes")); // 3 * 60
+    }
+
+    @Test
+    void adminDashboardChartsHandleNullRelationships() {
+        Learner learner = createLearner("Alice");
+        Booking noCarBooking = createBooking(null, learner, null, 50.0, 1);
+
+        when(bookingRepository.findAll()).thenReturn(List.of(noCarBooking));
+        when(carRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findAll()).thenReturn(List.of(learner));
+
+        DashboardAnalyticsDTO dto = analyticsService.getAdminDashboard();
+        assertTrue(dto.getCharts().get("usageByCarType").isEmpty());
+    }
+
+    @Test
+    void learnerDashboardComputesDrivingAndLearningMinutes() {
+        Car car = createCar(1L, "Toyota");
+        Learner learner = createLearner("Alice");
+        Instructor instructor = createInstructor("Bob");
+
+        Booking carBooking = createBooking(car, learner, null, 100.0, 2);
+        Booking instructorBooking = createBooking(null, learner, instructor, 80.0, 1);
+
+        when(bookingRepository.findByLearnerIdOrderByDateDesc(1L)).thenReturn(List.of(carBooking, instructorBooking));
+
+        DashboardAnalyticsDTO dto = analyticsService.getLearnerDashboard(1L);
+        assertEquals(120L, dto.getStats().get("totalDrivingMinutes"));
+        assertEquals(60L, dto.getStats().get("totalLearningMinutes"));
+        assertEquals(180L, dto.getStats().get("totalTimeSpentMinutes")); // (2+1)*60
+    }
+
+    @Test
+    void providerDashboardComputesDrivingAndLearningMinutes() {
+        Car car = createCar(1L, "BMW");
+        Learner learner = createLearner("Alice");
+        Instructor instructor = createInstructor("Jane");
+        Booking b = createBooking(car, learner, instructor, 200.0, 4);
+
+        when(carRepository.findByProviderId(10L)).thenReturn(List.of(car));
+        when(bookingRepository.findByProviderIdOrderByDateDesc(10L)).thenReturn(List.of(b));
+
+        DashboardAnalyticsDTO dto = analyticsService.getProviderDashboard(10L);
+        assertEquals(240L, dto.getStats().get("totalDrivingMinutes"));
+        assertEquals(240L, dto.getStats().get("totalLearningMinutes"));
+    }
+
+    @Test
+    void providerDashboardHandlesEmptyData() {
+        when(carRepository.findByProviderId(10L)).thenReturn(List.of());
+        when(bookingRepository.findByProviderIdOrderByDateDesc(10L)).thenReturn(List.of());
+
+        DashboardAnalyticsDTO dto = analyticsService.getProviderDashboard(10L);
+        assertEquals(0L, dto.getStats().get("totalBookings"));
+        assertEquals(0.0, dto.getStats().get("totalRevenue"));
+    }
+
+    @Test
+    void instructorDashboardComputesDrivingAndLearningMinutes() {
+        Learner learner = createLearner("Alice");
+        Car car = createCar(1L, "Tesla");
+        Instructor instructor = createInstructor("Jane");
+        Booking b = createBooking(car, learner, instructor, 120.0, 2);
+
+        when(bookingRepository.findByInstructorIdOrderByDateDesc(5L)).thenReturn(List.of(b));
+
+        DashboardAnalyticsDTO dto = analyticsService.getInstructorDashboard(5L);
+        assertEquals(120L, dto.getStats().get("totalDrivingMinutes"));
+        assertEquals(120L, dto.getStats().get("totalLearningMinutes"));
+        assertEquals(120L, dto.getStats().get("totalTimeSpentMinutes"));
+    }
+
+    @Test
+    void instructorDashboardHandlesEmptyData() {
+        when(bookingRepository.findByInstructorIdOrderByDateDesc(5L)).thenReturn(List.of());
+
+        DashboardAnalyticsDTO dto = analyticsService.getInstructorDashboard(5L);
+        assertEquals(0L, dto.getStats().get("totalBookings"));
+        assertEquals(0.0, dto.getStats().get("totalEarned"));
+    }
+
+    @Test
+    void carUtilizationComputesUtilizationPercentage() {
+        Car car = createCar(1L, "Toyota");
+        Booking b = new Booking();
+        b.setDuration(84); // Half of 168 hours
+        b.setTotalCost(1000.0);
+        b.setDate(LocalDate.of(2026, 4, 10));
+        b.setStartTime(LocalTime.of(8, 0));
+
+        when(carRepository.findAll()).thenReturn(List.of(car));
+        when(bookingRepository.findByCarId(1L)).thenReturn(List.of(b));
+
+        AnalyticsResponseDTO dto = analyticsService.getCarUtilizationAnalytics();
+
+        assertEquals(50.0, dto.getCarUtilizations().get(0).getUtilizationPercentage());
+    }
+
+    @Test
+    void carUtilizationWithNoBookingsReturnsZeroMetrics() {
+        Car car = createCar(1L, "Toyota");
+
+        when(carRepository.findAll()).thenReturn(List.of(car));
+        when(bookingRepository.findByCarId(1L)).thenReturn(List.of());
+
+        AnalyticsResponseDTO dto = analyticsService.getCarUtilizationAnalytics();
+
+        assertEquals(0, dto.getCarUtilizations().get(0).getTotalBookings());
+        assertEquals(0, dto.getCarUtilizations().get(0).getTotalBookingHours());
+        assertEquals(0.0, dto.getCarUtilizations().get(0).getUtilizationPercentage());
+    }
+
+    @Test
+    void carUtilizationByProviderWithDateRange() {
+        Car car = createCar(1L, "Honda");
+
+        Booking inRange = new Booking();
+        inRange.setDuration(2);
+        inRange.setTotalCost(100.0);
+        inRange.setDate(LocalDate.of(2026, 4, 10));
+        inRange.setStartTime(LocalTime.of(10, 0));
+
+        when(carRepository.findByProviderId(10L)).thenReturn(List.of(car));
+        when(bookingRepository.findByCarId(1L)).thenReturn(List.of(inRange));
+
+        LocalDateTime start = LocalDateTime.of(2026, 4, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 4, 30, 23, 59);
+
+        AnalyticsResponseDTO dto = analyticsService.getCarUtilizationAnalyticsByProvider(10L, start, end);
+        assertEquals(1, dto.getCarUtilizations().get(0).getTotalBookings());
+    }
+
+    @Test
+    void carUtilizationByProviderNoDateRange() {
+        Car car = createCar(1L, "Honda");
+        when(carRepository.findByProviderId(10L)).thenReturn(List.of(car));
+        when(bookingRepository.findByCarId(1L)).thenReturn(List.of());
+
+        AnalyticsResponseDTO dto = analyticsService.getCarUtilizationAnalyticsByProvider(10L);
+        assertEquals(0, dto.getCarUtilizations().get(0).getTotalBookings());
+    }
+
+    @Test
+    void adminDashboardTopInstructorsChart() {
+        Learner learner = createLearner("Alice");
+        Instructor instructor = createInstructor("Jane");
+        Booking b = createBooking(null, learner, instructor, 80.0, 1);
+
+        when(bookingRepository.findAll()).thenReturn(List.of(b));
+        when(carRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findAll()).thenReturn(List.of(learner, instructor));
+
+        DashboardAnalyticsDTO dto = analyticsService.getAdminDashboard();
+        assertEquals(1, dto.getCharts().get("topInstructors").get("Jane").intValue());
+    }
+
+    @Test
+    void validateDateRangeAllowsBothNull() {
+        when(carRepository.findAll()).thenReturn(List.of());
+        // Should not throw
+        AnalyticsResponseDTO dto = analyticsService.getCarUtilizationAnalytics(null, null);
+        assertNotNull(dto);
+    }
 }
