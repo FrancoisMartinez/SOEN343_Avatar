@@ -23,9 +23,11 @@ public class InstructorService {
         return allInstructors.stream()
                 .filter(instructor -> {
                     // Filter by distance: check if user is within requested search radius
-                    if (lat != null && lng != null && searchRadius != null) {
+                    if (lat != null && lng != null) {
+                        if (instructor.getLatitude() == null || instructor.getLongitude() == null) return false;
                         double dist = GeoUtils.calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
-                        if (dist > searchRadius) return false;
+                        double radius = (searchRadius != null) ? searchRadius : 50.0;
+                        if (dist > radius) return false;
                     }
                     // Filter by min price if provided
                     if (minPrice != null && instructor.getHourlyRate() < minPrice) {

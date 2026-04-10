@@ -153,7 +153,7 @@ class BookingServiceTest {
 
     @Test
     void createCarBookingSuccessfully() {
-        // 2027-06-15 is a Monday
+        // 2027-06-15 is a Tuesday
         BookingRequest req = createCarBookingRequest(1L, 1L, "2027-06-15", "10:00", 2);
         req.setPricingStrategy("STANDARD");
 
@@ -191,7 +191,7 @@ class BookingServiceTest {
 
     @Test
     void createInstructorBookingSuccessfully() {
-        // 2027-06-16 is a Tuesday
+        // 2027-06-16 is a Wednesday
         BookingRequest req = createInstructorBookingRequest(5L, 1L, "2027-06-16", "14:00", 1);
 
         Learner learner = createLearner(1L, 500.0);
@@ -200,7 +200,7 @@ class BookingServiceTest {
         when(learnerRepository.findById(1L)).thenReturn(Optional.of(learner));
         when(instructorRepository.findById(5L)).thenReturn(Optional.of(instructor));
         when(availabilitySlotRepository.findByInstructorIdOrderByDayOfWeekAscStartMinuteAsc(5L))
-                .thenReturn(List.of(createSlot(DayOfWeek.TUESDAY, 720, 1080))); // 12:00-18:00
+                .thenReturn(List.of(createSlot(DayOfWeek.WEDNESDAY, 720, 1080))); // 12:00-18:00
         when(bookingRepository.findActiveBookingsByInstructorAndDate(eq(5L), any())).thenReturn(List.of());
 
         Booking savedBooking = new Booking();
@@ -241,7 +241,7 @@ class BookingServiceTest {
         when(learnerRepository.findById(1L)).thenReturn(Optional.of(createLearner(1L, 500.0)));
         when(carRepository.findById(1L)).thenReturn(Optional.of(createCar(1L, 50.0)));
         when(availabilitySlotRepository.findByCarIdOrderByDayOfWeekAscStartMinuteAsc(1L))
-                .thenReturn(List.of(createSlot(DayOfWeek.MONDAY, 480, 1080)));
+                .thenReturn(List.of(createSlot(DayOfWeek.TUESDAY, 480, 1080)));
 
         // Existing booking from 9:00-11:00 overlaps with 10:00-12:00
         Booking existing = new Booking();
