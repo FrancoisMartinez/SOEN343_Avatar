@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { geocodeAddress, reverseGeocode, type GeocodingResult } from '../services/geocodingService';
 import { getDirections, type JourneyLeg, type RouteResult, type TransportMode } from '../services/routeService';
 import AddressSearchField from './AddressSearchField';
@@ -227,7 +225,6 @@ export default function NavigationPanel({ onRoute, onClear, navigateTo }: Readon
   };
 
   const canGetDirections = !!fromCoords && !!toCoords && !loading;
-  const { role } = useAuth();
 
   return (
     <div className="nav-panel">

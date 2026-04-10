@@ -37,6 +37,10 @@ export default function ReservationCard({
   const showCancelBtn = !readOnly && (isPending || booking.status === 'CONFIRMED') && onCancel;
 
   const getTitle = () => {
+    if (booking.carName && booking.instructorName) {
+      if (isInstructorView && booking.learnerName) return `Class with ${booking.learnerName}`;
+      return `Class with ${booking.instructorName} in ${booking.carName}`;
+    }
     if (booking.carName) return booking.carName;
     if (isInstructorView && booking.learnerName) return `Class with ${booking.learnerName}`;
     if (booking.instructorName) return `Class with ${booking.instructorName}`;
@@ -59,6 +63,12 @@ export default function ReservationCard({
           <div className="reservation-card__detail">
             <span className="reservation-card__label">Learner</span>
             <span className="reservation-card__value">{booking.learnerName}</span>
+          </div>
+        )}
+        {booking.carName && booking.instructorName && (
+          <div className="reservation-card__detail">
+            <span className="reservation-card__label">Car</span>
+            <span className="reservation-card__value">{booking.carName}</span>
           </div>
         )}
         <div className="reservation-card__detail">

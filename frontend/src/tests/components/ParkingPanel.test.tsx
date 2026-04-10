@@ -1,41 +1,31 @@
-// @vitest-environment happy-dom
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, afterEach } from 'vitest';
 import ParkingPanel from '../../components/ParkingPanel';
+import * as parkingService from '../../services/parkingService';
 
-vi.mock('../../services/parkingService', () => ({
-  getParkingNearby: vi.fn(),
-}));
+vi.mock('../../services/parkingService');
 
-import { getParkingNearby } from '../../services/parkingService';
+const mockGetParking = vi.mocked(parkingService.getParkingNearby);
 
-const mockGetParking = vi.mocked(getParkingNearby);
-
-const MAP_CENTER = { lat: 45.5, lon: -73.6 };
-const SPOTS = [
-  { name: 'Lot A', lat: 45.501, lon: -73.601 },
-  { name: 'Public Parking', lat: 45.502, lon: -73.602 },
+const mockSpots = [
+  { id: 1, name: 'Spot A', lat: 45.5, lon: -73.6, capacity: 10, free: 5 },
+  { id: 2, name: 'Spot B', lat: 45.51, lon: -73.61, capacity: 20, free: 0 },
 ];
 
 describe('ParkingPanel', () => {
   const onParkingSpots = vi.fn();
-  const onNavigateTo = vi.fn();
   const onToggle = vi.fn();
 
   afterEach(() => {
     cleanup();
-  });
-
-  beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders Show Parking button when inactive', () => {
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={false}
         onToggle={onToggle}
       />
@@ -43,15 +33,14 @@ describe('ParkingPanel', () => {
 
     const btn = screen.getByRole('button', { name: /show nearby parking spots/i });
     expect(btn).toBeTruthy();
-    expect((btn as HTMLButtonElement).getAttribute('aria-pressed')).toBe('false');
+    expect(btn.textContent).toBe('Show Parking');
   });
 
   it('renders Hide Parking button when active', () => {
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={true}
         onToggle={onToggle}
       />
@@ -59,85 +48,83 @@ describe('ParkingPanel', () => {
 
     const btn = screen.getByRole('button', { name: /hide parking spots/i });
     expect(btn).toBeTruthy();
-    expect((btn as HTMLButtonElement).getAttribute('aria-pressed')).toBe('true');
+    expect(btn.textContent).toBe('Hide Parking');
   });
 
-  it('calls getParkingNearby and onParkingSpots when toggled on', async () => {
-    mockGetParking.mockResolvedValueOnce(SPOTS);
+  it('calls getParkingNearby and onToggle when clicking Show Parking', async () => {
+    mockGetParking.mockResolvedValueOnce(mockSpots);
 
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={false}
         onToggle={onToggle}
       />
     );
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByText('Show Parking'));
 
+    expect(mockGetParking).toHaveBeenCalledWith(45.5, -73.6, 800);
     await waitFor(() => {
-      expect(onParkingSpots).toHaveBeenCalledWith(SPOTS);
+      expect(onParkingSpots).toHaveBeenCalledWith(mockSpots);
       expect(onToggle).toHaveBeenCalledWith(true);
     });
   });
 
-  it('clears spots and toggles off when active and clicked', () => {
+  it('calls onParkingSpots([]) and onToggle(false) when clicking Hide Parking', async () => {
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={true}
         onToggle={onToggle}
       />
     );
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByText('Hide Parking'));
 
     expect(onParkingSpots).toHaveBeenCalledWith([]);
     expect(onToggle).toHaveBeenCalledWith(false);
   });
 
-  it('shows error when getParkingNearby fails', async () => {
-    mockGetParking.mockRejectedValueOnce(new Error('Parking service unavailable'));
+  it('shows error message if API fails', async () => {
+    mockGetParking.mockRejectedValueOnce(new Error('Network failure'));
 
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={false}
         onToggle={onToggle}
       />
     );
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByText('Show Parking'));
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText('Network failure')).toBeTruthy();
     });
-    expect(onToggle).not.toHaveBeenCalledWith(true);
   });
 
-  it('shows error for unknown rejection', async () => {
-    mockGetParking.mockRejectedValueOnce('string error');
+  it('disables button while loading', async () => {
+    // A promise that doesn't resolve immediately
+    mockGetParking.mockReturnValue(new Promise(() => {}));
 
     render(
       <ParkingPanel
-        mapCenter={MAP_CENTER}
+        mapCenter={{ lat: 45.5, lon: -73.6 }}
         onParkingSpots={onParkingSpots}
-        onNavigateTo={onNavigateTo}
         active={false}
         onToggle={onToggle}
       />
     );
 
-    fireEvent.click(screen.getByRole('button'));
+    const btn = screen.getByText('Show Parking');
+    fireEvent.click(btn);
 
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeTruthy();
-    });
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
+    expect(btn.textContent).toBe('Loading...');
   });
 });

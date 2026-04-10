@@ -44,7 +44,6 @@ export default function ProfilePage() {
           email: data.email ?? '',
           latitude: data.latitude ?? undefined,
           longitude: data.longitude ?? undefined,
-          travelRadius: data.travelRadius ?? undefined,
           hourlyRate: data.hourlyRate ?? undefined,
         });
         if (data.latitude && data.longitude) {
@@ -73,7 +72,6 @@ export default function ProfilePage() {
         email: profile.email ?? '',
         latitude: profile.latitude ?? undefined,
         longitude: profile.longitude ?? undefined,
-        travelRadius: profile.travelRadius ?? undefined,
         hourlyRate: profile.hourlyRate ?? undefined,
       });
       if (profile.latitude && profile.longitude) {
@@ -217,22 +215,6 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <span className="profile-field-value">{profile.hourlyRate != null ? `$${profile.hourlyRate.toFixed(2)}/hr` : '\u2014'}</span>
-                )}
-              </div>
-
-              <div className="profile-field">
-                <label className="profile-field-label">Travel Radius (km)</label>
-                {editing ? (
-                  <input
-                    className="profile-input"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={form.travelRadius ?? ''}
-                    onChange={(e) => handleChange('travelRadius', e.target.value ? Number(e.target.value) : undefined)}
-                  />
-                ) : (
-                  <span className="profile-field-value">{profile.travelRadius != null ? `${profile.travelRadius} km` : '\u2014'}</span>
                 )}
               </div>
 

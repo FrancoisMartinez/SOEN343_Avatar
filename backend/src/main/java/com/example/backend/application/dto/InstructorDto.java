@@ -4,7 +4,6 @@ public class InstructorDto {
     private Long id;
     private String fullName;
     private Double hourlyRate;
-    private Double travelRadius;
     private Double rating;
     private Double latitude;
     private Double longitude;
@@ -12,11 +11,10 @@ public class InstructorDto {
     public InstructorDto() {
     }
 
-    public InstructorDto(Long id, String fullName, Double hourlyRate, Double travelRadius, Double rating, Double latitude, Double longitude) {
+    public InstructorDto(Long id, String fullName, Double hourlyRate, Double rating, Double latitude, Double longitude) {
         this.id = id;
         this.fullName = fullName;
         this.hourlyRate = hourlyRate;
-        this.travelRadius = travelRadius;
         this.rating = rating;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -46,14 +44,6 @@ public class InstructorDto {
         this.hourlyRate = hourlyRate;
     }
 
-    public Double getTravelRadius() {
-        return travelRadius;
-    }
-
-    public void setTravelRadius(Double travelRadius) {
-        this.travelRadius = travelRadius;
-    }
-
     public Double getRating() {
         return rating;
     }
@@ -64,7 +54,7 @@ public class InstructorDto {
 
     public Double getLatitude() {
         return latitude;
-    }
+  }
 
     public void setLatitude(Double latitude) {
         this.latitude = latitude;

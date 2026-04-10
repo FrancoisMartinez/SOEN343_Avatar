@@ -156,6 +156,41 @@ function convertLocalTimeToUtc(localTime: string): string {
 }
 
 /**
+ * Intersects two sets of local availability windows to find overlapping times.
+ */
+function intersectLocalWindows(
+  windowsA: LocalAvailabilityWindow[],
+  windowsB: LocalAvailabilityWindow[]
+): LocalAvailabilityWindow[] {
+  const result: LocalAvailabilityWindow[] = [];
+
+  for (const day of DAY_ORDER) {
+    const dayA = windowsA.filter(w => w.dayOfWeek === day);
+    const dayB = windowsB.filter(w => w.dayOfWeek === day);
+
+    for (const wa of dayA) {
+      for (const wb of dayB) {
+        // Actually, let's use a more robust min/max
+        const start = Math.max(parseTimeToMinutes(wa.startTime), parseTimeToMinutes(wb.startTime));
+        const end = Math.min(
+          parseTimeToMinutes(wa.endTime === '24:00' ? '24:00' : wa.endTime),
+          parseTimeToMinutes(wb.endTime === '24:00' ? '24:00' : wb.endTime)
+        );
+
+        if (start < end) {
+          result.push({
+            dayOfWeek: day,
+            startTime: minutesToTime(start),
+            endTime: end === 1440 ? '24:00' : minutesToTime(end),
+          });
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/**
  * BookingPanel: Displays a booking form when a learner wants to book a car.
  * Shows availability (converted to local time), lets user pick date/time/duration,
  * validates the selection, and submits.
@@ -183,30 +218,42 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
 
     const loadSlots = async () => {
       try {
-        let utcSlots: AvailabilitySlot[];
-        if (instructor) {
+        let carUtcSlots: AvailabilitySlot[] = [];
+        let instructorUtcSlots: AvailabilitySlot[] = [];
+
+        // Fetch car availability if present
+        if (car?.id) {
+          carUtcSlots = await fetchCarAvailability(car.id);
+        }
+
+        // Fetch instructor availability if present
+        if (instructor?.id) {
           const res = await fetchInstructorAvailability(instructor.id);
-          utcSlots = res.slots.map(s => ({ ...s, dayOfWeek: s.dayOfWeek as any }));
-        } else if (car) {
-          utcSlots = await fetchCarAvailability(car.id!);
-        } else {
-          utcSlots = [];
+          instructorUtcSlots = res.slots.map(s => ({ ...s, dayOfWeek: s.dayOfWeek as any }));
         }
 
         if (cancelled) return;
-        const localWindows = convertUtcSlotsToLocal(utcSlots);
-        setSlots(localWindows);
-        
-        const entityIdStr = instructor ? `Instructor ${instructor.id}` : `Car ${car?.id}`;
-        if (localWindows.length === 0 && utcSlots.length > 0) {
-          console.warn(`[BookingPanel] ${entityIdStr} has ${utcSlots.length} UTC slots but 0 local windows after conversion`);
+
+        let finalLocalWindows: LocalAvailabilityWindow[] = [];
+
+        if (car?.id && instructor?.id) {
+          // Both: Intersect their local availability windows
+          const carLocal = convertUtcSlotsToLocal(carUtcSlots);
+          const instructorLocal = convertUtcSlotsToLocal(instructorUtcSlots);
+          finalLocalWindows = intersectLocalWindows(carLocal, instructorLocal);
+        } else if (car?.id) {
+          finalLocalWindows = convertUtcSlotsToLocal(carUtcSlots);
+        } else if (instructor?.id) {
+          finalLocalWindows = convertUtcSlotsToLocal(instructorUtcSlots);
         }
-        if (utcSlots.length === 0) {
-          console.warn(`[BookingPanel] ${entityIdStr} has no availability slots in the database`);
+
+        setSlots(finalLocalWindows);
+
+        if (finalLocalWindows.length === 0 && (carUtcSlots.length > 0 || instructorUtcSlots.length > 0)) {
+          console.warn(`[BookingPanel] Entity combination has UTC slots but 0 local windows after conversion/intersection`);
         }
       } catch (err) {
-        const entityIdStr = instructor ? `Instructor ${instructor.id}` : `Car ${car?.id}`;
-        console.error(`[BookingPanel] Failed to fetch availability for ${entityIdStr}:`, err);
+        console.error(`[BookingPanel] Failed to fetch availability:`, err);
         if (!cancelled) {
           setSlots([]);
           setFetchError('Could not load availability. Please try again.');
@@ -243,7 +290,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
         if (dateStr === todayStr) {
           const daySlots = slots.filter(s => s.dayOfWeek === dayName);
           const hasFutureSlot = daySlots.some(s => {
-            const slotEnd = parseTimeToMinutes(s.endTime);
+            const slotEnd = parseTimeToMinutes(s.endTime === '24:00' ? '24:00' : s.endTime);
             return slotEnd > minMinuteToday;
           });
           if (!hasFutureSlot) continue;
@@ -267,7 +314,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
     const times: string[] = [];
     for (const slot of daySlots) {
       const startMin = parseTimeToMinutes(slot.startTime);
-      const endMin = parseTimeToMinutes(slot.endTime);
+      const endMin = parseTimeToMinutes(slot.endTime === '24:00' ? '24:00' : slot.endTime);
       
       // Start from the later of slot start or min lead time
       const effectiveStart = Math.max(startMin, minMinute);
@@ -305,7 +352,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
 
     const fits = daySlots.some((slot) => {
       const slotStart = parseTimeToMinutes(slot.startTime);
-      const slotEnd = parseTimeToMinutes(slot.endTime);
+      const slotEnd = parseTimeToMinutes(slot.endTime === '24:00' ? '24:00' : slot.endTime);
       return reqStart >= slotStart && reqEnd <= slotEnd;
     });
 
@@ -315,9 +362,10 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
     return { valid: true, message: '' };
   }, [selectedDate, selectedTime, duration, slots]);
 
-  const entityName = instructor ? instructor.fullName : car?.makeModel;
-  const entityRate = instructor ? instructor.hourlyRate : (car?.hourlyRate || 0);
-  const totalCost = duration * entityRate;
+  const carRate = car?.hourlyRate || 0;
+  const instructorRate = instructor?.hourlyRate || 0;
+  const totalRate = carRate + instructorRate;
+  const totalCost = duration * totalRate;
 
   const handleBook = async () => {
     if (!validation.valid || !userId) return;
@@ -353,13 +401,26 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
   return (
     <div className="booking-panel">
       <div className="booking-panel__header">
-        <h3 className="booking-panel__title">Book {entityName}</h3>
+        <h3 className="booking-panel__title">
+          {car && instructor ? 'Book Pair' : (instructor ? 'Book Instructor' : 'Book Car')}
+        </h3>
         <button className="booking-panel__close-btn" onClick={onClose}>&times;</button>
       </div>
 
       {/* Info summary */}
       <div className="booking-panel__car-info">
-        {instructor ? (
+        {car && instructor ? (
+          <>
+            <div className="booking-panel__info-row">
+              <span className="booking-panel__label">Car</span>
+              <span>{car.makeModel}</span>
+            </div>
+            <div className="booking-panel__info-row">
+              <span className="booking-panel__label">Instructor</span>
+              <span>{instructor.fullName}</span>
+            </div>
+          </>
+        ) : instructor ? (
           <>
             <div className="booking-panel__info-row">
               <span className="booking-panel__label">Instructor</span>
@@ -385,8 +446,8 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
           </>
         )}
         <div className="booking-panel__info-row">
-          <span className="booking-panel__label">Hourly Rate</span>
-          <span className="booking-panel__rate">${entityRate.toFixed(2)}/hr</span>
+          <span className="booking-panel__label">Combined Rate</span>
+          <span className="booking-panel__rate">${totalRate.toFixed(2)}/hr</span>
         </div>
       </div>
 
@@ -475,7 +536,7 @@ export default function BookingPanel({ car, instructor, onClose, onBooked }: Boo
           <span className="booking-panel__label">Total Cost</span>
           <span className="booking-panel__cost-value">${totalCost.toFixed(2)}</span>
           <span className="booking-panel__cost-breakdown">
-            ({duration}h x ${entityRate.toFixed(2)}/hr)
+            ({duration}h x ${totalRate.toFixed(2)}/hr)
           </span>
         </div>
       </div>

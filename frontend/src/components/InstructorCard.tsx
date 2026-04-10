@@ -33,10 +33,6 @@ export default function InstructorCard({ instructor, isSelected, onLocate, cardR
           <span className="vehicle-card__label">Rate</span>
           <span className="vehicle-card__value">${instructor.hourlyRate?.toFixed(2) ?? '0.00'}/hr</span>
         </div>
-        <div className="vehicle-card__detail">
-          <span className="vehicle-card__label">Max Range</span>
-          <span className="vehicle-card__value">{instructor.travelRadius} km</span>
-        </div>
         {instructor.rating != null && (
           <div className="vehicle-card__detail">
             <span className="vehicle-card__label">Rating</span>

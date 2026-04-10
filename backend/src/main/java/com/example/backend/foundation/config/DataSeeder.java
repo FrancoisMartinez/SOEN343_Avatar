@@ -39,7 +39,6 @@ public class DataSeeder {
                 instructor1.setPassword(passwordEncoder.encode("password123"));
                 instructor1.setLatitude(45.5017);
                 instructor1.setLongitude(-73.5673);
-                instructor1.setTravelRadius(10.0);
                 instructor1.setHourlyRate(25.0);
                 instructor1.setRating(4.8);
                 userRepository.save(instructor1);
@@ -50,7 +49,6 @@ public class DataSeeder {
                 instructor2.setPassword(passwordEncoder.encode("password123"));
                 instructor2.setLatitude(45.5088);
                 instructor2.setLongitude(-73.5540);
-                instructor2.setTravelRadius(5.0);
                 instructor2.setHourlyRate(20.0);
                 instructor2.setRating(4.5);
                 userRepository.save(instructor2);
@@ -61,7 +59,6 @@ public class DataSeeder {
                 instructor3.setPassword(passwordEncoder.encode("password123"));
                 instructor3.setLatitude(45.4500);
                 instructor3.setLongitude(-73.6500);
-                instructor3.setTravelRadius(25.0);
                 instructor3.setHourlyRate(30.0);
                 instructor3.setRating(4.9);
                 userRepository.save(instructor3);
@@ -91,8 +88,8 @@ public class DataSeeder {
                 car1.setMakeModel("Honda Civic");
                 car1.setTransmissionType("Automatic");
                 car1.setLocation("Downtown Montreal");
-                car1.setLatitude(45.5017);
-                car1.setLongitude(-73.5673);
+                car1.setLatitude(45.5020);
+                car1.setLongitude(-73.5680);
                 car1.setAvailable(true);
                 car1.setHourlyRate(15.0);
                 car1.setProvider(carProvider);
@@ -101,8 +98,8 @@ public class DataSeeder {
                 car2.setMakeModel("Toyota Corolla");
                 car2.setTransmissionType("Manual");
                 car2.setLocation("Old Port Montreal");
-                car2.setLatitude(45.5088);
-                car2.setLongitude(-73.5540);
+                car2.setLatitude(45.5090);
+                car2.setLongitude(-73.5550);
                 car2.setAvailable(true);
                 car2.setHourlyRate(12.0);
                 car2.setProvider(carProvider);

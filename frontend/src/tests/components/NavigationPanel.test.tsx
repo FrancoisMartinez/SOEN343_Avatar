@@ -22,11 +22,9 @@ vi.mock('../../contexts/AuthContext', () => ({
 
 import { geocodeAddress } from '../../services/geocodingService';
 import { getDirections } from '../../services/routeService';
-import { useAuth } from '../../contexts/AuthContext';
 
 const mockGeocode = vi.mocked(geocodeAddress);
 const mockGetDirections = vi.mocked(getDirections);
-const mockUseAuth = vi.mocked(useAuth);
 
 const PLACE_A = { lat: 45.5, lon: -73.6, displayName: 'Montreal, QC' };
 const PLACE_B = { lat: 45.51, lon: -73.59, displayName: 'Laval, QC' };
@@ -45,7 +43,7 @@ const BUS_RESULT = {
   durationMin: 17,
   mode: 'BUS' as const,
   legs: [
-    { type: 'WALK' as const, lineLabel: null, transportMode: null, fromStop: null, toStop: null, durationMin: 5, polyline: [] },
+    { type: 'WALK' as const, lineLabel: undefined, transportMode: undefined, fromStop: undefined, toStop: undefined, durationMin: 5, polyline: [] },
     { type: 'TRANSIT' as const, lineLabel: '24', transportMode: 'bus', fromStop: 'Bus Stop Guy', toStop: 'Berri-UQAM', durationMin: 12, polyline: [] },
   ],
 };

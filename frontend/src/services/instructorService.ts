@@ -6,7 +6,6 @@ export interface Instructor {
   email: string;
   latitude: number;
   longitude: number;
-  travelRadius: number;
   hourlyRate: number;
   rating?: number; // Added rating field if it exists
 }
