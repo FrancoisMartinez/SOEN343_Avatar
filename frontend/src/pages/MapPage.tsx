@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import MapComponent from '../components/MapComponent';
 import VehicleSidebar from '../components/VehicleSidebar';
+import InstructorSidebar from '../components/InstructorSidebar';
 import InstructorSearchSidebar from '../components/InstructorSearchSidebar';
 import AutoMatchPanel from '../components/AutoMatchPanel';
 import NavigationPanel from '../components/NavigationPanel';
@@ -24,6 +25,7 @@ export default function MapPage() {
   const { userId, role, isAuthenticated } = useAuth();
   const isCarProvider = role === 'CAR_PROVIDER';
   const isLearner = role === 'LEARNER';
+  const isInstructor = role === 'INSTRUCTOR';
 
   const [serviceType, setServiceType] = useState<ServiceType>(isCarProvider ? 'car' : 'car');
   const [vehicles, setVehicles] = useState<CarData[]>([]);
@@ -275,7 +277,8 @@ export default function MapPage() {
             </div>
           )}
           <div className="sidebar-content">
-            {serviceType === 'car' && (
+            {isInstructor && <InstructorSidebar />}
+            {!isInstructor && serviceType === 'car' && (
               <VehicleSidebar
                 mode={isCarProvider ? 'manage' : 'search'}
                 vehicles={vehicles}
@@ -297,7 +300,7 @@ export default function MapPage() {
                 onAutoMatchSelect={handleAutoMatchSelect}
               />
             )}
-            {serviceType === 'class' && (
+            {!isInstructor && serviceType === 'class' && (
               <InstructorSearchSidebar
                 instructors={instructors}
                 loading={loading}
@@ -314,7 +317,7 @@ export default function MapPage() {
                 onLocationChange={handleLocationChange}
               />
             )}
-            {serviceType === 'package' && (
+            {!isInstructor && serviceType === 'package' && (
               <AutoMatchPanel
                 userLocation={userLocation}
                 onClose={() => setServiceType('car')}
