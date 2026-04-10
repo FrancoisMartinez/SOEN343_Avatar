@@ -40,7 +40,7 @@ class InstructorControllerTest {
 
     @Test
     void searchInstructorsReturnsResults() throws Exception {
-        InstructorDto dto = new InstructorDto(1L, "Jane Doe", 50.0, 10.0, 4.5, 45.5, -73.6);
+        InstructorDto dto = new InstructorDto(1L, "Jane Doe", 50.0, 4.5, 45.5, -73.6);
         when(instructorService.searchInstructors(any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(dto));
 

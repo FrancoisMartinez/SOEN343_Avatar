@@ -37,7 +37,6 @@ class UserFactoryTest {
         assertInstanceOf(Instructor.class, user);
         Instructor instructor = (Instructor) user;
         assertEquals(0.0, instructor.getRating());
-        assertEquals(10.0, instructor.getTravelRadius());
     }
 
     @Test

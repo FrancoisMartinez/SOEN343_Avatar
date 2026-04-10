@@ -31,7 +31,6 @@ class InstructorServiceTest {
         i.setId(id);
         i.setFullName(name);
         i.setHourlyRate(rate);
-        i.setTravelRadius(radius);
         i.setRating(4.5);
         i.setLatitude(lat);
         i.setLongitude(lng);
@@ -199,7 +198,6 @@ class InstructorServiceTest {
         assertEquals(1L, dto.getId());
         assertEquals("Jane Doe", dto.getFullName());
         assertEquals(55.0, dto.getHourlyRate());
-        assertEquals(15.0, dto.getTravelRadius());
         assertEquals(4.5, dto.getRating());
     }
 }

@@ -24,7 +24,7 @@ public class InstructorService {
                 .filter(instructor -> {
                     // Filter by distance: check if user is within requested search radius
                     if (lat != null && lng != null && searchRadius != null) {
-                        double dist = calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
+                        double dist = GeoUtils.calculateDistance(instructor.getLatitude(), instructor.getLongitude(), lat, lng);
                         if (dist > searchRadius) return false;
                     }
                     // Filter by min price if provided

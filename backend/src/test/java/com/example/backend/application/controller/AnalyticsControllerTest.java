@@ -8,6 +8,7 @@ import com.example.backend.foundation.analytics.EndpointMetricsSummary;
 import com.example.backend.foundation.analytics.ServiceMetricsAggregator;
 import com.example.backend.infrastructure.security.JwtUtil;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -45,39 +46,10 @@ class AnalyticsControllerTest {
     private ApiRequestMetricsStore apiRequestMetricsStore;
 
     private Claims createClaims(Long userId, String role) {
-        return new Claims() {
-            private final java.util.Map<String, Object> data = new java.util.HashMap<>(java.util.Map.of("sub", userId.toString(), "role", role));
-
-            @Override public String getSubject() { return userId.toString(); }
-            @Override public <T> T get(String key, Class<T> type) { return type.cast(data.get(key)); }
-            @Override public Object get(Object key) { return data.get(key); }
-
-            // Required Map/Claims methods with defaults
-            @Override public String getIssuer() { return null; }
-            @Override public Claims setIssuer(String s) { return this; }
-            @Override public String getAudience() { return null; }
-            @Override public Claims setAudience(String s) { return this; }
-            @Override public Claims setSubject(String s) { return this; }
-            @Override public java.util.Date getExpiration() { return null; }
-            @Override public Claims setExpiration(java.util.Date d) { return this; }
-            @Override public java.util.Date getNotBefore() { return null; }
-            @Override public Claims setNotBefore(java.util.Date d) { return this; }
-            @Override public java.util.Date getIssuedAt() { return null; }
-            @Override public Claims setIssuedAt(java.util.Date d) { return this; }
-            @Override public String getId() { return null; }
-            @Override public Claims setId(String s) { return this; }
-            @Override public int size() { return data.size(); }
-            @Override public boolean isEmpty() { return data.isEmpty(); }
-            @Override public boolean containsKey(Object key) { return data.containsKey(key); }
-            @Override public boolean containsValue(Object value) { return data.containsValue(value); }
-            @Override public Object put(String key, Object value) { return data.put(key, value); }
-            @Override public Object remove(Object key) { return data.remove(key); }
-            @Override public void putAll(java.util.Map<? extends String, ?> m) { data.putAll(m); }
-            @Override public void clear() { data.clear(); }
-            @Override public java.util.Set<String> keySet() { return data.keySet(); }
-            @Override public java.util.Collection<Object> values() { return data.values(); }
-            @Override public java.util.Set<java.util.Map.Entry<String, Object>> entrySet() { return data.entrySet(); }
-        };
+        return Jwts.claims()
+                .subject(userId.toString())
+                .add("role", role)
+                .build();
     }
 
     @Test

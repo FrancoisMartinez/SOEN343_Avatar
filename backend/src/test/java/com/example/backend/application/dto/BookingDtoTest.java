@@ -155,12 +155,11 @@ class BookingDtoTest {
 
     @Test
     void instructorDtoConstructorAndGetters() {
-        InstructorDto dto = new InstructorDto(1L, "Jane", 50.0, 10.0, 4.5, 45.5, -73.6);
+        InstructorDto dto = new InstructorDto(1L, "Jane", 50.0, 4.5, 45.5, -73.6);
 
         assertEquals(1L, dto.getId());
         assertEquals("Jane", dto.getFullName());
         assertEquals(50.0, dto.getHourlyRate());
-        assertEquals(10.0, dto.getTravelRadius());
         assertEquals(4.5, dto.getRating());
         assertEquals(45.5, dto.getLatitude());
         assertEquals(-73.6, dto.getLongitude());
@@ -172,7 +171,6 @@ class BookingDtoTest {
         dto.setId(2L);
         dto.setFullName("Bob");
         dto.setHourlyRate(60.0);
-        dto.setTravelRadius(15.0);
         dto.setRating(3.8);
         dto.setLatitude(40.0);
         dto.setLongitude(-74.0);
